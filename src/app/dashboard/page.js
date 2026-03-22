@@ -213,7 +213,7 @@ export default function DashboardPage() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="label">Desa / Kelurahan</label>
+                  <label className="label">Desa</label>
                   <input className="input" placeholder="cth: Ds. Sukamaju" value={form.desa} onChange={e => setForm({...form, desa: e.target.value})} required />
                 </div>
                 <div className="form-group">
