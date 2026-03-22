@@ -1,0 +1,83 @@
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { readSheet, SHEETS } from '@/lib/sheets';
+import { NextResponse } from 'next/server';
+
+export async function GET(req) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const kelompok_id = searchParams.get('kelompok_id');
+  const mode = searchParams.get('mode') || 'bulan'; // hari | minggu | bulan
+  const nilai = searchParams.get('nilai'); // tanggal / nomor minggu / bulan (YYYY-MM)
+
+  const [absensiAll, muridAll, kelompokAll] = await Promise.all([
+    readSheet(SHEETS.ABSENSI),
+    readSheet(SHEETS.MURID),
+    readSheet(SHEETS.KELOMPOK),
+  ]);
+
+  // Filter absensi berdasar kelompok & periode
+  let absensi = absensiAll.filter(a => a.kelompok_id === kelompok_id);
+
+  if (mode === 'hari' && nilai) {
+    absensi = absensi.filter(a => a.tanggal === nilai);
+  } else if (mode === 'minggu' && nilai) {
+    // nilai format: YYYY-WW (tahun-minggu)
+    absensi = absensi.filter(a => {
+      const d = new Date(a.tanggal);
+      const week = getWeekNumber(d);
+      return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
+    });
+  } else if (mode === 'bulan' && nilai) {
+    // nilai format: YYYY-MM
+    absensi = absensi.filter(a => a.tanggal.startsWith(nilai));
+  }
+
+  const murid = muridAll.filter(m => m.kelompok_id === kelompok_id);
+
+  // Hitung rekap per murid
+  const rekapMurid = murid.map(m => {
+    const absMurid = absensi.filter(a => a.murid_id === m.id);
+    const hadir  = absMurid.filter(a => a.status === 'Hadir').length;
+    const alfa   = absMurid.filter(a => a.status === 'Alfa').length;
+    const izin   = absMurid.filter(a => a.status === 'Izin').length;
+    const sakit  = absMurid.filter(a => a.status === 'Sakit').length;
+    const total  = hadir + alfa + izin + sakit;
+    const persen = total > 0 ? Math.round((hadir / total) * 100) : 0;
+    return {
+      murid_id: m.id,
+      nama: m.nama_murid,
+      hadir, alfa, izin, sakit, total,
+      persen_hadir: persen,
+    };
+  });
+
+  // Hitung rekap global kelompok
+  const totalHadir = rekapMurid.reduce((s, m) => s + m.hadir, 0);
+  const totalSesi  = rekapMurid.reduce((s, m) => s + m.total, 0);
+  const persenGlobal = totalSesi > 0 ? Math.round((totalHadir / totalSesi) * 100) : 0;
+
+  // Daftar tanggal sesi yang direkam
+  const tanggalSet = [...new Set(absensi.map(a => a.tanggal))].sort();
+
+  return NextResponse.json({
+    kelompok_id,
+    mode,
+    nilai,
+    total_sesi: tanggalSet.length,
+    tanggal_sesi: tanggalSet,
+    persen_global: persenGlobal,
+    rekap_murid: rekapMurid,
+  });
+}
+
+// Hitung nomor minggu dalam tahun (ISO)
+function getWeekNumber(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
