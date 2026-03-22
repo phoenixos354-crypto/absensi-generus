@@ -162,19 +162,17 @@ export default function SetupPage() {
       <div className="container page">
 
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', gap:'.75rem', marginBottom:'1.5rem', flexWrap:'wrap' }}>
-          <button className="btn btn-outline btn-sm" onClick={() => router.push('/dashboard')}>
+        <div style={{ marginBottom:'1.25rem' }}>
+          <button className="btn btn-outline btn-sm" style={{ marginBottom:'.75rem' }} onClick={() => router.push('/dashboard')}>
             ← Kembali
           </button>
-          <div>
-            <h1 className="page-title">
-              <span>{tk.icon}</span> {kelompok.nama_kelompok}
-            </h1>
-            <div style={{ display:'flex', gap:'.5rem', marginTop:'.3rem', flexWrap:'wrap' }}>
-              <span className={`badge ${tk.cls}`}>{tk.label}</span>
-              <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok.desa}</span>
-              <span className="badge" style={{ background:'#f0fdf4', color:'#166534' }}>🗺 {kelompok.daerah}</span>
-            </div>
+          <h1 className="page-title" style={{ marginBottom:'.4rem' }}>
+            {tk.icon} {kelompok.nama_kelompok}
+          </h1>
+          <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
+            <span className={`badge ${tk.cls}`}>{tk.label}</span>
+            <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok.desa}</span>
+            <span className="badge" style={{ background:'#f0fdf4', color:'#166534' }}>🗺 {kelompok.daerah}</span>
           </div>
         </div>
 
