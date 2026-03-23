@@ -162,19 +162,17 @@ export default function SetupPage() {
       <div className="container page">
 
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', gap:'.75rem', marginBottom:'1.5rem', flexWrap:'wrap' }}>
-          <button className="btn btn-outline btn-sm" onClick={() => router.push('/dashboard')}>
+        <div style={{ marginBottom:'1.25rem' }}>
+          <button className="btn btn-outline btn-sm" style={{ marginBottom:'.75rem' }} onClick={() => router.push('/dashboard')}>
             ← Kembali
           </button>
-          <div>
-            <h1 className="page-title">
-              <span>{tk.icon}</span> {kelompok.nama_kelompok}
-            </h1>
-            <div style={{ display:'flex', gap:'.5rem', marginTop:'.3rem', flexWrap:'wrap' }}>
-              <span className={`badge ${tk.cls}`}>{tk.label}</span>
-              <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok.desa}</span>
-              <span className="badge" style={{ background:'#f0fdf4', color:'#166534' }}>🗺 {kelompok.daerah}</span>
-            </div>
+          <h1 className="page-title" style={{ marginBottom:'.4rem' }}>
+            {tk.icon} {kelompok.nama_kelompok}
+          </h1>
+          <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
+            <span className={`badge ${tk.cls}`}>{tk.label}</span>
+            <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok.desa}</span>
+            <span className="badge" style={{ background:'#f0fdf4', color:'#166534' }}>🗺 {kelompok.daerah}</span>
           </div>
         </div>
 
@@ -344,17 +342,20 @@ export default function SetupPage() {
 
         {/* Tombol lanjut ke absensi */}
         {murid.length > 0 && hariPilih.length > 0 && (
-          <div style={{ marginTop:'1.5rem', textAlign:'center' }}>
-            <div className="card card-emas" style={{ display:'inline-block', padding:'1.5rem 2.5rem' }}>
+          <div style={{ marginTop:'1.5rem' }}>
+            <div className="card card-emas" style={{ padding:'1.25rem' }}>
               <p style={{ marginBottom:'1rem', fontWeight:600 }}>
                 ✅ Kelompok siap! {murid.length} murid · {hariPilih.length} hari/minggu
               </p>
-              <div style={{ display:'flex', gap:'1rem', justifyContent:'center', flexWrap:'wrap' }}>
-                <button className="btn btn-hijau" onClick={() => router.push(`/absensi/${kelompokId}`)}>
-                  ✅ Mulai Absensi Sekarang
+              <div style={{ display:'flex', gap:'.75rem', flexWrap:'wrap' }}>
+                <button className="btn btn-hijau btn-full" onClick={() => router.push(`/absensi/${kelompokId}`)}>
+                  ✅ Mulai Absensi
                 </button>
-                <button className="btn btn-outline" onClick={() => router.push(`/rekap/${kelompokId}`)}>
+                <button className="btn btn-outline btn-full" onClick={() => router.push(`/rekap/${kelompokId}`)}>
                   📊 Lihat Rekap
+                </button>
+                <button className="btn btn-outline btn-full" onClick={() => router.push(`/admin/${kelompokId}`)}>
+                  👥 Kelola Admin
                 </button>
               </div>
             </div>

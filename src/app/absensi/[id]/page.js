@@ -128,34 +128,32 @@ export default function AbsensiPage() {
       <Navbar />
       <div className="container page">
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', gap:'.75rem', marginBottom:'1.5rem', flexWrap:'wrap' }}>
-          <button className="btn btn-outline btn-sm" onClick={() => router.push('/dashboard')}>← Kembali</button>
-          <div>
-            <h1 className="page-title">
-              <span>✅</span> Absensi — {kelompok.nama_kelompok}
-            </h1>
-            <div style={{ display:'flex', gap:'.5rem', marginTop:'.3rem', flexWrap:'wrap' }}>
-              <span className={`badge ${tk.cls}`}>{tk.icon} {tk.label}</span>
-              <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok.desa}</span>
-            </div>
+        <div style={{ marginBottom:'1.25rem' }}>
+          <h1 className="page-title" style={{ marginBottom:'.4rem' }}>
+            ✅ {kelompok.nama_kelompok}
+          </h1>
+          <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
+            <span className={`badge ${tk.cls}`}>{tk.icon} {tk.label}</span>
+            <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok.desa}</span>
           </div>
         </div>
 
         {/* Pilih tanggal + summary */}
-        <div className="card" style={{ marginBottom:'1.5rem' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'1rem', flexWrap:'wrap', marginBottom:'1.25rem' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'.5rem' }}>
-              <label className="label" style={{ margin:0 }}>📅 Tanggal:</label>
-              <input
-                type="date"
-                className="input"
-                style={{ width:'auto' }}
-                value={tanggal}
-                onChange={e => setTanggal(e.target.value)}
-              />
-            </div>
-            <div style={{ display:'flex', gap:'.5rem', flexWrap:'wrap' }}>
-              <span style={{ fontSize:'.82rem', color:'var(--teks-soft)' }}>Set semua:</span>
+        <div className="card" style={{ marginBottom:'1.25rem' }}>
+          {/* Tanggal */}
+          <div className="form-group" style={{ marginBottom:'.75rem' }}>
+            <label className="label">📅 Tanggal Absensi</label>
+            <input
+              type="date"
+              className="input"
+              value={tanggal}
+              onChange={e => setTanggal(e.target.value)}
+            />
+          </div>
+          {/* Set semua */}
+          <div style={{ marginBottom:'.75rem' }}>
+            <div style={{ fontSize:'.8rem', color:'var(--teks-soft)', fontWeight:600, marginBottom:'.4rem' }}>Set semua murid:</div>
+            <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
               {STATUS_LIST.map(s => {
                 const c = STATUS_COLOR[s];
                 return (
@@ -163,12 +161,13 @@ export default function AbsensiPage() {
                     key={s}
                     onClick={() => setAllStatus(s)}
                     style={{
-                      padding:'.3rem .75rem',
+                      padding:'.35rem .75rem',
                       border:`1.5px solid ${c.border}`,
-                      borderRadius:'6px',
+                      borderRadius:'7px',
                       background:'white',
                       color: c.paleText,
                       fontSize:'.78rem', fontWeight:700, cursor:'pointer',
+                      minHeight:'34px',
                     }}
                   >
                     {s} Semua
@@ -179,24 +178,22 @@ export default function AbsensiPage() {
           </div>
 
           {/* Progress bar kehadiran */}
-          <div style={{ display:'flex', alignItems:'center', gap:'1rem', marginBottom:'1rem', flexWrap:'wrap' }}>
-            <div style={{ flex:1, minWidth:'200px' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'.35rem' }}>
-                <span style={{ fontSize:'.82rem', fontWeight:600, color:'var(--teks-soft)' }}>Kehadiran hari ini</span>
-                <span style={{ fontSize:'.82rem', fontWeight:800, color:'var(--hijau)' }}>{persen}%</span>
-              </div>
-              <div className="progress-wrap">
-                <div className="progress-bar" style={{ width:`${persen}%` }} />
-              </div>
+          <div>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'.35rem' }}>
+              <span style={{ fontSize:'.82rem', fontWeight:600, color:'var(--teks-soft)' }}>Kehadiran hari ini</span>
+              <span style={{ fontSize:'.88rem', fontWeight:800, color:'var(--hijau)' }}>{persen}%</span>
             </div>
-            <div style={{ display:'flex', gap:'.5rem', flexWrap:'wrap' }}>
+            <div className="progress-wrap" style={{ marginBottom:'.65rem' }}>
+              <div className="progress-bar" style={{ width:`${persen}%` }} />
+            </div>
+            <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
               {STATUS_LIST.map(s => {
                 const c = STATUS_COLOR[s];
                 return (
                   <div key={s} style={{
                     background: c.pale, color: c.paleText,
-                    padding:'.3rem .7rem', borderRadius:'8px',
-                    fontSize:'.8rem', fontWeight:700,
+                    padding:'.28rem .6rem', borderRadius:'7px',
+                    fontSize:'.78rem', fontWeight:700,
                   }}>
                     {s}: {summary[s]}
                   </div>

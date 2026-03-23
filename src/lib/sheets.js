@@ -21,11 +21,12 @@ export const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 // NAMA SHEET (TAB) DI GOOGLE SHEETS
 // =============================================
 export const SHEETS = {
-  USERS:    'users',
-  KELOMPOK: 'kelompok',
-  MURID:    'murid',
-  JADWAL:   'jadwal',
-  ABSENSI:  'absensi',
+  USERS:          'users',
+  KELOMPOK:       'kelompok',
+  MURID:          'murid',
+  JADWAL:         'jadwal',
+  ABSENSI:        'absensi',
+  ADMIN_KELOMPOK: 'admin_kelompok',
 };
 
 // =============================================
@@ -109,6 +110,10 @@ export async function initializeSheets() {
     {
       name: SHEETS.ABSENSI,
       headers: ['id', 'kelompok_id', 'murid_id', 'tanggal', 'status', 'dicatat_oleh', 'created_at'],
+    },
+    {
+      name: SHEETS.ADMIN_KELOMPOK,
+      headers: ['id', 'kelompok_id', 'email', 'permission', 'invited_by', 'created_at'],
     },
   ];
 

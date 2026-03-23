@@ -32,13 +32,20 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--hijau-muda); border-radius: 3px; }
 
 /* ========= UTILITY ========= */
-.container { max-width: 680px; margin: 0 auto; padding: 0 1rem; }
+.container { max-width: 680px; margin: 0 auto; padding: 0 20px; }
+@media (max-width: 380px) {
+  .container { padding: 0 16px; }
+}
 .card {
   background: var(--putih);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   border: 1px solid var(--batas);
   padding: 1.25rem;
+}
+@media (max-width: 380px) {
+  .card { padding: 1rem .9rem; }
+  .modal-body { padding: 1rem .9rem; }
 }
 .card-emas {
   background: var(--emas-pale);
@@ -195,7 +202,10 @@ body {
 .google-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
 
 /* ========= HALAMAN ========= */
-.page { padding: 1.25rem 0 6rem; }
+.page { padding: 1.5rem 0 6rem; }
+@media (max-width: 380px) {
+  .page { padding: 1.25rem 0 6rem; }
+}
 .page-header { margin-bottom: 1.25rem; }
 .page-title {
   font-size: 1.35rem; font-weight: 800;
@@ -406,3 +416,37 @@ body {
 /* ========= REKAP TABLE — scroll horizontal di mobile ========= */
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+
+/* ========= FIX MOBILE 360px — GLOBAL ========= */
+/* Pastikan semua konten punya ruang napas di HP kecil */
+
+/* Navbar padding */
+@media (max-width: 380px) {
+  .navbar { padding: 0 .75rem; }
+  .navbar-inner { height: 54px; }
+  .navbar-brand { font-size: .92rem; }
+  .navbar-brand .logo-icon { width: 30px; height: 30px; font-size: 1rem; }
+  .navbar-logout { padding: .38rem .65rem; font-size: .78rem; }
+}
+
+/* Form input lebih compact di 360 */
+@media (max-width: 380px) {
+  .input, .select, .textarea { padding: .75rem .85rem; }
+  .btn-sm { padding: .45rem .75rem; font-size: .8rem; min-height: 36px; }
+  .page-title { font-size: 1.15rem; }
+  .stat-value { font-size: 1.25rem; }
+  .stat-card { padding: .85rem .9rem; gap: .65rem; }
+  .stat-icon { width: 38px; height: 38px; font-size: 1.15rem; }
+  .badge { padding: .22rem .55rem; font-size: .73rem; }
+  .bottom-bar { padding: .65rem .75rem; gap: .5rem; }
+  .kelompok-card { padding: .9rem; }
+  .kelompok-nama { font-size: .9rem; }
+}
+
+/* Abs card di 360 */
+@media (max-width: 380px) {
+  .abs-card { padding: .75rem .8rem; gap: .5rem; }
+  .abs-card-nama { font-size: .88rem; }
+  .abs-status-btn { padding: .35rem .5rem; font-size: .73rem; min-height: 34px; }
+  .abs-card-nomor { width: 24px; height: 24px; font-size: .7rem; }
+}

@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
+import { ExportPDF } from '@/components/ExportPDF';
 
 const TINGKATAN_LABEL = {
   caberawit:  { label: 'Caberawit',     cls: 'tk-caberawit', icon: '🌱' },
@@ -127,121 +128,124 @@ export default function RekapPage() {
       <Navbar />
       <div className="container page">
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', gap:'.75rem', marginBottom:'1.5rem', flexWrap:'wrap' }}>
-          <button className="btn btn-outline btn-sm" onClick={() => router.push('/dashboard')}>← Kembali</button>
-          <div>
-            <h1 className="page-title">
-              <span>📊</span> Rekap — {kelompok?.nama_kelompok}
-            </h1>
-            <div style={{ display:'flex', gap:'.5rem', marginTop:'.3rem' }}>
-              <span className={`badge ${tk.cls}`}>{tk.icon} {tk.label}</span>
-              <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok?.desa}</span>
-            </div>
+        <div style={{ marginBottom:'1.25rem' }}>
+          <h1 className="page-title" style={{ marginBottom:'.4rem' }}>
+            📊 {kelompok?.nama_kelompok}
+          </h1>
+          <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
+            <span className={`badge ${tk.cls}`}>{tk.icon} {tk.label}</span>
+            <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok?.desa}</span>
           </div>
         </div>
 
         {/* Filter periode */}
-        <div className="card" style={{ marginBottom:'1.5rem' }}>
-          <div style={{ display:'flex', gap:'.75rem', flexWrap:'wrap', alignItems:'center' }}>
-            <span className="label" style={{ margin:0 }}>Periode:</span>
+        <div className="card" style={{ marginBottom:'1.25rem' }}>
+          <div style={{ display:'flex', gap:'.5rem', marginBottom:'.75rem' }}>
             {['hari','minggu','bulan'].map(m => (
               <button
                 key={m}
                 onClick={() => handleModeChange(m)}
                 className={`btn btn-sm ${mode === m ? 'btn-hijau' : 'btn-outline'}`}
+                style={{ flex:1 }}
               >
-                {m === 'hari' ? '📅 Per Hari' : m === 'minggu' ? '📆 Per Minggu' : '🗓 Per Bulan'}
+                {m === 'hari' ? '📅 Hari' : m === 'minggu' ? '📆 Minggu' : '🗓 Bulan'}
               </button>
             ))}
-
-            {mode === 'hari' && (
-              <input
-                type="date"
-                className="input"
-                style={{ width:'auto' }}
-                value={nilai}
-                onChange={e => setNilai(e.target.value)}
-              />
-            )}
-            {mode === 'minggu' && (
-              <select className="select" style={{ width:'auto' }} value={nilai} onChange={e => setNilai(e.target.value)}>
-                {mingguList.map(w => (
-                  <option key={w.val} value={w.val}>{w.label}</option>
-                ))}
-              </select>
-            )}
-            {mode === 'bulan' && (
-              <select className="select" style={{ width:'auto' }} value={nilai} onChange={e => setNilai(e.target.value)}>
-                {bulanList.map(b => (
-                  <option key={b.val} value={b.val}>{b.label}</option>
-                ))}
-              </select>
-            )}
           </div>
+          {mode === 'hari' && (
+            <input type="date" className="input" value={nilai} onChange={e => setNilai(e.target.value)} />
+          )}
+          {mode === 'minggu' && (
+            <select className="select" value={nilai} onChange={e => setNilai(e.target.value)}>
+              {mingguList.map(w => <option key={w.val} value={w.val}>{w.label}</option>)}
+            </select>
+          )}
+          {mode === 'bulan' && (
+            <select className="select" value={nilai} onChange={e => setNilai(e.target.value)}>
+              {bulanList.map(b => <option key={b.val} value={b.val}>{b.label}</option>)}
+            </select>
+          )}
         </div>
 
         {loadingRekap ? (
           <div className="spinner" />
         ) : rekap ? (
           <>
-            {/* Ringkasan global */}
-            <div className="grid-3" style={{ marginBottom:'1.5rem' }}>
+            {/* Stat ringkas */}
+            <div className="grid-2" style={{ marginBottom:'1rem' }}>
               <div className="stat-card">
                 <div className="stat-icon">📅</div>
-                <div>
-                  <div className="stat-value">{rekap.total_sesi}</div>
-                  <div className="stat-label">Sesi Ngaji</div>
-                </div>
+                <div><div className="stat-value">{rekap.total_sesi}</div><div className="stat-label">Sesi Ngaji</div></div>
               </div>
               <div className="stat-card">
                 <div className="stat-icon">👥</div>
-                <div>
-                  <div className="stat-value">{rekap.rekap_murid?.length || 0}</div>
-                  <div className="stat-label">Total Murid</div>
-                </div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-icon" style={{ background: rekap.persen_global >= 80 ? '#dcfce7' : rekap.persen_global >= 60 ? '#fef9c3' : '#fee2e2' }}>
-                  📈
-                </div>
-                <div>
-                  <div className="stat-value" style={{ color: getPersenColor(rekap.persen_global) }}>
-                    {rekap.persen_global}%
-                  </div>
-                  <div className="stat-label">Kehadiran Global</div>
-                </div>
+                <div><div className="stat-value">{rekap.rekap_murid?.length || 0}</div><div className="stat-label">Total Murid</div></div>
               </div>
             </div>
 
-            {/* Progress global */}
-            <div className="card" style={{ marginBottom:'1.5rem' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'.5rem' }}>
-                <span style={{ fontWeight:700 }}>Rata-rata Kehadiran</span>
-                <span style={{ fontWeight:800, color: getPersenColor(rekap.persen_global) }}>
-                  {rekap.persen_global}%
-                </span>
-              </div>
-              <div className="progress-wrap" style={{ height:'14px' }}>
-                <div
-                  className="progress-bar"
-                  style={{
-                    width:`${rekap.persen_global}%`,
-                    background: rekap.persen_global >= 80
-                      ? 'linear-gradient(90deg,#16a34a,#22c55e)'
-                      : rekap.persen_global >= 60
-                      ? 'linear-gradient(90deg,#ca8a04,#eab308)'
-                      : 'linear-gradient(90deg,#dc2626,#ef4444)',
-                  }}
+            {/* Progress semua status */}
+            {(() => {
+              const totalHadir = rekap.rekap_murid?.reduce((s,m) => s+m.hadir, 0) || 0;
+              const totalIzin  = rekap.rekap_murid?.reduce((s,m) => s+m.izin,  0) || 0;
+              const totalSakit = rekap.rekap_murid?.reduce((s,m) => s+m.sakit, 0) || 0;
+              const totalAlfa  = rekap.rekap_murid?.reduce((s,m) => s+m.alfa,  0) || 0;
+              const totalAll   = totalHadir + totalIzin + totalSakit + totalAlfa;
+              const pH = totalAll > 0 ? Math.round(totalHadir/totalAll*100) : 0;
+              const pI = totalAll > 0 ? Math.round(totalIzin/totalAll*100)  : 0;
+              const pS = totalAll > 0 ? Math.round(totalSakit/totalAll*100) : 0;
+              const pA = totalAll > 0 ? Math.round(totalAlfa/totalAll*100)  : 0;
+              const stats = [
+                { label:'Hadir',  nilai:totalHadir, persen:pH, bg:'#dcfce7', color:'#166534', bar:'#22c55e' },
+                { label:'Izin',   nilai:totalIzin,  persen:pI, bg:'#fef9c3', color:'#854d0e', bar:'#eab308' },
+                { label:'Sakit',  nilai:totalSakit, persen:pS, bg:'#dbeafe', color:'#1e40af', bar:'#3b82f6' },
+                { label:'Alfa',   nilai:totalAlfa,  persen:pA, bg:'#fee2e2', color:'#991b1b', bar:'#ef4444' },
+              ];
+              return (
+                <div className="card" style={{ marginBottom:'1.25rem' }}>
+                  <div style={{ fontWeight:700, marginBottom:'1rem', fontSize:'.95rem' }}>
+                    📊 Rekapitulasi Global
+                  </div>
+                  {stats.map(s => (
+                    <div key={s.label} style={{ marginBottom:'.85rem' }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'.3rem' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:'.5rem' }}>
+                          <span style={{ background:s.bg, color:s.color, borderRadius:'6px', padding:'.18rem .55rem', fontSize:'.78rem', fontWeight:700 }}>
+                            {s.label}
+                          </span>
+                          <span style={{ fontSize:'.82rem', color:'var(--teks-soft)' }}>{s.nilai} kali</span>
+                        </div>
+                        <span style={{ fontWeight:800, color:s.color, fontSize:'.92rem' }}>{s.persen}%</span>
+                      </div>
+                      <div className="progress-wrap">
+                        <div style={{ height:'100%', width:`${s.persen}%`, background:s.bar, borderRadius:'99px', transition:'width .4s ease' }} />
+                      </div>
+                    </div>
+                  ))}
+                  {rekap.tanggal_sesi?.length > 0 && (
+                    <p style={{ fontSize:'.78rem', color:'var(--teks-soft)', marginTop:'.5rem' }}>
+                      Sesi: {rekap.tanggal_sesi.map(t => new Date(t).toLocaleDateString('id-ID',{day:'numeric',month:'short'})).join(' · ')}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Tombol Export PDF */}
+            {rekap.rekap_murid?.length > 0 && (
+              <div style={{ marginBottom:'1.25rem' }}>
+                <ExportPDF
+                  kelompok={kelompok}
+                  rekap={rekap}
+                  periode={
+                    mode === 'hari' ? new Date(nilai).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})
+                    : mode === 'minggu' ? `Minggu ${nilai}`
+                    : new Date(nilai+'-01').toLocaleDateString('id-ID',{month:'long',year:'numeric'})
+                  }
                 />
               </div>
-              {rekap.tanggal_sesi?.length > 0 && (
-                <p style={{ fontSize:'.8rem', color:'var(--teks-soft)', marginTop:'.75rem' }}>
-                  Sesi tercatat: {rekap.tanggal_sesi.map(t => new Date(t).toLocaleDateString('id-ID',{day:'numeric',month:'short'})).join(' · ')}
-                </p>
-              )}
-            </div>
+            )}
 
-            {/* Tabel rekap per murid */}
+            {/* Rekap per murid — card style mobile */}
             {rekap.rekap_murid?.length === 0 ? (
               <div className="empty-state card">
                 <div className="icon">📭</div>
@@ -252,83 +256,63 @@ export default function RekapPage() {
                 </button>
               </div>
             ) : (
-              <div className="card" style={{ padding:0, overflow:'hidden' }}>
-                <div style={{ padding:'1rem 1.25rem', borderBottom:'1px solid var(--batas)', fontWeight:700 }}>
-                  📋 Detail Per Murid
+              <div>
+                <div style={{ fontWeight:700, fontSize:'.9rem', marginBottom:'.75rem', color:'var(--teks-soft)' }}>
+                  📋 Detail Per Murid — diurutkan dari kehadiran tertinggi
                 </div>
-                <div style={{ overflowX:'auto' }}>
-                  <table className="abs-table">
-                    <thead>
-                      <tr>
-                        <th>No</th>
-                        <th>Nama Murid</th>
-                        <th style={{ textAlign:'center', background:'#16a34a' }}>Hadir</th>
-                        <th style={{ textAlign:'center', background:'#ca8a04' }}>Izin</th>
-                        <th style={{ textAlign:'center', background:'#2563eb' }}>Sakit</th>
-                        <th style={{ textAlign:'center', background:'#dc2626' }}>Alfa</th>
-                        <th style={{ textAlign:'center' }}>Total</th>
-                        <th style={{ textAlign:'center' }}>Kehadiran</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...rekap.rekap_murid]
-                        .sort((a,b) => b.persen_hadir - a.persen_hadir)
-                        .map((m, i) => (
-                        <tr key={m.murid_id}>
-                          <td style={{ color:'var(--teks-soft)', textAlign:'center' }}>{i+1}</td>
-                          <td style={{ fontWeight:600 }}>{m.nama}</td>
-                          <td style={{ textAlign:'center' }}>
-                            <span className="badge badge-hadir">{m.hadir}</span>
-                          </td>
-                          <td style={{ textAlign:'center' }}>
-                            <span className="badge badge-izin">{m.izin}</span>
-                          </td>
-                          <td style={{ textAlign:'center' }}>
-                            <span className="badge badge-sakit">{m.sakit}</span>
-                          </td>
-                          <td style={{ textAlign:'center' }}>
-                            <span className="badge badge-alfa">{m.alfa}</span>
-                          </td>
-                          <td style={{ textAlign:'center', color:'var(--teks-soft)' }}>{m.total}</td>
-                          <td style={{ minWidth:'120px' }}>
-                            <div style={{ display:'flex', alignItems:'center', gap:'.5rem' }}>
-                              <div style={{ flex:1 }}>
-                                <div className="progress-wrap">
-                                  <div
-                                    className="progress-bar"
-                                    style={{
-                                      width:`${m.persen_hadir}%`,
-                                      background: getPersenColor(m.persen_hadir),
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                              <span style={{
-                                fontSize:'.8rem', fontWeight:800, minWidth:'36px',
-                                color: getPersenColor(m.persen_hadir),
-                              }}>
-                                {m.persen_hadir}%
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {[...rekap.rekap_murid]
+                  .sort((a,b) => b.persen_hadir - a.persen_hadir)
+                  .map((m, i) => (
+                  <div key={m.murid_id} className="card" style={{ marginBottom:'.65rem', padding:'1rem' }}>
+                    {/* Baris atas: nomor + nama + persen */}
+                    <div style={{ display:'flex', alignItems:'center', gap:'.65rem', marginBottom:'.65rem' }}>
+                      <span style={{
+                        width:'28px', height:'28px', flexShrink:0,
+                        background: i < 3 ? 'var(--emas)' : 'var(--hijau)',
+                        color:'white', borderRadius:'50%',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        fontSize:'.75rem', fontWeight:800,
+                      }}>{i+1}</span>
+                      <span style={{ flex:1, fontWeight:700, fontSize:'.95rem' }}>{m.nama}</span>
+                      <span style={{
+                        fontWeight:800, fontSize:'1.05rem',
+                        color: getPersenColor(m.persen_hadir),
+                      }}>{m.persen_hadir}%</span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="progress-wrap" style={{ marginBottom:'.65rem' }}>
+                      <div className="progress-bar" style={{
+                        width:`${m.persen_hadir}%`,
+                        background: m.persen_hadir >= 80
+                          ? 'linear-gradient(90deg,#16a34a,#22c55e)'
+                          : m.persen_hadir >= 60
+                          ? 'linear-gradient(90deg,#ca8a04,#eab308)'
+                          : 'linear-gradient(90deg,#dc2626,#ef4444)',
+                      }} />
+                    </div>
+
+                    {/* Badge status */}
+                    <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
+                      <span className="badge badge-hadir">✅ Hadir: {m.hadir}</span>
+                      <span className="badge badge-izin">📋 Izin: {m.izin}</span>
+                      <span className="badge badge-sakit">🤒 Sakit: {m.sakit}</span>
+                      <span className="badge badge-alfa">❌ Alfa: {m.alfa}</span>
+                      <span className="badge" style={{ background:'#f1f5f9', color:'#475569' }}>
+                        Total: {m.total}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </>
         ) : null}
 
-        {/* Tombol aksi bawah */}
-        <div style={{ display:'flex', gap:'.75rem', marginTop:'1.5rem', flexWrap:'wrap' }}>
-          <button className="btn btn-hijau" onClick={() => router.push(`/absensi/${kelompokId}`)}>
-            ✅ Catat Absensi
-          </button>
-          <button className="btn btn-outline" onClick={() => router.push(`/setup/${kelompokId}`)}>
-            ⚙️ Kelola Kelompok
-          </button>
+        {/* Bottom bar */}
+        <div className="bottom-bar">
+          <button className="btn btn-outline" onClick={() => router.push('/dashboard')}>← Dashboard</button>
+          <button className="btn btn-hijau" onClick={() => router.push(`/absensi/${kelompokId}`)}>✅ Absensi</button>
         </div>
       </div>
     </>

@@ -173,8 +173,15 @@ export default function DashboardPage() {
                     <button className="btn btn-hijau btn-sm" onClick={e => { e.stopPropagation(); router.push(`/absensi/${k.id}`); }}>✅ Absen</button>
                     <button className="btn btn-outline btn-sm" onClick={e => { e.stopPropagation(); router.push(`/rekap/${k.id}`); }}>📊 Rekap</button>
                     <button className="btn btn-outline btn-sm" onClick={e => { e.stopPropagation(); router.push(`/setup/${k.id}`); }}>⚙️ Kelola</button>
-                    <button className="btn btn-sm" style={{ background:'#e0f2fe', color:'#0369a1', border:'none' }} onClick={e => bukaModalEdit(k, e)}>✏️</button>
-                    <button className="btn btn-sm" style={{ background:'#fee2e2', color:'#dc2626', border:'none' }} onClick={e => { e.stopPropagation(); setHapusTarget(k); }}>🗑️</button>
+                    {k.permission === 'owner' && (
+                      <button className="btn btn-sm" style={{ background:'#ede9fe', color:'#5b21b6', border:'none' }} onClick={e => { e.stopPropagation(); router.push(`/admin/${k.id}`); }}>👥 Admin</button>
+                    )}
+                    {k.permission === 'owner' && (
+                      <button className="btn btn-sm" style={{ background:'#e0f2fe', color:'#0369a1', border:'none' }} onClick={e => bukaModalEdit(k, e)}>✏️</button>
+                    )}
+                    {k.permission === 'owner' && (
+                      <button className="btn btn-sm" style={{ background:'#fee2e2', color:'#dc2626', border:'none' }} onClick={e => { e.stopPropagation(); setHapusTarget(k); }}>🗑️</button>
+                    )}
                   </div>
                 </div>
               );
@@ -207,14 +214,14 @@ export default function DashboardPage() {
                   <select className="select" value={form.tingkatan} onChange={e => setForm({...form, tingkatan: e.target.value})}>
                     <option value="caberawit">🌱 Caberawit</option>
                     <option value="praremaja">🌿 Pra Remaja</option>
-                    <option value="remaja font">🍃 Remaja</option>
+                    <option value="remaja">🍃 Remaja</option>
                     <option value="usianikah">🌸 Usia Nikah</option>
                     <option value="kelompok">📖 Ngaji Kelompok</option>
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="label">Desa / Kelurahan</label>
-                  <input className="input" placeholder="cth: Ds. Sukamaju" value={form.desa} onChange={e => setForm({...form, desa: e.target.value})} required />
+                  <label className="label">Desa</label>
+                  <input className="input" placeholder="cth: Sukamaju" value={form.desa} onChange={e => setForm({...form, desa: e.target.value})} required />
                 </div>
                 <div className="form-group">
                   <label className="label">Daerah</label>
