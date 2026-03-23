@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID } from '@/lib/sheets';
+import { readSheet, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID } from '@/lib/sheets';
+import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
 export async function GET(req) {
@@ -9,7 +10,13 @@ export async function GET(req) {
 
   const { searchParams } = new URL(req.url);
   const kelompok_id = searchParams.get('kelompok_id');
-  const tanggal = searchParams.get('tanggal'); // YYYY-MM-DD
+  const tanggal = searchParams.get('tanggal');
+
+  // Cek akses
+  if (kelompok_id) {
+    const perm = await getPermission(session.user.email, kelompok_id);
+    if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
+  }
 
   const absensi = await readSheet(SHEETS.ABSENSI);
   let filtered = absensi;
@@ -23,22 +30,18 @@ export async function POST(req) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // body: { kelompok_id, tanggal, absensi: [{murid_id, status}] }
   const { kelompok_id, tanggal, absensi } = await req.json();
 
-  // Baca absensi yang sudah ada
+  // Cek akses - minimal permission 'absen'
+  const perm = await getPermission(session.user.email, kelompok_id);
+  if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
+  if (perm === 'viewer') return NextResponse.json({ error: 'Anda hanya bisa melihat laporan, tidak bisa absen' }, { status: 403 });
+
   const existing = await readSheet(SHEETS.ABSENSI);
   const tetap = existing.filter(a => !(a.kelompok_id === kelompok_id && a.tanggal === tanggal));
 
-  // Entry baru
   const newEntries = absensi.map(a => [
-    generateId(),
-    kelompok_id,
-    a.murid_id,
-    tanggal,
-    a.status,
-    session.user.email,
-    new Date().toISOString(),
+    generateId(), kelompok_id, a.murid_id, tanggal, a.status, session.user.email, new Date().toISOString(),
   ]);
 
   const headers = ['id', 'kelompok_id', 'murid_id', 'tanggal', 'status', 'dicatat_oleh', 'created_at'];
@@ -49,9 +52,13 @@ export async function POST(req) {
   ];
 
   const sheets = getGoogleSheetsClient();
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEETS.ABSENSI}!A:Z`,
+  });
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.ABSENSI}!A:G`,
+    range: `${SHEETS.ABSENSI}!A1`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: allRows },
   });
