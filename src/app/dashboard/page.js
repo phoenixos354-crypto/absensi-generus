@@ -170,9 +170,16 @@ export default function DashboardPage() {
                     <span>📍 {k.desa}</span><span>🗺 {k.daerah}</span>
                   </div>
                   <div style={{ display:'flex', gap:'.5rem', flexWrap:'wrap' }}>
-                    <button className="btn btn-hijau btn-sm" onClick={e => { e.stopPropagation(); router.push(`/absensi/${k.id}`); }}>✅ Absen</button>
+                    {/* Absen: owner & pengabsen */}
+                    {(k.permission === 'owner' || k.permission === 'absen') && (
+                      <button className="btn btn-hijau btn-sm" onClick={e => { e.stopPropagation(); router.push(`/absensi/${k.id}`); }}>✅ Absen</button>
+                    )}
+                    {/* Rekap: semua bisa lihat */}
                     <button className="btn btn-outline btn-sm" onClick={e => { e.stopPropagation(); router.push(`/rekap/${k.id}`); }}>📊 Rekap</button>
-                    <button className="btn btn-outline btn-sm" onClick={e => { e.stopPropagation(); router.push(`/setup/${k.id}`); }}>⚙️ Kelola</button>
+                    {/* Kelola & Admin: hanya owner */}
+                    {k.permission === 'owner' && (
+                      <button className="btn btn-outline btn-sm" onClick={e => { e.stopPropagation(); router.push(`/setup/${k.id}`); }}>⚙️ Kelola</button>
+                    )}
                     {k.permission === 'owner' && (
                       <button className="btn btn-sm" style={{ background:'#ede9fe', color:'#5b21b6', border:'none' }} onClick={e => { e.stopPropagation(); router.push(`/admin/${k.id}`); }}>👥 Admin</button>
                     )}
