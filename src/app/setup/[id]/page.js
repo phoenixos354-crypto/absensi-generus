@@ -52,6 +52,11 @@ export default function SetupPage() {
     const res = await fetch(`/api/kelompok/${kelompokId}`);
     if (!res.ok) { router.replace('/dashboard'); return; }
     const data = await res.json();
+    // Hanya owner yang boleh akses halaman setup
+    if (data.permission !== 'owner') {
+      router.replace(`/dashboard`);
+      return;
+    }
     setKelompok(data);
     setMurid(data.murid || []);
     setJadwal(data.jadwal || []);
