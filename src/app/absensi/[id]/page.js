@@ -52,6 +52,11 @@ export default function AbsensiPage() {
     const res = await fetch(`/api/kelompok/${kelompokId}`);
     if (!res.ok) { router.replace('/dashboard'); return; }
     const data = await res.json();
+    // Viewer tidak boleh absen
+    if (data.permission === 'viewer') {
+      router.replace(`/rekap/${kelompokId}`);
+      return;
+    }
     setKelompok(data);
     setMurid(data.murid || []);
     setLoading(false);
