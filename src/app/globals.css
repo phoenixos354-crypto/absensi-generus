@@ -414,8 +414,6 @@ body {
   padding-bottom: calc(.75rem + env(safe-area-inset-bottom));
   display: flex; gap: .75rem;
   box-shadow: 0 -4px 20px rgba(0,0,0,.08);
-  margin-left: -20px;
-  margin-right: -20px;
 }
 .bottom-bar .btn { flex: 1; }
 
