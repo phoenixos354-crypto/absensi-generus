@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [hapusing, setHapusing] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardStep, setOnboardStep] = useState(0);
+  const [filterTingkatan, setFilterTingkatan] = useState('semua');
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
@@ -106,6 +107,9 @@ export default function DashboardPage() {
   }
 
   const hariIni = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long' });
+  const kelompokTampil = filterTingkatan === 'semua'
+    ? kelompok
+    : kelompok.filter(k => k.tingkatan === filterTingkatan);
 
   const ONBOARD_STEPS = [
     { icon:'🕌', judul:'Selamat Datang!', isi:'Absensi Generus membantu Anda mencatat kehadiran murid pengajian dengan mudah langsung dari HP.' },
@@ -149,6 +153,51 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Filter Tingkatan */}
+        {kelompok.length > 0 && (
+          <div style={{ display:'flex', gap:'.5rem', flexWrap:'wrap', marginBottom:'1rem' }}>
+            {[
+              { key: 'semua', label: 'Semua', icon: '📋' },
+              ...Object.entries(TINGKATAN_LABEL).map(([key, val]) => ({ key, label: val.label, icon: val.icon }))
+            ].map(({ key, label, icon }) => {
+              const count = key === 'semua' ? kelompok.length : kelompok.filter(k => k.tingkatan === key).length;
+              if (count === 0 && key !== 'semua') return null;
+              const isActive = filterTingkatan === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setFilterTingkatan(key)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '.3rem',
+                    padding: '.35rem .75rem',
+                    borderRadius: '99px',
+                    fontSize: '.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: isActive ? '2px solid var(--hijau)' : '2px solid var(--batas)',
+                    background: isActive ? 'var(--hijau)' : 'var(--kartu)',
+                    color: isActive ? 'white' : 'var(--teks-soft)',
+                    transition: 'all .2s',
+                  }}
+                >
+                  <span>{icon}</span>
+                  <span>{label}</span>
+                  <span style={{
+                    background: isActive ? 'rgba(255,255,255,.25)' : 'var(--batas)',
+                    color: isActive ? 'white' : 'var(--teks-soft)',
+                    borderRadius: '99px',
+                    padding: '0 .4rem',
+                    fontSize: '.72rem',
+                    fontWeight: 700,
+                    minWidth: '1.2rem',
+                    textAlign: 'center',
+                  }}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {kelompok.length === 0 ? (
           <div className="empty-state card">
             <div className="icon">🕌</div>
@@ -158,7 +207,18 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:'.75rem', marginBottom:'5rem' }}>
-            {kelompok.map(k => {
+            {kelompokTampil.length === 0 && (
+              <div style={{ textAlign:'center', padding:'2.5rem 1rem', color:'var(--teks-soft)' }}>
+                <div style={{ fontSize:'2.5rem', marginBottom:'.5rem' }}>
+                  {TINGKATAN_LABEL[filterTingkatan]?.icon || '🔍'}
+                </div>
+                <p style={{ fontWeight:600, marginBottom:'.25rem' }}>
+                  Tidak ada kelompok {TINGKATAN_LABEL[filterTingkatan]?.label}
+                </p>
+                <p style={{ fontSize:'.82rem' }}>Coba pilih tingkatan lain</p>
+              </div>
+            )}
+            {kelompokTampil.map(k => {
               const tk = TINGKATAN_LABEL[k.tingkatan] || TINGKATAN_LABEL.kelompok;
               return (
                 <div key={k.id} className="kelompok-card" onClick={() => router.push(`/absensi/${k.id}`)}>
