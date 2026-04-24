@@ -3,7 +3,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
-import { CatLoading } from '@/components/CatLoading';
+
 
 const TINGKATAN_LABEL = {
   caberawit:  { label: 'Caberawit',     cls: 'tk-caberawit', icon: '🌱' },
