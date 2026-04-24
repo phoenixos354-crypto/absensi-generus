@@ -133,7 +133,7 @@ export default function DashboardPage() {
   ];
 
   if (status === 'loading' || loading) return (
-    <><Navbar /><div className="container page"><CatLoading /></div></>
+    <><Navbar /><div className="container page"><div className="spinner" /></div></>
   );
 
   return (
