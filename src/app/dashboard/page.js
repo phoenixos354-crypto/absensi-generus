@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
+import { CatLoading } from '@/components/CatLoading';
 
 const TINGKATAN_LABEL = {
   caberawit:  { label: 'Caberawit',     cls: 'tk-caberawit', icon: '🌱' },
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardStep, setOnboardStep] = useState(0);
   const [filterTingkatan, setFilterTingkatan] = useState('semua');
+  const [rekapRingkas, setRekapRingkas] = useState({});
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
@@ -50,6 +52,17 @@ export default function DashboardPage() {
     const data = await res.json();
     setKelompok(Array.isArray(data) ? data : []);
     setLoading(false);
+    fetchRekapRingkas();
+  }
+
+  async function fetchRekapRingkas() {
+    try {
+      const res = await fetch('/api/rekap-ringkas');
+      if (res.ok) {
+        const data = await res.json();
+        setRekapRingkas(data);
+      }
+    } catch (e) {}
   }
 
   function bukaModalBaru() {
@@ -120,7 +133,7 @@ export default function DashboardPage() {
   ];
 
   if (status === 'loading' || loading) return (
-    <><Navbar /><div className="container page"><div className="spinner" /></div></>
+    <><Navbar /><div className="container page"><CatLoading /></div></>
   );
 
   return (
@@ -220,14 +233,44 @@ export default function DashboardPage() {
             )}
             {kelompokTampil.map(k => {
               const tk = TINGKATAN_LABEL[k.tingkatan] || TINGKATAN_LABEL.kelompok;
+              const rk = rekapRingkas[k.id];
+              const persen = rk?.persen ?? null;
+              const persenColor = persen === null ? '#94a3b8'
+                : persen >= 80 ? '#16a34a'
+                : persen >= 60 ? '#d97706'
+                : '#dc2626';
               return (
                 <div key={k.id} className="kelompok-card" onClick={() => router.push(`/absensi/${k.id}`)}>
                   <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'.5rem', marginBottom:'.5rem' }}>
                     <span className="kelompok-nama">{tk.icon} {k.nama_kelompok}</span>
                     <span className={`badge ${tk.cls}`} style={{ flexShrink:0 }}>{tk.label}</span>
                   </div>
-                  <div className="kelompok-meta" style={{ marginBottom:'.85rem' }}>
+                  <div className="kelompok-meta" style={{ marginBottom:'.6rem' }}>
                     <span>📍 {k.desa}</span><span>🗺 {k.daerah}</span>
+                  </div>
+
+                  {/* ── Rekap Ringkas Kehadiran ── */}
+                  <div style={{ marginBottom:'.85rem' }} onClick={e => { e.stopPropagation(); router.push(`/rekap/${k.id}`); }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'.3rem' }}>
+                      <span style={{ fontSize:'.75rem', color:'var(--teks-soft)', fontWeight:600 }}>
+                        📊 Kehadiran
+                        {rk ? ` · ${rk.total_sesi} sesi · ${rk.total_murid} murid` : ''}
+                      </span>
+                      <span style={{ fontSize:'.82rem', fontWeight:800, color: persenColor }}>
+                        {persen === null
+                          ? (rk === undefined ? '…' : 'Belum ada data')
+                          : `${persen}%`}
+                      </span>
+                    </div>
+                    <div style={{ background:'var(--batas)', borderRadius:'99px', height:'6px', overflow:'hidden' }}>
+                      <div style={{
+                        width: persen !== null ? `${persen}%` : '0%',
+                        height:'100%',
+                        background: persenColor,
+                        borderRadius:'99px',
+                        transition:'width .6s ease',
+                      }} />
+                    </div>
                   </div>
                   <div style={{ display:'flex', gap:'.5rem', flexWrap:'wrap' }}>
                     {/* Absen: owner & pengabsen */}
