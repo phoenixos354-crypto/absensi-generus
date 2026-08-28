@@ -1,9 +1,11 @@
 'use client';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { Navbar } from '@/components/Navbar';
-
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import useSWR from 'swr';
+import { AppScreen } from '@/components/AppScreen';
+import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, Plus } from 'lucide-react';
+import userAvatar from '@/assets/user-avatar.jpg';
 
 const TINGKATAN_LABEL = {
   caberawit:  { label: 'Caberawit',     cls: 'tk-caberawit', icon: '🌱' },
@@ -15,11 +17,23 @@ const TINGKATAN_LABEL = {
 
 const FORM_KOSONG = { nama_kelompok:'', tingkatan:'caberawit', desa:'', daerah:'' };
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [kelompok, setKelompok] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+
+  // SWR: tampilkan cache instan, revalidate di background
+  const { data: kelompokData, isLoading: loadingKelompok, mutate: mutateKelompok } = useSWR(
+    session ? '/api/kelompok' : null
+  );
+  const { data: rekapRingkasData, mutate: mutateRekapRingkas } = useSWR(
+    session ? '/api/rekap-ringkas' : null
+  );
+
+  const kelompok = Array.isArray(kelompokData) ? kelompokData : [];
+  const rekapRingkas = rekapRingkasData || {};
+  const loading = status === 'loading' || loadingKelompok;
+
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [form, setForm] = useState(FORM_KOSONG);
@@ -29,7 +43,6 @@ export default function DashboardPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardStep, setOnboardStep] = useState(0);
   const [filterTingkatan, setFilterTingkatan] = useState('semua');
-  const [rekapRingkas, setRekapRingkas] = useState({});
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
@@ -39,30 +52,19 @@ export default function DashboardPage() {
     if (session) init();
   }, [session]);
 
+  useEffect(() => {
+    if (status === 'authenticated' && !loading) {
+      if (searchParams.get('baru') === '1') bukaModalBaru();
+      if (searchParams.get('panduan') === '1') { setShowOnboarding(true); setOnboardStep(0); }
+      if (searchParams.toString()) router.replace('/dashboard', { scroll: false });
+    }
+  }, [searchParams, status, loading]);
+
   async function init() {
     try { await fetch('/api/init', { method: 'POST' }); } catch (e) {}
-    await fetchKelompok();
+    mutateRekapRingkas();
     const seen = localStorage.getItem('onboarding_done');
     if (!seen) setShowOnboarding(true);
-  }
-
-  async function fetchKelompok() {
-    setLoading(true);
-    const res = await fetch('/api/kelompok');
-    const data = await res.json();
-    setKelompok(Array.isArray(data) ? data : []);
-    setLoading(false);
-    fetchRekapRingkas();
-  }
-
-  async function fetchRekapRingkas() {
-    try {
-      const res = await fetch('/api/rekap-ringkas');
-      if (res.ok) {
-        const data = await res.json();
-        setRekapRingkas(data);
-      }
-    } catch (e) {}
   }
 
   function bukaModalBaru() {
@@ -87,7 +89,7 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      setKelompok(prev => prev.map(k => k.id === editTarget.id ? { ...k, ...form } : k));
+      mutateKelompok();
       setShowModal(false);
     } else {
       const res = await fetch('/api/kelompok', {
@@ -109,7 +111,7 @@ export default function DashboardPage() {
     if (!hapusTarget) return;
     setHapusing(true);
     await fetch(`/api/kelompok/${hapusTarget.id}/edit`, { method: 'DELETE' });
-    setKelompok(prev => prev.filter(k => k.id !== hapusTarget.id));
+    mutateKelompok();
     setHapusTarget(null);
     setHapusing(false);
   }
@@ -132,165 +134,176 @@ export default function DashboardPage() {
     { icon:'📊', judul:'Lihat Rekap', isi:'Pantau persentase kehadiran per murid, per hari, minggu, atau bulan kapan saja.' },
   ];
 
-  if (status === 'loading' || loading) return (
-    <><Navbar /><div className="container page"><div className="spinner" /></div></>
+  if (loading) return (
+    <AppScreen>
+      <div className="space-y-4 px-5 pt-8">
+        <div className="flex items-center gap-3">
+          <div className="size-11 animate-pulse rounded-full bg-muted" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-24 animate-pulse rounded-full bg-muted" />
+            <div className="h-4 w-36 animate-pulse rounded-full bg-muted" />
+          </div>
+        </div>
+        <div className="h-10 w-56 animate-pulse rounded-2xl bg-muted" />
+        {[0,1,2].map(i => <div key={i} className="h-40 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />)}
+      </div>
+    </AppScreen>
   );
 
   return (
     <>
-      <Navbar />
-      <div className="container page">
-        <div className="page-header">
-          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'.75rem' }}>
-            <div>
-              <h1 className="page-title">📋 Kelompok Saya</h1>
-              <p className="page-sub">{hariIni} · {session?.user?.name?.split(' ')[0]}</p>
+      <AppScreen>
+        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 pt-6">
+          <div className="flex min-w-0 items-center gap-3">
+            {session?.user?.image ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={session.user.image} alt={session.user.name} className="size-11 shrink-0 rounded-full object-cover" />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={userAvatar.src} alt={session?.user?.name || 'User'} className="size-11 shrink-0 rounded-full object-cover" />
+            )}
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">{hariIni}</p>
+              <p className="truncate text-base font-bold text-ink">{session?.user?.name?.split(' ')[0]}</p>
             </div>
-            <button style={{ background:'rgba(26,107,60,.08)', color:'var(--hijau)', border:'none', borderRadius:'8px', padding:'.5rem .85rem', fontSize:'.82rem', fontWeight:600, cursor:'pointer' }}
-              onClick={() => { setShowOnboarding(true); setOnboardStep(0); }}>❓ Panduan</button>
           </div>
-        </div>
+          <button
+            aria-label="Panduan"
+            onClick={() => { setShowOnboarding(true); setOnboardStep(0); }}
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
+          >
+            <CircleHelp className="size-5 text-ink" />
+          </button>
+        </header>
 
-        <div className="grid-3" style={{ marginBottom:'1.25rem' }}>
-          <div className="stat-card">
-            <div className="stat-icon">📚</div>
-            <div><div className="stat-value">{kelompok.length}</div><div className="stat-label">Kelompok</div></div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon" style={{ background:'#fef9c3' }}>📅</div>
-            <div><div className="stat-value">{new Date().getDate()}</div><div className="stat-label">{new Date().toLocaleDateString('id-ID',{month:'short',year:'numeric'})}</div></div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon" style={{ background:'#ede9fe' }}>🌙</div>
-            <div><div className="stat-value">{new Date().toLocaleDateString('id-ID',{weekday:'short'})}</div><div className="stat-label">Hari ini</div></div>
-          </div>
-        </div>
+        <h1 className="px-5 pt-7 text-[2.15rem] leading-[1.1] font-extrabold tracking-tight text-ink">
+          Kelompok
+          <br />
+          Saya
+        </h1>
 
-        {/* Filter Tingkatan */}
-        {kelompok.length > 0 && (
-          <div style={{ display:'flex', gap:'.5rem', flexWrap:'wrap', marginBottom:'1rem' }}>
-            {[
-              { key: 'semua', label: 'Semua', icon: '📋' },
-              ...Object.entries(TINGKATAN_LABEL).map(([key, val]) => ({ key, label: val.label, icon: val.icon }))
-            ].map(({ key, label, icon }) => {
-              const count = key === 'semua' ? kelompok.length : kelompok.filter(k => k.tingkatan === key).length;
-              if (count === 0 && key !== 'semua') return null;
-              const isActive = filterTingkatan === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setFilterTingkatan(key)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '.3rem',
-                    padding: '.35rem .75rem',
-                    borderRadius: '99px',
-                    fontSize: '.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    border: isActive ? '2px solid var(--hijau)' : '2px solid var(--batas)',
-                    background: isActive ? 'var(--hijau)' : 'var(--kartu)',
-                    color: isActive ? 'white' : 'var(--teks-soft)',
-                    transition: 'all .2s',
-                  }}
-                >
-                  <span>{icon}</span>
-                  <span>{label}</span>
-                  <span style={{
-                    background: isActive ? 'rgba(255,255,255,.25)' : 'var(--batas)',
-                    color: isActive ? 'white' : 'var(--teks-soft)',
-                    borderRadius: '99px',
-                    padding: '0 .4rem',
-                    fontSize: '.72rem',
-                    fontWeight: 700,
-                    minWidth: '1.2rem',
-                    textAlign: 'center',
-                  }}>{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto px-5 pb-1">
+          {[
+            { key: 'semua', label: 'Semua', icon: '📋' },
+            ...Object.entries(TINGKATAN_LABEL).map(([key, val]) => ({ key, label: val.label, icon: val.icon })),
+          ].map(({ key, label, icon }) => {
+            const count = key === 'semua' ? kelompok.length : kelompok.filter(k => k.tingkatan === key).length;
+            if (count === 0 && key !== 'semua') return null;
+            const isActive = filterTingkatan === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setFilterTingkatan(key)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  isActive
+                    ? 'bg-ink text-primary-foreground'
+                    : 'bg-surface text-muted-foreground shadow-[var(--shadow-card)]'
+                }`}
+              >
+                <span>{icon}</span>
+                <span>{label}</span>
+                <span className={`rounded-full px-1.5 text-[11px] font-bold ${isActive ? 'bg-white/25' : 'bg-border'}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
 
         {kelompok.length === 0 ? (
-          <div className="empty-state card">
-            <div className="icon">🕌</div>
-            <h3>Belum ada kelompok</h3>
-            <p style={{ fontSize:'.88rem', marginBottom:'1.25rem' }}>Mulai dengan membuat kelompok pengajian pertama Anda</p>
-            <button className="btn btn-hijau" onClick={bukaModalBaru}>＋ Buat Kelompok Pertama</button>
+          <div className="card-soft mx-5 mt-5 p-6 text-center">
+            <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-2xl">🕌</div>
+            <h3 className="mt-3 text-base font-extrabold text-ink">Belum ada kelompok</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Mulai dengan membuat kelompok pengajian pertama Anda</p>
+            <button
+              onClick={bukaModalBaru}
+              className="mt-4 w-full rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]"
+            >
+              Buat Kelompok Pertama
+            </button>
           </div>
         ) : (
-          <div style={{ display:'flex', flexDirection:'column', gap:'.75rem', marginBottom:'5rem' }}>
+          <div className="mt-5 space-y-4 px-5">
             {kelompokTampil.length === 0 && (
-              <div style={{ textAlign:'center', padding:'2.5rem 1rem', color:'var(--teks-soft)' }}>
-                <div style={{ fontSize:'2.5rem', marginBottom:'.5rem' }}>
-                  {TINGKATAN_LABEL[filterTingkatan]?.icon || '🔍'}
-                </div>
-                <p style={{ fontWeight:600, marginBottom:'.25rem' }}>
-                  Tidak ada kelompok {TINGKATAN_LABEL[filterTingkatan]?.label}
-                </p>
-                <p style={{ fontSize:'.82rem' }}>Coba pilih tingkatan lain</p>
+              <div className="py-10 text-center">
+                <div className="text-4xl">{TINGKATAN_LABEL[filterTingkatan]?.icon || '🔍'}</div>
+                <p className="mt-2 text-sm font-bold text-ink">Tidak ada kelompok {TINGKATAN_LABEL[filterTingkatan]?.label}</p>
+                <p className="text-xs text-muted-foreground">Coba pilih tingkatan lain</p>
               </div>
             )}
-            {kelompokTampil.map(k => {
+            {kelompokTampil.map((k, i) => {
               const tk = TINGKATAN_LABEL[k.tingkatan] || TINGKATAN_LABEL.kelompok;
               const rk = rekapRingkas[k.id];
               const persen = rk?.persen ?? null;
-              const persenColor = persen === null ? '#94a3b8'
-                : persen >= 80 ? '#16a34a'
-                : persen >= 60 ? '#d97706'
-                : '#dc2626';
+              const persenColor = persen === null ? 'bg-border'
+                : persen >= 80 ? 'bg-primary'
+                : persen >= 60 ? 'bg-amber-500'
+                : 'bg-destructive';
+              const featured = i === 0;
               return (
-                <div key={k.id} className="kelompok-card" onClick={() => router.push(`/absensi/${k.id}`)}>
-                  <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'.5rem', marginBottom:'.5rem' }}>
-                    <span className="kelompok-nama">{tk.icon} {k.nama_kelompok}</span>
-                    <span className={`badge ${tk.cls}`} style={{ flexShrink:0 }}>{tk.label}</span>
-                  </div>
-                  <div className="kelompok-meta" style={{ marginBottom:'.6rem' }}>
-                    <span>📍 {k.desa}</span><span>🗺 {k.daerah}</span>
+                <div
+                  key={k.id}
+                  onClick={() => router.push(`/absensi/${k.id}`)}
+                  className={`block cursor-pointer rounded-3xl p-4 transition-transform active:scale-[0.99] ${
+                    featured
+                      ? 'brand-gradient text-primary-foreground shadow-[var(--shadow-float)]'
+                      : 'card-soft'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`truncate text-sm font-bold ${featured ? '' : 'text-ink'}`}>{tk.icon} {k.nama_kelompok}</span>
+                    <span className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${featured ? 'bg-white/20' : 'bg-secondary text-muted-foreground'}`}>
+                      {tk.label}
+                    </span>
                   </div>
 
-                  {/* ── Rekap Ringkas Kehadiran ── */}
-                  <div style={{ marginBottom:'.85rem' }} onClick={e => { e.stopPropagation(); router.push(`/rekap/${k.id}`); }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'.3rem' }}>
-                      <span style={{ fontSize:'.75rem', color:'var(--teks-soft)', fontWeight:600 }}>
-                        📊 Kehadiran
-                        {rk ? ` · ${rk.total_sesi} sesi · ${rk.total_murid} murid` : ''}
+                  <p className={`mt-1.5 truncate text-xs ${featured ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                    📍 {k.desa} · 🗺 {k.daerah}
+                  </p>
+
+                  <div className="mt-4" onClick={e => { e.stopPropagation(); router.push(`/rekap/${k.id}`); }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-xs font-semibold ${featured ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                        📊 Kehadiran{rk ? ` · ${rk.total_sesi} sesi · ${rk.total_murid} murid` : ''}
                       </span>
-                      <span style={{ fontSize:'.82rem', fontWeight:800, color: persenColor }}>
-                        {persen === null
-                          ? (rk === undefined ? '…' : 'Belum ada data')
-                          : `${persen}%`}
+                      <span className={`text-sm font-extrabold ${featured ? '' : ''}`} style={persen !== null ? { color: persen === null ? undefined : (persen >= 80 ? '#22c55e' : persen >= 60 ? '#d97706' : '#ef4444') } : featured ? { color: 'rgba(255,255,255,.8)' } : {}}>
+                        {persen === null ? (rk === undefined ? '…' : 'Belum ada data') : `${persen}%`}
                       </span>
                     </div>
-                    <div style={{ background:'var(--batas)', borderRadius:'99px', height:'6px', overflow:'hidden' }}>
-                      <div style={{
-                        width: persen !== null ? `${persen}%` : '0%',
-                        height:'100%',
-                        background: persenColor,
-                        borderRadius:'99px',
-                        transition:'width .6s ease',
-                      }} />
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/25" style={!featured ? { background: 'var(--border)' } : undefined}>
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${persenColor}`}
+                        style={{ width: persen !== null ? `${persen}%` : '0%', backgroundColor: featured && persen !== null ? '#fff' : undefined }}
+                      />
                     </div>
                   </div>
-                  <div style={{ display:'flex', gap:'.5rem', flexWrap:'wrap' }}>
-                    {/* Absen: owner & pengabsen */}
+
+                  <div className="mt-4 flex flex-wrap items-center gap-1.5">
                     {(k.permission === 'owner' || k.permission === 'absen') && (
-                      <button className="btn btn-hijau btn-sm" onClick={e => { e.stopPropagation(); router.push(`/absensi/${k.id}`); }}>✅ Absen</button>
+                      <button onClick={e => { e.stopPropagation(); router.push(`/absensi/${k.id}`); }} className="flex items-center gap-1 rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground">
+                        <CheckCircle2 className="size-3.5" /> Absen
+                      </button>
                     )}
-                    {/* Rekap: semua bisa lihat */}
-                    <button className="btn btn-outline btn-sm" onClick={e => { e.stopPropagation(); router.push(`/rekap/${k.id}`); }}>📊 Rekap</button>
-                    {/* Kelola & Admin: hanya owner */}
+                    <button onClick={e => { e.stopPropagation(); router.push(`/rekap/${k.id}`); }} className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold ${featured ? 'bg-white/20 text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>
+                      <BarChart3 className="size-3.5" /> Rekap
+                    </button>
                     {k.permission === 'owner' && (
-                      <button className="btn btn-outline btn-sm" onClick={e => { e.stopPropagation(); router.push(`/setup/${k.id}`); }}>⚙️ Kelola</button>
-                    )}
-                    {k.permission === 'owner' && (
-                      <button className="btn btn-sm" style={{ background:'#ede9fe', color:'#5b21b6', border:'none' }} onClick={e => { e.stopPropagation(); router.push(`/admin/${k.id}`); }}>👥 Admin</button>
-                    )}
-                    {k.permission === 'owner' && (
-                      <button className="btn btn-sm" style={{ background:'#e0f2fe', color:'#0369a1', border:'none' }} onClick={e => bukaModalEdit(k, e)}>✏️</button>
+                      <button onClick={e => { e.stopPropagation(); router.push(`/setup/${k.id}`); }} className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold ${featured ? 'bg-white/20 text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>
+                        <Settings className="size-3.5" /> Kelola
+                      </button>
                     )}
                     {k.permission === 'owner' && (
-                      <button className="btn btn-sm" style={{ background:'#fee2e2', color:'#dc2626', border:'none' }} onClick={e => { e.stopPropagation(); setHapusTarget(k); }}>🗑️</button>
+                      <button onClick={e => { e.stopPropagation(); router.push(`/admin/${k.id}`); }} className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold ${featured ? 'bg-white/20 text-primary-foreground' : 'bg-brand-soft text-primary'}`}>
+                        <Users className="size-3.5" /> Admin
+                      </button>
+                    )}
+                    {k.permission === 'owner' && (
+                      <button aria-label="Edit" onClick={e => bukaModalEdit(k, e)} className={`grid size-8 place-items-center rounded-full ${featured ? 'bg-white/20 text-primary-foreground' : 'bg-brand-soft text-primary'}`}>
+                        <Pencil className="size-3.5" />
+                      </button>
+                    )}
+                    {k.permission === 'owner' && (
+                      <button aria-label="Hapus" onClick={e => { e.stopPropagation(); setHapusTarget(k); }} className="grid size-8 place-items-center rounded-full bg-destructive/10 text-destructive">
+                        <Trash2 className="size-3.5" />
+                      </button>
                     )}
                   </div>
                 </div>
@@ -298,103 +311,127 @@ export default function DashboardPage() {
             })}
           </div>
         )}
-      </div>
 
-      <div className="bottom-bar">
-        <button className="btn btn-hijau" onClick={bukaModalBaru}>＋ Kelompok Baru</button>
-      </div>
+        <div className="px-5 pt-6 pb-2">
+          <button
+            onClick={bukaModalBaru}
+            className="flex w-full items-center justify-between rounded-3xl bg-surface p-4 shadow-[var(--shadow-card)]"
+          >
+            <span className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icon-512.png" alt="Absensi Generus" width={512} height={512} className="size-9" />
+              <span className="text-sm font-bold text-ink">Kelompok Baru</span>
+            </span>
+            <span className="grid size-9 place-items-center rounded-full bg-primary text-primary-foreground">
+              <Plus className="size-5" />
+            </span>
+          </button>
+        </div>
+      </AppScreen>
 
-      {/* Modal Buat/Edit */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-handle" />
-            <div className="modal-header">
-              <span className="modal-title">{editTarget ? '✏️ Edit Kelompok' : '🕌 Kelompok Baru'}</span>
-              <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
+        <div className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-[2px]" onClick={() => setShowModal(false)}>
+          <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[26rem] rounded-t-[2rem] bg-surface p-5 pb-8 shadow-[var(--shadow-float)]" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-lg font-extrabold text-ink">{editTarget ? 'Edit Kelompok' : 'Kelompok Baru'}</span>
+              <button aria-label="Tutup" onClick={() => setShowModal(false)} className="grid size-8 place-items-center rounded-full bg-secondary text-muted-foreground">×</button>
             </div>
-            <div className="modal-body">
-              <form onSubmit={handleSimpan}>
-                <div className="form-group">
-                  <label className="label">Nama Kelompok</label>
-                  <input className="input" placeholder="cth: Kelompok Masjid Al-Ikhlas" value={form.nama_kelompok} onChange={e => setForm({...form, nama_kelompok: e.target.value})} required />
-                </div>
-                <div className="form-group">
-                  <label className="label">Tingkatan Ngaji</label>
-                  <select className="select" value={form.tingkatan} onChange={e => setForm({...form, tingkatan: e.target.value})}>
-                    <option value="caberawit">🌱 Caberawit</option>
-                    <option value="praremaja">🌿 Pra Remaja</option>
-                    <option value="remaja">🍃 Remaja</option>
-                    <option value="usianikah">🌸 Usia Nikah</option>
-                    <option value="kelompok">📖 Ngaji Kelompok</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="label">Desa</label>
-                  <input className="input" placeholder="cth: Sukamaju" value={form.desa} onChange={e => setForm({...form, desa: e.target.value})} required />
-                </div>
-                <div className="form-group">
-                  <label className="label">Daerah</label>
-                  <input className="input" placeholder="cth: Daerah Kediri" value={form.daerah} onChange={e => setForm({...form, daerah: e.target.value})} required />
-                </div>
-                <button type="submit" className="btn btn-hijau btn-full" disabled={saving}>
-                  {saving ? 'Menyimpan...' : editTarget ? '💾 Simpan Perubahan' : 'Simpan & Setup →'}
-                </button>
-              </form>
-            </div>
+            <form onSubmit={handleSimpan} className="space-y-3.5">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Nama Kelompok</label>
+                <input placeholder="cth: Kelompok Masjid Al-Ikhlas" value={form.nama_kelompok} onChange={e => setForm({...form, nama_kelompok: e.target.value})} required
+                  className="w-full rounded-2xl bg-secondary px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40" />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Tingkatan Ngaji</label>
+                <select value={form.tingkatan} onChange={e => setForm({...form, tingkatan: e.target.value})}
+                  className="w-full appearance-none rounded-2xl bg-secondary px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/40">
+                  <option value="caberawit">🌱 Caberawit</option>
+                  <option value="praremaja">🌿 Pra Remaja</option>
+                  <option value="remaja">🍃 Remaja</option>
+                  <option value="usianikah">🌸 Usia Nikah</option>
+                  <option value="kelompok">📖 Ngaji Kelompok</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Desa</label>
+                <input placeholder="cth: Sukamaju" value={form.desa} onChange={e => setForm({...form, desa: e.target.value})} required
+                  className="w-full rounded-2xl bg-secondary px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40" />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Daerah</label>
+                <input placeholder="cth: Daerah Kediri" value={form.daerah} onChange={e => setForm({...form, daerah: e.target.value})} required
+                  className="w-full rounded-2xl bg-secondary px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40" />
+              </div>
+              <button type="submit" disabled={saving}
+                className="w-full rounded-full brand-gradient py-4 text-base font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99] disabled:opacity-60">
+                {saving ? 'Menyimpan...' : editTarget ? 'Simpan Perubahan' : 'Simpan & Setup →'}
+              </button>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Modal Hapus */}
       {hapusTarget && (
-        <div className="modal-overlay" onClick={() => setHapusTarget(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-handle" />
-            <div className="modal-body" style={{ textAlign:'center', padding:'2rem 1.5rem' }}>
-              <div style={{ fontSize:'3rem', marginBottom:'.75rem' }}>⚠️</div>
-              <h3 style={{ fontWeight:800, fontSize:'1.1rem', marginBottom:'.5rem' }}>Hapus Kelompok?</h3>
-              <p style={{ color:'var(--teks-soft)', marginBottom:'.75rem' }}><strong>{hapusTarget.nama_kelompok}</strong></p>
-              <p style={{ color:'#dc2626', fontSize:'.85rem', background:'#fee2e2', padding:'.75rem', borderRadius:'8px', marginBottom:'1.5rem' }}>
-                Semua data murid, jadwal, dan absensi akan ikut terhapus permanen!
-              </p>
-              <div style={{ display:'flex', gap:'.75rem' }}>
-                <button className="btn btn-outline btn-full" onClick={() => setHapusTarget(null)}>Batal</button>
-                <button className="btn btn-full" style={{ background:'#dc2626', color:'white', border:'none' }} onClick={handleHapus} disabled={hapusing}>
-                  {hapusing ? 'Menghapus...' : 'Ya, Hapus'}
-                </button>
-              </div>
+        <div className="fixed inset-0 z-50 bg-ink/40" onClick={() => setHapusTarget(null)}>
+          <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[26rem] rounded-t-[2rem] bg-surface p-5 pb-8 text-center shadow-[var(--shadow-float)]" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
+            <div className="mx-auto grid size-14 place-items-center rounded-full bg-destructive/10 text-3xl">⚠️</div>
+            <h3 className="mt-3 text-lg font-extrabold text-ink">Hapus Kelompok?</h3>
+            <p className="mt-1 truncate text-sm font-semibold text-ink">{hapusTarget.nama_kelompok}</p>
+            <p className="mt-3 rounded-2xl bg-destructive/10 p-3 text-xs font-medium text-destructive">
+              Semua data murid, jadwal, dan absensi akan ikut terhapus permanen!
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button onClick={() => setHapusTarget(null)} className="flex-1 rounded-full bg-secondary py-3.5 text-sm font-bold text-ink">Batal</button>
+              <button onClick={handleHapus} disabled={hapusing} className="flex-1 rounded-full bg-destructive py-3.5 text-sm font-bold text-destructive-foreground active:scale-[0.99] disabled:opacity-60">
+                {hapusing ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Onboarding */}
       {showOnboarding && (
-        <div className="modal-overlay" onClick={selesaiOnboarding}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-handle" />
-            <div style={{ padding:'1.5rem 1.5rem 2rem', textAlign:'center' }}>
-              <div style={{ display:'flex', justifyContent:'center', gap:'.4rem', marginBottom:'1.5rem' }}>
-                {ONBOARD_STEPS.map((_, i) => (
-                  <div key={i} style={{ width: i===onboardStep?'24px':'8px', height:'8px', borderRadius:'99px', background: i===onboardStep?'var(--hijau)':'var(--batas)', transition:'all .3s' }} />
-                ))}
-              </div>
-              <div style={{ fontSize:'4rem', marginBottom:'1rem' }}>{ONBOARD_STEPS[onboardStep].icon}</div>
-              <h2 style={{ fontWeight:800, fontSize:'1.25rem', marginBottom:'.75rem' }}>{ONBOARD_STEPS[onboardStep].judul}</h2>
-              <p style={{ color:'var(--teks-soft)', lineHeight:'1.7', fontSize:'.95rem', marginBottom:'2rem' }}>{ONBOARD_STEPS[onboardStep].isi}</p>
-              <div style={{ display:'flex', gap:'.75rem' }}>
-                {onboardStep > 0 && <button className="btn btn-outline" style={{ flex:1 }} onClick={() => setOnboardStep(s=>s-1)}>← Kembali</button>}
-                {onboardStep < ONBOARD_STEPS.length-1
-                  ? <button className="btn btn-hijau" style={{ flex:1 }} onClick={() => setOnboardStep(s=>s+1)}>Lanjut →</button>
-                  : <button className="btn btn-hijau" style={{ flex:1 }} onClick={selesaiOnboarding}>✅ Mulai!</button>
-                }
-              </div>
-              <button onClick={selesaiOnboarding} style={{ marginTop:'1rem', background:'none', border:'none', color:'var(--teks-soft)', fontSize:'.82rem', cursor:'pointer' }}>Lewati</button>
+        <div className="fixed inset-0 z-50 bg-ink/40" onClick={selesaiOnboarding}>
+          <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[26rem] rounded-t-[2rem] bg-surface p-5 pb-8 text-center shadow-[var(--shadow-float)]" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
+            <div className="mb-5 flex justify-center gap-1.5">
+              {ONBOARD_STEPS.map((_, i) => (
+                <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === onboardStep ? 'w-6 bg-primary' : 'w-2 bg-border'}`} />
+              ))}
             </div>
+            <div className="text-6xl">{ONBOARD_STEPS[onboardStep].icon}</div>
+            <h2 className="mt-3 text-xl font-extrabold text-ink">{ONBOARD_STEPS[onboardStep].judul}</h2>
+            <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">{ONBOARD_STEPS[onboardStep].isi}</p>
+            <div className="mt-6 flex gap-3">
+              {onboardStep > 0 && (
+                <button onClick={() => setOnboardStep(s=>s-1)} className="flex-1 rounded-full bg-secondary py-3.5 text-sm font-bold text-ink">← Kembali</button>
+              )}
+              {onboardStep < ONBOARD_STEPS.length-1
+                ? <button onClick={() => setOnboardStep(s=>s+1)} className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">Lanjut →</button>
+                : <button onClick={selesaiOnboarding} className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">Mulai!</button>
+              }
+            </div>
+            <button onClick={selesaiOnboarding} className="mt-3 text-xs font-semibold text-muted-foreground">Lewati</button>
           </div>
         </div>
       )}
     </>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <AppScreen>
+        <div className="space-y-4 px-5 pt-8">
+          <div className="h-10 w-56 animate-pulse rounded-2xl bg-muted" />
+        </div>
+      </AppScreen>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }

@@ -14,8 +14,8 @@ export default function HomePage() {
   }, [session, status]);
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-      <div className="spinner" />
+    <div className="flex min-h-dvh items-center justify-center">
+      <div className="size-10 animate-spin rounded-full border-[3px] border-primary/20 border-t-primary" />
     </div>
   );
 }

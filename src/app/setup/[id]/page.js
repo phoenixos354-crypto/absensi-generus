@@ -2,7 +2,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Navbar } from '@/components/Navbar';
+import { ChevronLeft, CalendarDays, Users, Pencil, Trash2, Check, X, Plus, ListChecks, BarChart3, UserCog } from 'lucide-react';
 
 const HARI_LIST = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Ahad'];
 
@@ -152,221 +152,217 @@ export default function SetupPage() {
 
   if (loading || !kelompok) {
     return (
-      <>
-        <Navbar />
-        <div className="container page"><div className="spinner" /></div>
-      </>
+      <div className="app-shell">
+        <div className="space-y-4 px-5 pt-8">
+          <div className="h-10 w-40 animate-pulse rounded-2xl bg-muted" />
+          <div className="h-44 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+          <div className="h-64 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+        </div>
+      </div>
     );
   }
 
   const tk = TINGKATAN_LABEL[kelompok.tingkatan] || TINGKATAN_LABEL.kelompok;
 
   return (
-    <>
-      <Navbar />
-      <div className="container page">
+    <div className="app-shell flex flex-col pb-6">
+      {/* Header */}
+      <header className="px-5 pt-6">
+        <button
+          onClick={() => router.push('/dashboard')}
+          aria-label="Kembali"
+          className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
+        >
+          <ChevronLeft className="size-5 text-ink" />
+        </button>
+        <h1 className="mt-3 truncate text-2xl font-extrabold text-ink">{tk.icon} {kelompok.nama_kelompok}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{tk.label} · 📍 {kelompok.desa} · 🗺 {kelompok.daerah}</p>
+      </header>
 
-        {/* Header */}
-        <div style={{ marginBottom:'1.25rem' }}>
-          <button className="btn btn-outline btn-sm" style={{ marginBottom:'.75rem' }} onClick={() => router.push('/dashboard')}>
-            ← Kembali
-          </button>
-          <h1 className="page-title" style={{ marginBottom:'.4rem' }}>
-            {tk.icon} {kelompok.nama_kelompok}
-          </h1>
-          <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
-            <span className={`badge ${tk.cls}`}>{tk.label}</span>
-            <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok.desa}</span>
-            <span className="badge" style={{ background:'#f0fdf4', color:'#166534' }}>🗺 {kelompok.daerah}</span>
+      {/* JADWAL */}
+      <section className="px-5 pt-5">
+        <div className="card-soft p-4">
+          <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+            <CalendarDays className="size-4 text-primary" /> Jadwal Ngaji Mingguan
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Pilih hari-hari pengajian berlangsung setiap minggunya:
+          </p>
+          <div className="mt-4 grid grid-cols-7 gap-1">
+            {HARI_LIST.map(h => (
+              <button
+                key={h}
+                type="button"
+                onClick={() => toggleHari(h)}
+                className={`flex flex-col items-center gap-2 rounded-2xl py-2.5 text-xs font-semibold transition-colors ${
+                  hariPilih.includes(h)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-muted-foreground'
+                }`}
+              >
+                <span className="text-[10px] font-medium">{h.slice(0,3)}</span>
+                <span className={`size-1.5 rounded-full ${hariPilih.includes(h) ? 'bg-primary-foreground' : 'bg-border'}`} />
+              </button>
+            ))}
           </div>
-        </div>
-
-        <div className="grid-2" style={{ alignItems:'start' }}>
-
-          {/* === KIRI: JADWAL === */}
-          <div className="card">
-            <h2 style={{ fontWeight:700, fontSize:'1rem', marginBottom:'1rem', display:'flex', alignItems:'center', gap:'.5rem' }}>
-              📅 Jadwal Ngaji Mingguan
-            </h2>
-            <p style={{ fontSize:'.85rem', color:'var(--teks-soft)', marginBottom:'1rem' }}>
-              Pilih hari-hari pengajian berlangsung setiap minggunya:
+          {hariPilih.length > 0 && (
+            <p className="mt-3 text-xs font-semibold text-primary">
+              Terpilih: {hariPilih.join(', ')}
             </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:'.5rem', marginBottom:'1.25rem' }}>
-              {HARI_LIST.map(h => (
-                <button
-                  key={h}
-                  type="button"
-                  onClick={() => toggleHari(h)}
-                  style={{
-                    padding:'.5rem 1rem',
-                    borderRadius:'8px',
-                    border: hariPilih.includes(h) ? '2px solid var(--hijau)' : '2px solid var(--batas)',
-                    background: hariPilih.includes(h) ? 'var(--hijau)' : 'white',
-                    color: hariPilih.includes(h) ? 'white' : 'var(--teks)',
-                    fontWeight:600, fontSize:'.85rem', cursor:'pointer',
-                    transition:'all .15s',
-                  }}
-                >
-                  {h}
-                </button>
-              ))}
-            </div>
-            {hariPilih.length > 0 && (
-              <p style={{ fontSize:'.83rem', color:'var(--hijau)', marginBottom:'1rem', fontWeight:500 }}>
-                ✅ Terpilih: {hariPilih.join(', ')}
-              </p>
-            )}
+          )}
+          <button
+            onClick={handleSimpanJadwal}
+            disabled={savingJadwal || hariPilih.length === 0}
+            className="mt-4 w-full rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] transition-transform active:scale-[0.99] disabled:opacity-60"
+          >
+            {savingJadwal ? 'Menyimpan...' : jadwalSaved ? 'Jadwal Tersimpan!' : 'Simpan Jadwal'}
+          </button>
+        </div>
+      </section>
+
+      {/* MURID */}
+      <section className="px-5 pt-4">
+        <div className="card-soft p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+              <Users className="size-4 text-primary" /> Daftar Murid
+              <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-[11px] font-bold text-primary">{murid.length} orang</span>
+            </h2>
             <button
-              className="btn btn-hijau btn-full"
-              onClick={handleSimpanJadwal}
-              disabled={savingJadwal || hariPilih.length === 0}
+              onClick={() => setModeBulk(!modeBulk)}
+              className="flex shrink-0 items-center gap-1 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-ink"
             >
-              {savingJadwal ? 'Menyimpan...' : jadwalSaved ? '✅ Jadwal Tersimpan!' : '💾 Simpan Jadwal'}
+              {modeBulk ? <Pencil className="size-3" /> : <ListChecks className="size-3" />}
+              {modeBulk ? 'Satu per Satu' : 'Input Massal'}
             </button>
           </div>
 
-          {/* === KANAN: MURID === */}
-          <div className="card">
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1rem' }}>
-              <h2 style={{ fontWeight:700, fontSize:'1rem', display:'flex', alignItems:'center', gap:'.5rem' }}>
-                👥 Daftar Murid
-                <span className="badge" style={{ background:'var(--hijau-pale)', color:'var(--hijau)' }}>
-                  {murid.length} orang
-                </span>
-              </h2>
-              <button
-                className="btn btn-outline btn-sm"
-                onClick={() => setModeBulk(!modeBulk)}
-              >
-                {modeBulk ? '✏️ Satu per Satu' : '📋 Input Massal'}
+          {/* Form tambah murid */}
+          {!modeBulk ? (
+            <form onSubmit={handleTambahMurid} className="mt-3 flex gap-2">
+              <input
+                placeholder="Nama murid..."
+                value={namaMurid}
+                onChange={e => setNamaMurid(e.target.value)}
+                className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40"
+              />
+              <button type="submit" disabled={savingMurid} aria-label="Tambah murid"
+                className="grid size-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground disabled:opacity-60">
+                <Plus className="size-4" />
               </button>
-            </div>
+            </form>
+          ) : (
+            <form onSubmit={handleBulkMurid} className="mt-3">
+              <textarea
+                rows={6}
+                placeholder="Satu nama per baris:&#10;Ahmad Fauzi&#10;Siti Nurhaliza&#10;Budi Santoso"
+                value={bulkNama}
+                onChange={e => setBulkNama(e.target.value)}
+                className="w-full rounded-2xl bg-secondary px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40"
+              />
+              <button type="submit" disabled={savingMurid}
+                className="mt-2 w-full rounded-full brand-gradient py-3 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99] disabled:opacity-60">
+                {savingMurid ? 'Menyimpan...' : 'Tambah Semua'}
+              </button>
+            </form>
+          )}
 
-            {/* Form tambah murid */}
-            {!modeBulk ? (
-              <form onSubmit={handleTambahMurid} style={{ display:'flex', gap:'.5rem', marginBottom:'1rem' }}>
-                <input
-                  className="input"
-                  placeholder="Nama murid..."
-                  value={namaMurid}
-                  onChange={e => setNamaMurid(e.target.value)}
-                  style={{ flex:1 }}
-                />
-                <button type="submit" className="btn btn-hijau" disabled={savingMurid}>
-                  {savingMurid ? '...' : '＋'}
-                </button>
-              </form>
+          {/* List murid */}
+          <div className="no-scrollbar mt-3 max-h-80 space-y-1.5 overflow-y-auto">
+            {murid.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                Belum ada murid. Tambahkan di atas.
+              </div>
             ) : (
-              <form onSubmit={handleBulkMurid} style={{ marginBottom:'1rem' }}>
-                <textarea
-                  className="textarea"
-                  rows={6}
-                  placeholder="Satu nama per baris:&#10;Ahmad Fauzi&#10;Siti Nurhaliza&#10;Budi Santoso"
-                  value={bulkNama}
-                  onChange={e => setBulkNama(e.target.value)}
-                  style={{ marginBottom:'.5rem' }}
-                />
-                <button type="submit" className="btn btn-hijau btn-full" disabled={savingMurid}>
-                  {savingMurid ? 'Menyimpan...' : `＋ Tambah Semua`}
-                </button>
-              </form>
-            )}
+              murid.map((m, i) => (
+                <div key={m.id} className="flex items-center gap-2.5 rounded-2xl bg-secondary/60 p-2.5">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary text-[11px] font-extrabold text-primary-foreground">{i+1}</span>
 
-            {/* List murid */}
-            <div style={{ maxHeight:'320px', overflowY:'auto' }}>
-              {murid.length === 0 ? (
-                <div style={{ textAlign:'center', padding:'2rem', color:'var(--teks-soft)', fontSize:'.88rem' }}>
-                  Belum ada murid. Tambahkan di atas.
+                  {editId === m.id ? (
+                    <>
+                      <input
+                        className="min-w-0 flex-1 rounded-full bg-surface px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                        value={editNama}
+                        onChange={e => setEditNama(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleSimpanEdit(m.id)}
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleSimpanEdit(m.id)}
+                        disabled={savingEdit}
+                        aria-label="Simpan"
+                        className="grid size-7 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground disabled:opacity-60"
+                      >
+                        <Check className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={() => { setEditId(null); setEditNama(''); }}
+                        aria-label="Batal"
+                        className="grid size-7 shrink-0 place-items-center rounded-full bg-border text-muted-foreground"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{m.nama_murid}</span>
+                      <button
+                        onClick={() => { setEditId(m.id); setEditNama(m.nama_murid); }}
+                        title="Edit"
+                        aria-label={`Edit ${m.nama_murid}`}
+                        className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-primary"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleHapusMurid(m.id)}
+                        title="Hapus"
+                        aria-label={`Hapus ${m.nama_murid}`}
+                        className="grid size-7 shrink-0 place-items-center rounded-full bg-destructive/10 text-destructive"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
-              ) : (
-                murid.map((m, i) => (
-                  <div key={m.id} style={{
-                    display:'flex', alignItems:'center', gap:'.5rem',
-                    padding:'.45rem .5rem',
-                    borderRadius:'8px',
-                    background: i % 2 === 0 ? 'var(--hijau-pale)' : 'transparent',
-                    marginBottom:'.2rem',
-                  }}>
-                    <span style={{
-                      width:'26px', height:'26px', flexShrink:0,
-                      background:'var(--hijau)', color:'white',
-                      borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:'.75rem', fontWeight:700,
-                    }}>{i+1}</span>
-
-                    {/* Mode edit */}
-                    {editId === m.id ? (
-                      <>
-                        <input
-                          className="input"
-                          style={{ flex:1, padding:'.3rem .6rem', fontSize:'.88rem' }}
-                          value={editNama}
-                          onChange={e => setEditNama(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && handleSimpanEdit(m.id)}
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleSimpanEdit(m.id)}
-                          disabled={savingEdit}
-                          style={{ padding:'.3rem .6rem', background:'var(--hijau)', color:'white', border:'none', borderRadius:'6px', cursor:'pointer', fontSize:'.8rem', fontWeight:600 }}
-                        >
-                          {savingEdit ? '...' : '✓'}
-                        </button>
-                        <button
-                          onClick={() => { setEditId(null); setEditNama(''); }}
-                          style={{ padding:'.3rem .6rem', background:'#f1f5f9', border:'none', borderRadius:'6px', cursor:'pointer', fontSize:'.8rem' }}
-                        >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span style={{ flex:1, fontSize:'.9rem', fontWeight:500 }}>{m.nama_murid}</span>
-                        <button
-                          onClick={() => { setEditId(m.id); setEditNama(m.nama_murid); }}
-                          title="Edit"
-                          style={{ padding:'.25rem .5rem', background:'#e0f2fe', border:'none', borderRadius:'6px', cursor:'pointer', fontSize:'.8rem' }}
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => handleHapusMurid(m.id)}
-                          title="Hapus"
-                          style={{ padding:'.25rem .5rem', background:'#fee2e2', border:'none', borderRadius:'6px', cursor:'pointer', fontSize:'.8rem' }}
-                        >
-                          🗑️
-                        </button>
-                      </>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
+              ))
+            )}
           </div>
         </div>
+      </section>
 
-        {/* Tombol lanjut ke absensi */}
-        {murid.length > 0 && hariPilih.length > 0 && (
-          <div style={{ marginTop:'1.5rem' }}>
-            <div className="card card-emas" style={{ padding:'1.25rem' }}>
-              <p style={{ marginBottom:'1rem', fontWeight:600 }}>
-                ✅ Kelompok siap! {murid.length} murid · {hariPilih.length} hari/minggu
-              </p>
-              <div style={{ display:'flex', gap:'.75rem', flexWrap:'wrap' }}>
-                <button className="btn btn-hijau btn-full" onClick={() => router.push(`/absensi/${kelompokId}`)}>
-                  ✅ Mulai Absensi
+      {/* Kelompok siap */}
+      {murid.length > 0 && hariPilih.length > 0 && (
+        <section className="px-5 pt-5">
+          <div className="rounded-3xl brand-gradient p-4 shadow-[var(--shadow-float)]">
+            <p className="text-sm font-bold text-primary-foreground">
+              Kelompok siap! {murid.length} murid · {hariPilih.length} hari/minggu
+            </p>
+            <div className="mt-3 space-y-2">
+              <button
+                onClick={() => router.push(`/absensi/${kelompokId}`)}
+                className="w-full rounded-full bg-white py-3 text-sm font-bold text-ink transition-transform active:scale-[0.99]"
+              >
+                Mulai Absensi
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => router.push(`/rekap/${kelompokId}`)}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/20 py-2.5 text-xs font-bold text-primary-foreground"
+                >
+                  <BarChart3 className="size-3.5" /> Lihat Rekap
                 </button>
-                <button className="btn btn-outline btn-full" onClick={() => router.push(`/rekap/${kelompokId}`)}>
-                  📊 Lihat Rekap
-                </button>
-                <button className="btn btn-outline btn-full" onClick={() => router.push(`/admin/${kelompokId}`)}>
-                  👥 Kelola Admin
+                <button
+                  onClick={() => router.push(`/admin/${kelompokId}`)}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/20 py-2.5 text-xs font-bold text-primary-foreground"
+                >
+                  <UserCog className="size-3.5" /> Kelola Admin
                 </button>
               </div>
             </div>
           </div>
-        )}
-      </div>
-    </>
+        </section>
+      )}
+    </div>
   );
 }

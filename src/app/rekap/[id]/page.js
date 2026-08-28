@@ -2,7 +2,8 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Navbar } from '@/components/Navbar';
+import useSWR from 'swr';
+import { ChevronLeft, BarChart3, CalendarDays, Users, FileDown } from 'lucide-react';
 import { ExportPDF } from '@/components/ExportPDF';
 
 const TINGKATAN_LABEL = {
@@ -59,10 +60,11 @@ export default function RekapPage() {
   const params = useParams();
   const kelompokId = params.id;
 
-  const [kelompok, setKelompok] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [rekap, setRekap] = useState(null);
-  const [loadingRekap, setLoadingRekap] = useState(false);
+  // SWR: kelompok + rekap, cache tampil instan lalu revalidate background
+  const { data: kelompok, isLoading: loading } = useSWR(
+    session && kelompokId ? `/api/kelompok/${kelompokId}` : null,
+    { onError: () => router.replace('/dashboard') }
+  );
 
   const [mode, setMode] = useState('bulan');
   const [nilai, setNilai] = useState(() => {
@@ -70,34 +72,17 @@ export default function RekapPage() {
     return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   });
 
+  const { data: rekap, isLoading: loadingRekap } = useSWR(
+    kelompok ? `/api/rekap?kelompok_id=${kelompokId}&mode=${mode}&nilai=${nilai}` : null,
+    { keepPreviousData: true }
+  );
+
   const bulanList  = getBulanList();
   const mingguList = getMingguList();
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
   }, [status]);
-
-  useEffect(() => {
-    if (session) fetchKelompok();
-  }, [session]);
-
-  useEffect(() => {
-    if (kelompok) fetchRekap();
-  }, [kelompok, mode, nilai]);
-
-  async function fetchKelompok() {
-    const res = await fetch(`/api/kelompok/${kelompokId}`);
-    if (!res.ok) { router.replace('/dashboard'); return; }
-    setKelompok(await res.json());
-    setLoading(false);
-  }
-
-  async function fetchRekap() {
-    setLoadingRekap(true);
-    const res = await fetch(`/api/rekap?kelompok_id=${kelompokId}&mode=${mode}&nilai=${nilai}`);
-    setRekap(await res.json());
-    setLoadingRekap(false);
-  }
 
   function handleModeChange(m) {
     setMode(m);
@@ -117,172 +102,195 @@ export default function RekapPage() {
     return '#dc2626';
   }
 
-  if (loading) return (
-    <><Navbar /><div className="container page"><div className="spinner" /></div></>
+  if (loading || !kelompok) return (
+    <div className="app-shell">
+      <div className="space-y-4 px-5 pt-8">
+        <div className="h-10 w-48 animate-pulse rounded-2xl bg-muted" />
+        <div className="h-28 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+        <div className="h-20 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+      </div>
+    </div>
   );
 
   const tk = TINGKATAN_LABEL[kelompok?.tingkatan] || TINGKATAN_LABEL.kelompok;
 
   return (
-    <>
-      <Navbar />
-      <div className="container page">
-        {/* Header */}
-        <div style={{ marginBottom:'1.25rem' }}>
-          <h1 className="page-title" style={{ marginBottom:'.4rem' }}>
-            📊 {kelompok?.nama_kelompok}
-          </h1>
-          <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
-            <span className={`badge ${tk.cls}`}>{tk.icon} {tk.label}</span>
-            <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok?.desa}</span>
-          </div>
+    <div className="app-shell flex flex-col pb-6">
+      {/* Header */}
+      <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-5 pt-6">
+        <button
+          onClick={() => router.push('/dashboard')}
+          aria-label="Kembali"
+          className="grid size-10 shrink-0 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
+        >
+          <ChevronLeft className="size-5 text-ink" />
+        </button>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-extrabold text-ink">{kelompok?.nama_kelompok}</h1>
+          <p className="truncate text-xs text-muted-foreground">{tk.icon} {tk.label} · 📍 {kelompok?.desa}</p>
         </div>
+      </header>
 
-        {/* Filter periode */}
-        <div className="card" style={{ marginBottom:'1.25rem' }}>
-          <div style={{ display:'flex', gap:'.5rem', marginBottom:'.75rem' }}>
+      {/* Filter periode */}
+      <section className="px-5 pt-5">
+        <div className="card-soft p-4">
+          <div className="flex gap-2">
             {['hari','minggu','bulan'].map(m => (
               <button
                 key={m}
                 onClick={() => handleModeChange(m)}
-                className={`btn btn-sm ${mode === m ? 'btn-hijau' : 'btn-outline'}`}
-                style={{ flex:1 }}
+                className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  mode === m
+                    ? 'bg-ink text-primary-foreground'
+                    : 'bg-secondary text-muted-foreground'
+                }`}
               >
                 {m === 'hari' ? '📅 Hari' : m === 'minggu' ? '📆 Minggu' : '🗓 Bulan'}
               </button>
             ))}
           </div>
           {mode === 'hari' && (
-            <input type="date" className="input" value={nilai} onChange={e => setNilai(e.target.value)} />
+            <input type="date" value={nilai} onChange={e => setNilai(e.target.value)}
+              className="mt-3 w-full rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40" />
           )}
           {mode === 'minggu' && (
-            <select className="select" value={nilai} onChange={e => setNilai(e.target.value)}>
+            <select value={nilai} onChange={e => setNilai(e.target.value)}
+              className="mt-3 w-full appearance-none rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40">
               {mingguList.map(w => <option key={w.val} value={w.val}>{w.label}</option>)}
             </select>
           )}
           {mode === 'bulan' && (
-            <select className="select" value={nilai} onChange={e => setNilai(e.target.value)}>
+            <select value={nilai} onChange={e => setNilai(e.target.value)}
+              className="mt-3 w-full appearance-none rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40">
               {bulanList.map(b => <option key={b.val} value={b.val}>{b.label}</option>)}
             </select>
           )}
         </div>
+      </section>
 
-        {loadingRekap ? (
-          <div className="spinner" />
-        ) : rekap ? (
-          <>
-            {/* Stat ringkas */}
-            <div className="grid-2" style={{ marginBottom:'1rem' }}>
-              <div className="stat-card">
-                <div className="stat-icon">📅</div>
-                <div><div className="stat-value">{rekap.total_sesi}</div><div className="stat-label">Sesi Ngaji</div></div>
+      {loadingRekap ? (
+        <div className="space-y-3 px-5 pt-5">
+          <div className="h-20 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+          <div className="h-20 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+        </div>
+      ) : rekap ? (
+        <>
+          {/* Stat ringkas */}
+          <section className="px-5 pt-5">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="card-soft p-4">
+                <span className="grid size-9 place-items-center rounded-full bg-brand-soft text-primary">
+                  <CalendarDays className="size-4" />
+                </span>
+                <p className="mt-2 text-2xl font-extrabold text-ink">{rekap.total_sesi}</p>
+                <p className="text-xs text-muted-foreground">Sesi Ngaji</p>
               </div>
-              <div className="stat-card">
-                <div className="stat-icon">👥</div>
-                <div><div className="stat-value">{rekap.rekap_murid?.length || 0}</div><div className="stat-label">Total Murid</div></div>
+              <div className="card-soft p-4">
+                <span className="grid size-9 place-items-center rounded-full bg-brand-soft text-primary">
+                  <Users className="size-4" />
+                </span>
+                <p className="mt-2 text-2xl font-extrabold text-ink">{rekap.rekap_murid?.length || 0}</p>
+                <p className="text-xs text-muted-foreground">Total Murid</p>
               </div>
             </div>
+          </section>
 
-            {/* Progress semua status */}
-            {(() => {
-              const totalHadir = rekap.rekap_murid?.reduce((s,m) => s+m.hadir, 0) || 0;
-              const totalIzin  = rekap.rekap_murid?.reduce((s,m) => s+m.izin,  0) || 0;
-              const totalSakit = rekap.rekap_murid?.reduce((s,m) => s+m.sakit, 0) || 0;
-              const totalAlfa  = rekap.rekap_murid?.reduce((s,m) => s+m.alfa,  0) || 0;
-              const totalAll   = totalHadir + totalIzin + totalSakit + totalAlfa;
-              const pH = totalAll > 0 ? Math.round(totalHadir/totalAll*100) : 0;
-              const pI = totalAll > 0 ? Math.round(totalIzin/totalAll*100)  : 0;
-              const pS = totalAll > 0 ? Math.round(totalSakit/totalAll*100) : 0;
-              const pA = totalAll > 0 ? Math.round(totalAlfa/totalAll*100)  : 0;
-              const stats = [
-                { label:'Hadir',  nilai:totalHadir, persen:pH, bg:'#dcfce7', color:'#166534', bar:'#22c55e' },
-                { label:'Izin',   nilai:totalIzin,  persen:pI, bg:'#fef9c3', color:'#854d0e', bar:'#eab308' },
-                { label:'Sakit',  nilai:totalSakit, persen:pS, bg:'#dbeafe', color:'#1e40af', bar:'#3b82f6' },
-                { label:'Alfa',   nilai:totalAlfa,  persen:pA, bg:'#fee2e2', color:'#991b1b', bar:'#ef4444' },
-              ];
-              return (
-                <div className="card" style={{ marginBottom:'1.25rem' }}>
-                  <div style={{ fontWeight:700, marginBottom:'1rem', fontSize:'.95rem' }}>
-                    📊 Rekapitulasi Global
-                  </div>
-                  {stats.map(s => (
-                    <div key={s.label} style={{ marginBottom:'.85rem' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'.3rem' }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:'.5rem' }}>
-                          <span style={{ background:s.bg, color:s.color, borderRadius:'6px', padding:'.18rem .55rem', fontSize:'.78rem', fontWeight:700 }}>
-                            {s.label}
+          {/* Progress semua status */}
+          {(() => {
+            const totalHadir = rekap.rekap_murid?.reduce((s,m) => s+m.hadir, 0) || 0;
+            const totalIzin  = rekap.rekap_murid?.reduce((s,m) => s+m.izin,  0) || 0;
+            const totalSakit = rekap.rekap_murid?.reduce((s,m) => s+m.sakit, 0) || 0;
+            const totalAlfa  = rekap.rekap_murid?.reduce((s,m) => s+m.alfa,  0) || 0;
+            const totalAll   = totalHadir + totalIzin + totalSakit + totalAlfa;
+            const pH = totalAll > 0 ? Math.round(totalHadir/totalAll*100) : 0;
+            const pI = totalAll > 0 ? Math.round(totalIzin/totalAll*100)  : 0;
+            const pS = totalAll > 0 ? Math.round(totalSakit/totalAll*100) : 0;
+            const pA = totalAll > 0 ? Math.round(totalAlfa/totalAll*100)  : 0;
+            const stats = [
+              { label:'Hadir',  nilai:totalHadir, persen:pH, bg:'#dcfce7', color:'#166534', bar:'#22c55e' },
+              { label:'Izin',   nilai:totalIzin,  persen:pI, bg:'#fef9c3', color:'#854d0e', bar:'#eab308' },
+              { label:'Sakit',  nilai:totalSakit, persen:pS, bg:'#dbeafe', color:'#1e40af', bar:'#3b82f6' },
+              { label:'Alfa',   nilai:totalAlfa,  persen:pA, bg:'#fee2e2', color:'#991b1b', bar:'#ef4444' },
+            ];
+            return (
+              <section className="px-5 pt-4">
+                <div className="card-soft p-4">
+                  <h2 className="text-base font-bold text-ink">Rekapitulasi Global</h2>
+                  <div className="mt-3 space-y-3">
+                    {stats.map(s => (
+                      <div key={s.label}>
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <span className="rounded-full px-2.5 py-1 text-xs font-bold" style={{ background:s.bg, color:s.color }}>
+                              {s.label}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{s.nilai} kali</span>
                           </span>
-                          <span style={{ fontSize:'.82rem', color:'var(--teks-soft)' }}>{s.nilai} kali</span>
+                          <span className="text-sm font-extrabold" style={{ color:s.color }}>{s.persen}%</span>
                         </div>
-                        <span style={{ fontWeight:800, color:s.color, fontSize:'.92rem' }}>{s.persen}%</span>
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width:`${s.persen}%`, background:s.bar }} />
+                        </div>
                       </div>
-                      <div className="progress-wrap">
-                        <div style={{ height:'100%', width:`${s.persen}%`, background:s.bar, borderRadius:'99px', transition:'width .4s ease' }} />
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                   {rekap.tanggal_sesi?.length > 0 && (
-                    <p style={{ fontSize:'.78rem', color:'var(--teks-soft)', marginTop:'.5rem' }}>
+                    <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
                       Sesi: {rekap.tanggal_sesi.map(t => new Date(t).toLocaleDateString('id-ID',{day:'numeric',month:'short'})).join(' · ')}
                     </p>
                   )}
                 </div>
-              );
-            })()}
+              </section>
+            );
+          })()}
 
-            {/* Tombol Export PDF */}
-            {rekap.rekap_murid?.length > 0 && (
-              <div style={{ marginBottom:'1.25rem' }}>
-                <ExportPDF
-                  kelompok={kelompok}
-                  rekap={rekap}
-                  periode={
-                    mode === 'hari' ? new Date(nilai).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})
-                    : mode === 'minggu' ? `Minggu ${nilai}`
-                    : new Date(nilai+'-01').toLocaleDateString('id-ID',{month:'long',year:'numeric'})
-                  }
-                />
-              </div>
-            )}
+          {/* Tombol Export PDF */}
+          {rekap.rekap_murid?.length > 0 && (
+            <div className="px-5 pt-4">
+              <ExportPDF
+                kelompok={kelompok}
+                rekap={rekap}
+                periode={
+                  mode === 'hari' ? new Date(nilai).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})
+                  : mode === 'minggu' ? `Minggu ${nilai}`
+                  : new Date(nilai+'-01').toLocaleDateString('id-ID',{month:'long',year:'numeric'})
+                }
+              />
+            </div>
+          )}
 
-            {/* Rekap per murid — card style mobile */}
-            {rekap.rekap_murid?.length === 0 ? (
-              <div className="empty-state card">
-                <div className="icon">📭</div>
-                <h3>Belum ada data absensi</h3>
-                <p style={{ marginBottom:'1rem' }}>Untuk periode ini belum ada absensi yang dicatat.</p>
-                <button className="btn btn-hijau" onClick={() => router.push(`/absensi/${kelompokId}`)}>
-                  ✅ Catat Absensi Sekarang
-                </button>
-              </div>
-            ) : (
-              <div>
-                <div style={{ fontWeight:700, fontSize:'.9rem', marginBottom:'.75rem', color:'var(--teks-soft)' }}>
-                  📋 Detail Per Murid — diurutkan dari kehadiran tertinggi
-                </div>
+          {/* Rekap per murid */}
+          {rekap.rekap_murid?.length === 0 ? (
+            <div className="card-soft mx-5 mt-4 p-6 text-center">
+              <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-2xl">📭</div>
+              <h3 className="mt-3 text-base font-extrabold text-ink">Belum ada data absensi</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Untuk periode ini belum ada absensi yang dicatat.</p>
+              <button onClick={() => router.push(`/absensi/${kelompokId}`)} className="mt-4 w-full rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">
+                Catat Absensi Sekarang
+              </button>
+            </div>
+          ) : (
+            <section className="px-5 pt-4">
+              <p className="mb-3 text-xs font-semibold text-muted-foreground">
+                Detail Per Murid — diurutkan dari kehadiran tertinggi
+              </p>
+              <div className="space-y-3">
                 {[...rekap.rekap_murid]
                   .sort((a,b) => b.persen_hadir - a.persen_hadir)
                   .map((m, i) => (
-                  <div key={m.murid_id} className="card" style={{ marginBottom:'.65rem', padding:'1rem' }}>
-                    {/* Baris atas: nomor + nama + persen */}
-                    <div style={{ display:'flex', alignItems:'center', gap:'.65rem', marginBottom:'.65rem' }}>
-                      <span style={{
-                        width:'28px', height:'28px', flexShrink:0,
-                        background: i < 3 ? 'var(--emas)' : 'var(--hijau)',
-                        color:'white', borderRadius:'50%',
-                        display:'flex', alignItems:'center', justifyContent:'center',
-                        fontSize:'.75rem', fontWeight:800,
-                      }}>{i+1}</span>
-                      <span style={{ flex:1, fontWeight:700, fontSize:'.95rem' }}>{m.nama}</span>
-                      <span style={{
-                        fontWeight:800, fontSize:'1.05rem',
-                        color: getPersenColor(m.persen_hadir),
-                      }}>{m.persen_hadir}%</span>
+                  <div key={m.murid_id} className="card-soft p-4">
+                    <div className="flex items-center gap-3">
+                      <span className={`grid size-8 shrink-0 place-items-center rounded-full text-xs font-extrabold ${
+                        i < 3 ? 'bg-amber-400 text-ink' : 'bg-brand-soft text-primary'
+                      }`}>{i+1}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{m.nama}</span>
+                      <span className="shrink-0 text-lg font-extrabold" style={{ color: getPersenColor(m.persen_hadir) }}>
+                        {m.persen_hadir}%
+                      </span>
                     </div>
 
-                    {/* Progress bar */}
-                    <div className="progress-wrap" style={{ marginBottom:'.65rem' }}>
-                      <div className="progress-bar" style={{
+                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-border">
+                      <div className="h-full rounded-full transition-all duration-500" style={{
                         width:`${m.persen_hadir}%`,
                         background: m.persen_hadir >= 80
                           ? 'linear-gradient(90deg,#16a34a,#22c55e)'
@@ -292,29 +300,36 @@ export default function RekapPage() {
                       }} />
                     </div>
 
-                    {/* Badge status */}
-                    <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
-                      <span className="badge badge-hadir">✅ Hadir: {m.hadir}</span>
-                      <span className="badge badge-izin">📋 Izin: {m.izin}</span>
-                      <span className="badge badge-sakit">🤒 Sakit: {m.sakit}</span>
-                      <span className="badge badge-alfa">❌ Alfa: {m.alfa}</span>
-                      <span className="badge" style={{ background:'#f1f5f9', color:'#475569' }}>
-                        Total: {m.total}
-                      </span>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      <span className="rounded-full bg-[#dcfce7] px-2.5 py-1 text-[11px] font-bold text-[#166534]">Hadir: {m.hadir}</span>
+                      <span className="rounded-full bg-[#fef9c3] px-2.5 py-1 text-[11px] font-bold text-[#854d0e]">Izin: {m.izin}</span>
+                      <span className="rounded-full bg-[#dbeafe] px-2.5 py-1 text-[11px] font-bold text-[#1e40af]">Sakit: {m.sakit}</span>
+                      <span className="rounded-full bg-[#fee2e2] px-2.5 py-1 text-[11px] font-bold text-[#991b1b]">Alfa: {m.alfa}</span>
+                      <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold text-muted-foreground">Total: {m.total}</span>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </>
-        ) : null}
+            </section>
+          )}
+        </>
+      ) : null}
 
-        {/* Bottom bar */}
-        <div className="bottom-bar">
-          <button className="btn btn-outline" onClick={() => router.push('/dashboard')}>← Dashboard</button>
-          <button className="btn btn-hijau" onClick={() => router.push(`/absensi/${kelompokId}`)}>✅ Absensi</button>
-        </div>
+      {/* Bottom bar */}
+      <div className="sticky bottom-6 z-30 mt-5 flex gap-3 px-5">
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="rounded-full bg-surface px-5 py-3.5 text-sm font-bold text-ink shadow-[var(--shadow-card)]"
+        >
+          ← Dashboard
+        </button>
+        <button
+          onClick={() => router.push(`/absensi/${kelompokId}`)}
+          className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]"
+        >
+          Absensi
+        </button>
       </div>
-    </>
+    </div>
   );
 }

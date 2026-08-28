@@ -2,7 +2,8 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Navbar } from '@/components/Navbar';
+import useSWR from 'swr';
+import { ChevronLeft, Plus } from 'lucide-react';
 
 const PERMISSION_INFO = {
   owner:  { label: 'Owner',         icon: '👑', desc: 'Akses penuh', cls: 'tk-usianikah' },
@@ -16,10 +17,19 @@ export default function AdminKelompokPage() {
   const params = useParams();
   const kelompokId = params.id;
 
-  const [kelompok, setKelompok] = useState(null);
-  const [adminList, setAdminList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [myPermission, setMyPermission] = useState(null);
+  // SWR: kelompok + daftar admin, cache tampil instan lalu revalidate background
+  const { data: kelompok } = useSWR(
+    session && kelompokId ? `/api/kelompok/${kelompokId}` : null,
+    { onError: () => router.replace('/dashboard') }
+  );
+  const { data: adminData, mutate: mutateAdmin } = useSWR(
+    session && kelompokId ? `/api/admin-kelompok?kelompok_id=${kelompokId}` : null
+  );
+
+  const adminList = Array.isArray(adminData) ? adminData : [];
+  const loading = !adminData;
+
+  const myPermission = adminList.find(x => x.email === session?.user?.email)?.permission || null;
 
   const [emailBaru, setEmailBaru] = useState('');
   const [permissionBaru, setPermissionBaru] = useState('absen');
@@ -29,25 +39,6 @@ export default function AdminKelompokPage() {
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
   }, [status]);
-
-  useEffect(() => {
-    if (session) fetchData();
-  }, [session]);
-
-  async function fetchData() {
-    const [resK, resA] = await Promise.all([
-      fetch(`/api/kelompok/${kelompokId}`),
-      fetch(`/api/admin-kelompok?kelompok_id=${kelompokId}`),
-    ]);
-    if (!resK.ok) { router.replace('/dashboard'); return; }
-    const k = await resK.json();
-    const a = await resA.json();
-    setKelompok(k);
-    setAdminList(Array.isArray(a) ? a : []);
-    const me = a.find(x => x.email === session.user.email);
-    setMyPermission(me?.permission || null);
-    setLoading(false);
-  }
 
   async function handleInvite(e) {
     e.preventDefault();
@@ -61,11 +52,11 @@ export default function AdminKelompokPage() {
     });
     const data = await res.json();
     if (res.ok) {
-      setAdminList(prev => [...prev, data]);
+      mutateAdmin(prev => (Array.isArray(prev) ? [...prev, data] : [data]), { revalidate: false });
       setEmailBaru('');
-      setPesan({ type: 'ok', text: `✅ ${emailBaru} berhasil ditambahkan sebagai ${PERMISSION_INFO[permissionBaru].label}` });
+      setPesan({ type: 'ok', text: `${emailBaru} berhasil ditambahkan sebagai ${PERMISSION_INFO[permissionBaru].label}` });
     } else {
-      setPesan({ type: 'err', text: `❌ ${data.error}` });
+      setPesan({ type: 'err', text: `${data.error}` });
     }
     setInviting(false);
   }
@@ -73,128 +64,134 @@ export default function AdminKelompokPage() {
   async function handleHapus(adminId) {
     if (!confirm('Hapus admin ini?')) return;
     const res = await fetch(`/api/admin-kelompok?id=${adminId}&kelompok_id=${kelompokId}`, { method: 'DELETE' });
-    if (res.ok) setAdminList(prev => prev.filter(a => a.id !== adminId));
+    if (res.ok) mutateAdmin();
   }
 
-  if (loading) return (
-    <><Navbar /><div className="container page"><div className="spinner" /></div></>
+  if (loading || !kelompok) return (
+    <div className="app-shell">
+      <div className="space-y-4 px-5 pt-8">
+        <div className="h-10 w-44 animate-pulse rounded-2xl bg-muted" />
+        <div className="h-28 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+        <div className="h-52 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+      </div>
+    </div>
   );
 
   const isOwner = myPermission === 'owner';
 
   return (
-    <>
-      <Navbar />
-      <div className="container page" style={{ paddingBottom:'2rem' }}>
-        {/* Header */}
-        <div style={{ marginBottom:'1.25rem' }}>
-          <button className="btn btn-outline btn-sm" style={{ marginBottom:'.75rem' }}
-            onClick={() => router.push(`/setup/${kelompokId}`)}>← Kembali</button>
-          <h1 className="page-title" style={{ marginBottom:'.3rem' }}>👥 Kelola Admin</h1>
-          <p className="page-sub">{kelompok?.nama_kelompok}</p>
-        </div>
+    <div className="app-shell flex flex-col pb-6">
+      {/* Header */}
+      <header className="px-5 pt-6">
+        <button
+          onClick={() => router.push(`/setup/${kelompokId}`)}
+          aria-label="Kembali"
+          className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
+        >
+          <ChevronLeft className="size-5 text-ink" />
+        </button>
+        <h1 className="mt-4 text-2xl font-extrabold text-ink">Kelola Admin</h1>
+        <p className="mt-0.5 truncate text-sm text-muted-foreground">{kelompok?.nama_kelompok}</p>
+      </header>
 
-        {/* Info permission */}
-        <div className="card card-emas" style={{ marginBottom:'1.25rem' }}>
-          <p style={{ fontSize:'.85rem', fontWeight:600, marginBottom:'.6rem', color:'var(--teks)' }}>
-            💡 Penjelasan Permission:
-          </p>
-          {Object.entries(PERMISSION_INFO).map(([key, val]) => (
-            <div key={key} style={{ display:'flex', alignItems:'center', gap:'.6rem', marginBottom:'.4rem' }}>
-              <span className={`badge ${val.cls}`}>{val.icon} {val.label}</span>
-              <span style={{ fontSize:'.82rem', color:'var(--teks-soft)' }}>— {val.desc}</span>
-            </div>
-          ))}
+      {/* Info permission */}
+      <section className="px-5 pt-5">
+        <div className="card-soft p-4">
+          <p className="flex items-center gap-2 text-sm font-bold text-ink">💡 Penjelasan Permission</p>
+          <div className="mt-3 space-y-2">
+            {Object.entries(PERMISSION_INFO).map(([key, val]) => (
+              <div key={key} className="flex items-center gap-2.5">
+                <span className="shrink-0 rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-bold text-primary">
+                  {val.icon} {val.label}
+                </span>
+                <span className="min-w-0 truncate text-xs text-muted-foreground">— {val.desc}</span>
+              </div>
+            ))}
+          </div>
         </div>
+      </section>
 
-        {/* Form invite — hanya owner */}
-        {isOwner && (
-          <div className="card" style={{ marginBottom:'1.25rem' }}>
-            <h2 style={{ fontWeight:700, fontSize:'.95rem', marginBottom:'1rem' }}>➕ Tambah Admin</h2>
-            <form onSubmit={handleInvite}>
-              <div className="form-group">
-                <label className="label">Email Google Admin Baru</label>
+      {/* Form invite — hanya owner */}
+      {isOwner && (
+        <section className="px-5 pt-4">
+          <div className="card-soft p-4">
+            <h2 className="text-base font-bold text-ink">Tambah Admin</h2>
+            <form onSubmit={handleInvite} className="mt-3 space-y-3">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Email Google Admin Baru</label>
                 <input
-                  className="input"
                   type="email"
                   placeholder="contoh@gmail.com"
                   value={emailBaru}
                   onChange={e => setEmailBaru(e.target.value)}
                   required
+                  className="w-full rounded-2xl bg-secondary px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40"
                 />
               </div>
-              <div className="form-group">
-                <label className="label">Permission</label>
-                <select className="select" value={permissionBaru} onChange={e => setPermissionBaru(e.target.value)}>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Permission</label>
+                <select value={permissionBaru} onChange={e => setPermissionBaru(e.target.value)}
+                  className="w-full appearance-none rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40">
                   <option value="absen">✅ Pengabsen — hanya bisa absen</option>
                   <option value="viewer">👁️ Lihat Laporan — hanya lihat rekap</option>
                   <option value="owner">👑 Owner — akses penuh</option>
                 </select>
               </div>
               {pesan && (
-                <div style={{
-                  padding:'.75rem', borderRadius:'8px', marginBottom:'.75rem', fontSize:'.85rem', fontWeight:600,
-                  background: pesan.type === 'ok' ? '#dcfce7' : '#fee2e2',
-                  color: pesan.type === 'ok' ? '#166534' : '#dc2626',
-                }}>
+                <div className={`rounded-2xl p-3 text-xs font-semibold ${
+                  pesan.type === 'ok' ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#fee2e2] text-[#dc2626]'
+                }`}>
                   {pesan.text}
                 </div>
               )}
-              <button type="submit" className="btn btn-hijau btn-full" disabled={inviting}>
-                {inviting ? 'Menambahkan...' : '➕ Tambah Admin'}
+              <button type="submit" disabled={inviting}
+                className="flex w-full items-center justify-center gap-1.5 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] transition-transform active:scale-[0.99] disabled:opacity-60">
+                <Plus className="size-4" /> {inviting ? 'Menambahkan...' : 'Tambah Admin'}
               </button>
             </form>
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Daftar admin */}
-        <div className="card">
-          <h2 style={{ fontWeight:700, fontSize:'.95rem', marginBottom:'1rem' }}>
-            📋 Daftar Admin ({adminList.length})
-          </h2>
+      {/* Daftar admin */}
+      <section className="px-5 pt-4">
+        <div className="card-soft p-4">
+          <h2 className="text-base font-bold text-ink">Daftar Admin ({adminList.length})</h2>
           {adminList.length === 0 ? (
-            <p style={{ color:'var(--teks-soft)', fontSize:'.88rem' }}>Belum ada admin lain.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Belum ada admin lain.</p>
           ) : (
-            adminList.map(a => {
-              const pInfo = PERMISSION_INFO[a.permission] || PERMISSION_INFO.viewer;
-              const isMe = a.email === session?.user?.email;
-              return (
-                <div key={a.id} style={{
-                  display:'flex', alignItems:'center', gap:'.65rem',
-                  padding:'.75rem 0',
-                  borderBottom:'1px solid var(--batas)',
-                }}>
-                  <div style={{
-                    width:'36px', height:'36px', borderRadius:'50%',
-                    background:'var(--hijau-pale)',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    fontSize:'1.1rem', flexShrink:0,
-                  }}>
-                    {pInfo.icon}
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:600, fontSize:'.88rem', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                      {a.email} {isMe && <span style={{ color:'var(--hijau)', fontSize:'.75rem' }}>(Saya)</span>}
-                    </div>
-                    <span className={`badge ${pInfo.cls}`} style={{ marginTop:'.25rem', display:'inline-block' }}>
-                      {pInfo.label}
+            <ul className="mt-2 divide-y divide-border">
+              {adminList.map(a => {
+                const pInfo = PERMISSION_INFO[a.permission] || PERMISSION_INFO.viewer;
+                const isMe = a.email === session?.user?.email;
+                return (
+                  <li key={a.id} className="flex items-center gap-3 py-3">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-lg">
+                      {pInfo.icon}
                     </span>
-                  </div>
-                  {/* Tombol hapus — owner bisa hapus siapa saja kecuali diri sendiri */}
-                  {isOwner && !isMe && (
-                    <button
-                      onClick={() => handleHapus(a.id)}
-                      style={{ background:'#fee2e2', color:'#dc2626', border:'none', borderRadius:'8px', padding:'.4rem .7rem', cursor:'pointer', fontSize:'.82rem', fontWeight:700, flexShrink:0 }}
-                    >
-                      Hapus
-                    </button>
-                  )}
-                </div>
-              );
-            })
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-ink">
+                        {a.email} {isMe && <span className="text-xs font-semibold text-primary">(Saya)</span>}
+                      </p>
+                      <span className="mt-0.5 inline-block rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">
+                        {pInfo.label}
+                      </span>
+                    </div>
+                    {isOwner && !isMe && (
+                      <button
+                        onClick={() => handleHapus(a.id)}
+                        className="shrink-0 rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive"
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }

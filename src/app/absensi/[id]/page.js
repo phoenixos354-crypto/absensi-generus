@@ -2,7 +2,8 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Navbar } from '@/components/Navbar';
+import { AppScreen } from '@/components/AppScreen';
+import { ChevronLeft, MapPin } from 'lucide-react';
 
 const STATUS_LIST = ['Hadir','Izin','Sakit','Alfa'];
 
@@ -123,171 +124,183 @@ export default function AbsensiPage() {
     : 0;
 
   if (loading || !kelompok) return (
-    <><Navbar /><div className="container page"><div className="spinner" /></div></>
+    <AppScreen>
+      <div className="space-y-4 px-5 pt-8">
+        <div className="h-36 animate-pulse rounded-b-[2rem] brand-gradient" />
+        <div className="h-32 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+        <div className="h-16 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+        <div className="h-16 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+      </div>
+    </AppScreen>
   );
 
   const tk = TINGKATAN_LABEL[kelompok.tingkatan] || TINGKATAN_LABEL.kelompok;
 
   return (
     <>
-      <Navbar />
-      <div className="container page">
-        {/* Header */}
-        <div style={{ marginBottom:'1.25rem' }}>
-          <h1 className="page-title" style={{ marginBottom:'.4rem' }}>
-            ✅ {kelompok.nama_kelompok}
-          </h1>
-          <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
-            <span className={`badge ${tk.cls}`}>{tk.icon} {tk.label}</span>
-            <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok.desa}</span>
+      <div className="app-shell flex flex-col">
+        {/* Header hero */}
+        <div className="brand-gradient relative overflow-hidden rounded-b-[2rem] pt-6 text-primary-foreground">
+          <div className="flex items-center justify-between px-5">
+            <button
+              onClick={() => router.push('/dashboard')}
+              aria-label="Kembali"
+              className="grid size-10 place-items-center rounded-full bg-white/20"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold">
+              <MapPin className="size-3" /> {kelompok.desa}
+            </span>
+          </div>
+          <div className="px-5 pb-6 pt-4">
+            <h1 className="text-2xl leading-tight font-extrabold">{kelompok.nama_kelompok}</h1>
+            <p className="mt-1 text-sm text-primary-foreground/80">{tk.icon} {tk.label} · {murid.length} murid</p>
           </div>
         </div>
 
-        {/* Pilih tanggal + summary */}
-        <div className="card" style={{ marginBottom:'1.25rem' }}>
-          {/* Tanggal */}
-          <div className="form-group" style={{ marginBottom:'.75rem' }}>
-            <label className="label">📅 Tanggal Absensi</label>
+        {/* Tanggal + set semua + ringkasan */}
+        <section className="px-5 pt-5">
+          <div className="card-soft p-4">
+            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Tanggal Absensi</label>
             <input
               type="date"
-              className="input"
               value={tanggal}
               onChange={e => setTanggal(e.target.value)}
+              className="w-full rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold text-ink outline-none focus:ring-2 focus:ring-primary/40"
             />
-          </div>
-          {/* Set semua */}
-          <div style={{ marginBottom:'.75rem' }}>
-            <div style={{ fontSize:'.8rem', color:'var(--teks-soft)', fontWeight:600, marginBottom:'.4rem' }}>Set semua murid:</div>
-            <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
+
+            <p className="mt-4 text-xs font-semibold text-muted-foreground">Set semua murid:</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {STATUS_LIST.map(s => {
                 const c = STATUS_COLOR[s];
                 return (
                   <button
                     key={s}
                     onClick={() => setAllStatus(s)}
-                    style={{
-                      padding:'.35rem .75rem',
-                      border:`1.5px solid ${c.border}`,
-                      borderRadius:'7px',
-                      background:'white',
-                      color: c.paleText,
-                      fontSize:'.78rem', fontWeight:700, cursor:'pointer',
-                      minHeight:'34px',
-                    }}
+                    className="rounded-full border bg-surface px-3.5 py-2 text-xs font-bold transition-colors active:scale-[0.98]"
+                    style={{ borderColor: c.border, color: c.paleText }}
                   >
-                    {s} Semua
+                    {s}
                   </button>
                 );
               })}
             </div>
-          </div>
 
-          {/* Progress bar kehadiran */}
-          <div>
-            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'.35rem' }}>
-              <span style={{ fontSize:'.82rem', fontWeight:600, color:'var(--teks-soft)' }}>Kehadiran hari ini</span>
-              <span style={{ fontSize:'.88rem', fontWeight:800, color:'var(--hijau)' }}>{persen}%</span>
+            <div className="mt-4">
+              <div className="flex justify-between">
+                <span className="text-xs font-semibold text-muted-foreground">Kehadiran hari ini</span>
+                <span className="text-sm font-extrabold text-primary">{persen}%</span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border">
+                <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${persen}%` }} />
+              </div>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {STATUS_LIST.map(s => {
+                  const c = STATUS_COLOR[s];
+                  return (
+                    <span key={s} className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: c.pale, color: c.paleText }}>
+                      {s}: {summary[s]}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
-            <div className="progress-wrap" style={{ marginBottom:'.65rem' }}>
-              <div className="progress-bar" style={{ width:`${persen}%` }} />
+          </div>
+        </section>
+
+        {/* Daftar murid */}
+        <section className="px-5 pt-5">
+          {murid.length === 0 ? (
+            <div className="card-soft p-6 text-center">
+              <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-2xl">👥</div>
+              <h3 className="mt-3 text-base font-extrabold text-ink">Belum ada murid</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Tambahkan murid terlebih dahulu</p>
+              <button onClick={() => router.push(`/setup/${kelompokId}`)} className="mt-4 w-full rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)]">
+                Setup Murid
+              </button>
             </div>
-            <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
-              {STATUS_LIST.map(s => {
-                const c = STATUS_COLOR[s];
+          ) : (
+            <ul className="space-y-3">
+              {murid.map((m, i) => {
+                const currentStatus = absensiMap[m.id] || 'Hadir';
                 return (
-                  <div key={s} style={{
-                    background: c.pale, color: c.paleText,
-                    padding:'.28rem .6rem', borderRadius:'7px',
-                    fontSize:'.78rem', fontWeight:700,
-                  }}>
-                    {s}: {summary[s]}
-                  </div>
+                  <li key={m.id} className="card-soft flex items-center gap-3 p-3">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-extrabold text-primary">{i+1}</span>
+                    <p className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{m.nama_murid}</p>
+                    <div className="flex shrink-0 gap-1">
+                      {STATUS_LIST.map(s => {
+                        const c = STATUS_COLOR[s];
+                        const aktif = currentStatus === s;
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => setStatus(m.id, s)}
+                            className="rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-all active:scale-[0.95]"
+                            style={aktif
+                              ? { background: c.bg, color: c.text }
+                              : { background: 'var(--muted)', color: 'var(--muted-foreground)' }}
+                          >
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </li>
                 );
               })}
-            </div>
-          </div>
-        </div>
-
-        {/* Tabel absensi */}
-        {murid.length === 0 ? (
-          <div className="empty-state card">
-            <div className="icon">👥</div>
-            <h3>Belum ada murid</h3>
-            <p style={{ marginBottom:'1rem' }}>Tambahkan murid terlebih dahulu</p>
-            <button className="btn btn-hijau" onClick={() => router.push(`/setup/${kelompokId}`)}>
-              ⚙️ Setup Murid
-            </button>
-          </div>
-        ) : (
-          <div>
-            {murid.map((m, i) => {
-              const currentStatus = absensiMap[m.id] || 'Hadir';
-              return (
-                <div key={m.id} className="abs-card">
-                  <div className="abs-card-nomor">{i+1}</div>
-                  <div className="abs-card-nama">{m.nama_murid}</div>
-                  <div className="abs-status-group">
-                    {STATUS_LIST.map(s => (
-                      <button
-                        key={s}
-                        onClick={() => setStatus(m.id, s)}
-                        className={`abs-status-btn ${s.toLowerCase()}${currentStatus === s ? ' aktif' : ''}`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+            </ul>
+          )}
+        </section>
 
         {/* Bottom bar sticky */}
         {murid.length > 0 && (
-          <div className="bottom-bar">
-            <button className="btn btn-outline" onClick={() => router.push('/dashboard')}>← Kembali</button>
+          <div className="sticky bottom-6 z-30 mt-5 flex gap-3 px-5">
             <button
-              className={`btn ${saved ? 'btn-outline' : 'btn-hijau'}`}
+              onClick={() => router.push('/dashboard')}
+              className="rounded-full bg-surface px-5 py-3.5 text-sm font-bold text-ink shadow-[var(--shadow-card)]"
+            >
+              ← Kembali
+            </button>
+            <button
               onClick={() => setShowKonfirmasi(true)}
               disabled={saving}
+              className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99] disabled:opacity-60"
             >
-              {saving ? '⏳ Menyimpan...' : saved ? '✅ Tersimpan!' : '💾 Simpan Absensi'}
+              {saving ? 'Menyimpan...' : saved ? 'Tersimpan!' : 'Simpan Absensi'}
             </button>
           </div>
         )}
 
         {/* Modal konfirmasi simpan */}
         {showKonfirmasi && (
-          <div className="modal-overlay" onClick={() => setShowKonfirmasi(false)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
-              <div className="modal-handle" />
-              <div style={{ padding:'1.5rem', textAlign:'center' }}>
-                <div style={{ fontSize:'2.5rem', marginBottom:'.75rem' }}>📋</div>
-                <h3 style={{ fontWeight:800, fontSize:'1.1rem', marginBottom:'.5rem' }}>Konfirmasi Absensi</h3>
-                <p style={{ color:'var(--teks-soft)', fontSize:'.88rem', marginBottom:'1rem' }}>
-                  {new Date(tanggal).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
-                </p>
-                <div style={{ display:'flex', justifyContent:'center', gap:'.5rem', flexWrap:'wrap', marginBottom:'1.5rem' }}>
-                  {STATUS_LIST.map(s => (
-                    <div key={s} style={{ textAlign:'center', padding:'.5rem .85rem', borderRadius:'8px',
-                      background: s==='Hadir'?'#dcfce7':s==='Izin'?'#fef9c3':s==='Sakit'?'#dbeafe':'#fee2e2',
-                      color: s==='Hadir'?'#166534':s==='Izin'?'#854d0e':s==='Sakit'?'#1e40af':'#991b1b',
-                    }}>
-                      <div style={{ fontWeight:800, fontSize:'1.2rem' }}>{summary[s]}</div>
-                      <div style={{ fontSize:'.75rem', fontWeight:600 }}>{s}</div>
+          <div className="fixed inset-0 z-50 bg-ink/40" onClick={() => setShowKonfirmasi(false)}>
+            <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[26rem] rounded-t-[2rem] bg-surface p-5 pb-8 text-center shadow-[var(--shadow-float)]" onClick={e => e.stopPropagation()}>
+              <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
+              <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-3xl">📋</div>
+              <h3 className="mt-3 text-lg font-extrabold text-ink">Konfirmasi Absensi</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {new Date(tanggal).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+              </p>
+              <div className="mt-4 flex justify-center gap-2 flex-wrap">
+                {STATUS_LIST.map(s => {
+                  const c = STATUS_COLOR[s];
+                  return (
+                    <div key={s} className="rounded-2xl px-3.5 py-2" style={{ background: c.pale, color: c.paleText }}>
+                      <div className="text-xl font-extrabold">{summary[s]}</div>
+                      <div className="text-[11px] font-semibold">{s}</div>
                     </div>
-                  ))}
-                </div>
-                <p style={{ fontSize:'.82rem', color:'var(--teks-soft)', marginBottom:'1.25rem' }}>
-                  Total {murid.length} murid · Kehadiran <strong style={{ color:'var(--hijau)' }}>{persen}%</strong>
-                </p>
-                <div style={{ display:'flex', gap:'.75rem' }}>
-                  <button className="btn btn-outline btn-full" onClick={() => setShowKonfirmasi(false)}>Cek Lagi</button>
-                  <button className="btn btn-hijau btn-full" onClick={() => { setShowKonfirmasi(false); handleSimpan(); }}>
-                    ✅ Simpan
-                  </button>
-                </div>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Total {murid.length} murid · Kehadiran <strong className="text-primary">{persen}%</strong>
+              </p>
+              <div className="mt-5 flex gap-3">
+                <button onClick={() => setShowKonfirmasi(false)} className="flex-1 rounded-full bg-secondary py-3.5 text-sm font-bold text-ink">Cek Lagi</button>
+                <button onClick={() => { setShowKonfirmasi(false); handleSimpan(); }} className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">
+                  Simpan
+                </button>
               </div>
             </div>
           </div>

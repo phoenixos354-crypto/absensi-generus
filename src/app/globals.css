@@ -1,456 +1,114 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
+  --radius-3xl: calc(var(--radius) + 20px);
+  --radius-4xl: calc(var(--radius) + 28px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ink: var(--ink);
+  --color-surface: var(--surface);
+  --color-brand-soft: var(--brand-soft);
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
 
 :root {
-  --hijau:       #1a6b3c;
-  --hijau-muda:  #2d9458;
-  --hijau-pale:  #e8f5ee;
-  --emas:        #c9973a;
-  --emas-pale:   #fdf6e7;
-  --krem:        #faf7f2;
-  --putih:       #ffffff;
-  --teks:        #1c2a1e;
-  --teks-soft:   #4a6352;
-  --batas:       #d4e8db;
-  --shadow:      0 2px 16px rgba(26,107,60,0.10);
-  --shadow-lg:   0 8px 40px rgba(26,107,60,0.14);
-  --radius:      14px;
-  --radius-sm:   10px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  --radius: 1rem;
+  --background: oklch(0.975 0.008 260);
+  --foreground: oklch(0.19 0.03 265);
+  --ink: oklch(0.16 0.02 265);
+  --surface: oklch(1 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.19 0.03 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.19 0.03 265);
+  --primary: oklch(0.51 0.24 264);
+  --primary-foreground: oklch(0.99 0 0);
+  --brand-soft: oklch(0.93 0.045 264);
+  --secondary: oklch(0.96 0.01 260);
+  --secondary-foreground: oklch(0.22 0.03 265);
+  --muted: oklch(0.96 0.008 260);
+  --muted-foreground: oklch(0.56 0.025 262);
+  --accent: oklch(0.94 0.04 264);
+  --accent-foreground: oklch(0.32 0.14 264);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.92 0.012 260);
+  --input: oklch(0.92 0.012 260);
+  --ring: oklch(0.51 0.24 264);
+
+  --gradient-brand: linear-gradient(140deg, oklch(0.56 0.23 264), oklch(0.45 0.25 266));
+  --gradient-page: linear-gradient(180deg, oklch(0.97 0.015 268), oklch(0.94 0.03 272));
+  --shadow-card: 0 12px 30px -18px oklch(0.45 0.2 264 / 45%);
+  --shadow-float: 0 18px 40px -18px oklch(0.35 0.16 264 / 45%);
 }
 
-body {
-  background: var(--krem);
-  color: var(--teks);
-  min-height: 100vh;
-  /* Penting untuk mobile: cegah zoom saat tap input */
-  -webkit-text-size-adjust: 100%;
-  padding-left: 20px;
-  padding-right: 20px;
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html,
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--gradient-page);
+    background-attachment: fixed;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--hijau-pale); }
-::-webkit-scrollbar-thumb { background: var(--hijau-muda); border-radius: 3px; }
-
-/* ========= UTILITY ========= */
-.container { max-width: 680px; margin: 0 auto; padding: 0 20px; }
-@media (max-width: 380px) {
-  .container { padding: 0 16px; }
-}
-.card {
-  background: var(--putih);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  border: 1px solid var(--batas);
-  padding: 1.25rem;
-}
-@media (max-width: 380px) {
-  .card { padding: 1rem .9rem; }
-  .modal-body { padding: 1rem .9rem; }
-}
-.card-emas {
-  background: var(--emas-pale);
-  border-color: #e8c97a;
-}
-
-/* ========= TOMBOL ========= */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
-  padding: .75rem 1.25rem;
-  border-radius: var(--radius-sm);
-  font-size: .95rem; font-weight: 700;
-  cursor: pointer; border: none;
-  transition: all .18s ease;
-  text-decoration: none;
-  /* Touch friendly */
-  min-height: 48px;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-hijau { background: var(--hijau); color: white; }
-.btn-hijau:active { background: var(--hijau-muda); transform: scale(.97); }
-.btn-outline { background: transparent; border: 2px solid var(--hijau); color: var(--hijau); }
-.btn-outline:active { background: var(--hijau-pale); }
-.btn-emas { background: var(--emas); color: white; }
-.btn-emas:active { background: #b8832e; }
-.btn-sm { padding: .5rem .9rem; font-size: .85rem; min-height: 40px; }
-.btn-full { width: 100%; }
-
-/* ========= FORM ========= */
-.form-group { display: flex; flex-direction: column; gap: .45rem; margin-bottom: 1rem; }
-.label { font-size: .88rem; font-weight: 700; color: var(--teks-soft); }
-.input, .select, .textarea {
-  padding: .85rem 1rem;
-  border: 2px solid var(--batas);
-  border-radius: var(--radius-sm);
-  /* Minimal 16px agar iOS tidak zoom otomatis */
-  font-size: 16px;
-  font-family: inherit;
-  background: var(--putih);
-  color: var(--teks);
-  transition: border-color .15s;
-  outline: none;
+@utility app-shell {
+  margin-inline: auto;
   width: 100%;
-  /* Touch friendly */
-  min-height: 50px;
-}
-.input:focus, .select:focus, .textarea:focus { border-color: var(--hijau-muda); }
-.textarea { min-height: 120px; resize: vertical; }
-
-/* ========= BADGE STATUS ========= */
-.badge {
-  display: inline-block;
-  padding: .3rem .75rem;
-  border-radius: 99px;
-  font-size: .78rem;
-  font-weight: 700;
-  letter-spacing: .02em;
-}
-.badge-hadir  { background: #dcfce7; color: #166534; }
-.badge-alfa   { background: #fee2e2; color: #991b1b; }
-.badge-izin   { background: #fef9c3; color: #854d0e; }
-.badge-sakit  { background: #dbeafe; color: #1e40af; }
-
-/* ========= NAVBAR ========= */
-.navbar {
-  background: var(--hijau);
-  padding: 0 1rem;
-  position: sticky; top: 0; z-index: 100;
-  box-shadow: 0 2px 12px rgba(0,0,0,.18);
-  margin-left: -20px;
-  margin-right: -20px;
-}
-.navbar-inner {
-  max-width: 680px; margin: 0 auto;
-  display: flex; align-items: center; justify-content: space-between;
-  height: 58px;
-}
-.navbar-brand {
-  display: flex; align-items: center; gap: .5rem;
-  color: white; font-weight: 800; font-size: 1rem;
-  text-decoration: none;
-}
-.navbar-brand .logo-icon {
-  width: 34px; height: 34px;
-  background: rgba(255,255,255,.18);
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.1rem;
-}
-.navbar-user { display: flex; align-items: center; gap: .6rem; }
-.navbar-user img {
-  width: 32px; height: 32px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,.4);
-}
-/* Sembunyikan nama di mobile, tampilkan hanya foto + tombol */
-.navbar-user .nama-user {
-  color: rgba(255,255,255,.9); font-size: .82rem; font-weight: 500;
-  display: none;
-}
-@media (min-width: 480px) {
-  .navbar-user .nama-user { display: inline; }
-}
-.navbar-logout {
-  background: rgba(255,255,255,.15);
-  color: white; border: 1px solid rgba(255,255,255,.3);
-  padding: .45rem .85rem; border-radius: 6px;
-  font-size: .82rem; cursor: pointer; font-weight: 600;
-  min-height: 36px;
-}
-.navbar-logout:active { background: rgba(255,255,255,.3); }
-
-/* ========= HALAMAN LOGIN ========= */
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  background: linear-gradient(160deg, #0f4226 0%, #1a6b3c 55%, #2d9458 100%);
-  position: relative; overflow: hidden;
-}
-.login-deko {
-  position: absolute; inset: 0;
-  background-image:
-    radial-gradient(circle at 20% 20%, rgba(201,151,58,.18) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(255,255,255,.06) 0%, transparent 40%);
-}
-.login-box {
-  position: relative; z-index: 1;
-  margin: auto;
-  background: white;
-  border-radius: 24px;
-  padding: 2.5rem 1.75rem;
-  width: calc(100% - 2rem);
-  max-width: 400px;
-  box-shadow: 0 24px 80px rgba(0,0,0,.3);
-  text-align: center;
-}
-.login-logo { font-size: 3.5rem; margin-bottom: .5rem; }
-.login-title {
-  font-family: 'Amiri', serif;
-  font-size: 1.8rem;
-  color: var(--hijau);
-  margin-bottom: .3rem;
-}
-.login-sub { color: var(--teks-soft); font-size: .9rem; margin-bottom: 2rem; line-height: 1.6; }
-.google-btn {
-  display: flex; align-items: center; justify-content: center; gap: .75rem;
-  width: 100%; padding: 1rem;
-  background: white;
-  border: 2px solid var(--batas);
-  border-radius: var(--radius-sm);
-  font-size: 1rem; font-weight: 700;
-  cursor: pointer; color: var(--teks);
-  transition: all .18s;
-  min-height: 54px;
-}
-.google-btn:active { border-color: var(--hijau); background: var(--hijau-pale); }
-.google-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
-
-/* ========= HALAMAN ========= */
-.page { padding: 1.5rem 0 6rem; }
-@media (max-width: 380px) {
-  .page { padding: 1.25rem 0 6rem; }
-}
-.page-header { margin-bottom: 1.25rem; }
-.page-title {
-  font-size: 1.35rem; font-weight: 800;
-  color: var(--teks);
-  display: flex; align-items: center; gap: .5rem;
-}
-.page-sub { color: var(--teks-soft); margin-top: .3rem; font-size: .88rem; }
-
-/* Grid: 1 kolom di mobile, 2 di tablet */
-.grid-2 { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-@media (min-width: 600px) {
-  .grid-2 { grid-template-columns: 1fr 1fr; }
-  .grid-3 { grid-template-columns: repeat(3,1fr); }
+  max-width: 26rem;
+  min-height: 100dvh;
+  background: var(--color-background);
+  position: relative;
+  overflow-x: hidden;
 }
 
-/* ========= STAT CARD ========= */
-.stat-card {
-  background: var(--putih);
-  border-radius: var(--radius);
-  border: 1px solid var(--batas);
-  padding: 1rem 1.1rem;
-  display: flex; align-items: center; gap: .85rem;
-}
-.stat-icon {
-  width: 44px; height: 44px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem;
-  background: var(--hijau-pale);
-  flex-shrink: 0;
-}
-.stat-value { font-size: 1.4rem; font-weight: 800; color: var(--teks); }
-.stat-label { font-size: .78rem; color: var(--teks-soft); font-weight: 500; }
-
-/* ========= KELOMPOK CARD ========= */
-.kelompok-card {
-  background: white;
-  border: 1px solid var(--batas);
-  border-radius: var(--radius);
-  padding: 1.1rem;
-  cursor: pointer;
-  transition: all .15s;
-  position: relative; overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
-}
-.kelompok-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 4px;
-  background: linear-gradient(90deg, var(--hijau), var(--emas));
-}
-.kelompok-card:active { transform: scale(.98); box-shadow: var(--shadow); }
-.kelompok-nama { font-weight: 700; font-size: .98rem; color: var(--teks); margin-bottom: .35rem; }
-.kelompok-meta { font-size: .78rem; color: var(--teks-soft); display: flex; gap: .4rem; flex-wrap: wrap; }
-.kelompok-meta span {
-  background: var(--hijau-pale);
-  padding: .18rem .5rem;
-  border-radius: 99px;
-  font-weight: 500;
+@utility card-soft {
+  background: var(--color-surface);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-card);
 }
 
-/* ========= ABSENSI — Mobile Card Style ========= */
-/* Di mobile pakai card per murid, bukan table */
-.abs-card {
-  background: white;
-  border: 1px solid var(--batas);
-  border-radius: var(--radius-sm);
-  padding: .9rem 1rem;
-  margin-bottom: .6rem;
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-}
-.abs-card-nama {
-  flex: 1;
-  font-weight: 600;
-  font-size: .95rem;
-}
-.abs-card-nomor {
-  width: 28px; height: 28px;
-  background: var(--hijau); color: white;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .75rem; font-weight: 700;
-  flex-shrink: 0;
-}
-.abs-status-group {
-  display: flex; gap: .35rem; flex-wrap: wrap;
-}
-.abs-status-btn {
-  padding: .4rem .65rem;
-  border-radius: 7px;
-  border: 2px solid transparent;
-  font-size: .78rem; font-weight: 700;
-  cursor: pointer; transition: all .12s;
-  min-height: 36px;
-  -webkit-tap-highlight-color: transparent;
-}
-.abs-status-btn.hadir  { border-color: #22c55e; color: #166534; background: white; }
-.abs-status-btn.hadir.aktif { background: #22c55e; color: white; }
-.abs-status-btn.izin   { border-color: #eab308; color: #854d0e; background: white; }
-.abs-status-btn.izin.aktif { background: #eab308; color: white; }
-.abs-status-btn.sakit  { border-color: #3b82f6; color: #1e40af; background: white; }
-.abs-status-btn.sakit.aktif { background: #3b82f6; color: white; }
-.abs-status-btn.alfa   { border-color: #ef4444; color: #991b1b; background: white; }
-.abs-status-btn.alfa.aktif { background: #ef4444; color: white; }
-
-/* Tabel lama — hanya di desktop */
-.abs-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
-.abs-table th {
-  background: var(--hijau); color: white;
-  padding: .65rem .85rem; text-align: left; font-weight: 600;
-}
-.abs-table th:first-child { border-radius: 8px 0 0 8px; }
-.abs-table th:last-child  { border-radius: 0 8px 8px 0; }
-.abs-table td { padding: .6rem .85rem; border-bottom: 1px solid var(--batas); }
-
-/* ========= PROGRESS BAR ========= */
-.progress-wrap { background: var(--batas); border-radius: 99px; height: 8px; overflow: hidden; }
-.progress-bar  {
-  height: 100%;
-  background: linear-gradient(90deg, var(--hijau), var(--hijau-muda));
-  border-radius: 99px;
-  transition: width .4s ease;
+@utility brand-gradient {
+  background: var(--gradient-brand);
 }
 
-/* ========= MODAL ========= */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,.5);
-  display: flex; align-items: flex-end; justify-content: center;
-  padding: 0;
-}
-/* Bottom sheet style di mobile */
-.modal {
-  background: white;
-  border-radius: 20px 20px 0 0;
-  width: 100%; max-width: 680px;
-  max-height: 92vh; overflow-y: auto;
-  box-shadow: 0 -8px 40px rgba(0,0,0,.2);
-  animation: slideUp .25s ease;
-}
-@media (min-width: 600px) {
-  .modal-overlay { align-items: center; padding: 1rem; }
-  .modal { border-radius: 20px; max-width: 520px; }
-}
-.modal-handle {
-  width: 40px; height: 4px;
-  background: var(--batas);
-  border-radius: 99px;
-  margin: .75rem auto .25rem;
-}
-.modal-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--batas);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.modal-title { font-weight: 700; font-size: 1rem; }
-.modal-body { padding: 1.25rem; }
-.modal-close {
-  background: none; border: none; font-size: 1.5rem;
-  cursor: pointer; color: var(--teks-soft); line-height: 1;
-  width: 36px; height: 36px;
-  display: flex; align-items: center; justify-content: center;
-}
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
-}
-
-/* ========= TINGKATAN BADGE ========= */
-.tk-caberawit { background: #fce7f3; color: #9d174d; }
-.tk-praremaja { background: #ede9fe; color: #5b21b6; }
-.tk-remaja    { background: #dcfce7; color: #14532d; }
-.tk-usianikah { background: #fef3c7; color: #92400e; }
-.tk-kelompok  { background: #dbeafe; color: #1e3a8a; }
-
-/* ========= LOADING SPINNER ========= */
-.spinner {
-  width: 36px; height: 36px;
-  border: 3px solid var(--batas);
-  border-top-color: var(--hijau);
-  border-radius: 50%;
-  animation: spin .7s linear infinite;
-  margin: 3rem auto;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.empty-state {
-  text-align: center; padding: 3rem 1rem;
-  color: var(--teks-soft);
-}
-.empty-state .icon { font-size: 3rem; margin-bottom: .75rem; }
-.empty-state h3 { font-size: 1rem; font-weight: 600; margin-bottom: .35rem; color: var(--teks); }
-
-/* ========= BOTTOM ACTION BAR ========= */
-/* Tombol aksi penting ditaruh di bottom bar agar mudah dijangkau jempol */
-.bottom-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-  background: white;
-  border-top: 1px solid var(--batas);
-  padding: .75rem 1rem;
-  padding-bottom: calc(.75rem + env(safe-area-inset-bottom));
-  display: flex; gap: .75rem;
-  box-shadow: 0 -4px 20px rgba(0,0,0,.08);
-}
-.bottom-bar .btn { flex: 1; }
-
-/* ========= REKAP TABLE — scroll horizontal di mobile ========= */
-.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-
-/* ========= FIX MOBILE 360px — GLOBAL ========= */
-/* Pastikan semua konten punya ruang napas di HP kecil */
-
-/* Navbar padding */
-@media (max-width: 380px) {
-  .navbar { padding: 0 .75rem; }
-  .navbar-inner { height: 54px; }
-  .navbar-brand { font-size: .92rem; }
-  .navbar-brand .logo-icon { width: 30px; height: 30px; font-size: 1rem; }
-  .navbar-logout { padding: .38rem .65rem; font-size: .78rem; }
-}
-
-/* Form input lebih compact di 360 */
-@media (max-width: 380px) {
-  .input, .select, .textarea { padding: .75rem .85rem; }
-  .btn-sm { padding: .45rem .75rem; font-size: .8rem; min-height: 36px; }
-  .page-title { font-size: 1.15rem; }
-  .stat-value { font-size: 1.25rem; }
-  .stat-card { padding: .85rem .9rem; gap: .65rem; }
-  .stat-icon { width: 38px; height: 38px; font-size: 1.15rem; }
-  .badge { padding: .22rem .55rem; font-size: .73rem; }
-  .bottom-bar { padding: .65rem .75rem; gap: .5rem; }
-  .kelompok-card { padding: .9rem; }
-  .kelompok-nama { font-size: .9rem; }
-}
-
-/* Abs card di 360 */
-@media (max-width: 380px) {
-  .abs-card { padding: .75rem .8rem; gap: .5rem; }
-  .abs-card-nama { font-size: .88rem; }
-  .abs-status-btn { padding: .35rem .5rem; font-size: .73rem; min-height: 34px; }
-  .abs-card-nomor { width: 24px; height: 24px; font-size: .7rem; }
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }

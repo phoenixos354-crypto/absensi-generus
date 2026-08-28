@@ -1,8 +1,9 @@
 'use client';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { Navbar } from '@/components/Navbar';
+import { useEffect } from 'react';
+import useSWR from 'swr';
+import { ChevronLeft, Users, CalendarDays } from 'lucide-react';
 
 const TINGKATAN_LABEL = {
   caberawit:  { label: 'Caberawit',     cls: 'tk-caberawit', icon: '🌱' },
@@ -18,74 +19,102 @@ export default function KelompokDetailPage() {
   const params = useParams();
   const kelompokId = params.id;
 
-  const [kelompok, setKelompok] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // SWR: cache tampil instan lalu revalidate background
+  const { data: kelompok, isLoading: loading } = useSWR(
+    session && kelompokId ? `/api/kelompok/${kelompokId}` : null,
+    { onError: () => router.replace('/dashboard') }
+  );
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
   }, [status]);
 
-  useEffect(() => {
-    if (session) fetchData();
-  }, [session]);
-
-  async function fetchData() {
-    const res = await fetch(`/api/kelompok/${kelompokId}`);
-    if (!res.ok) { router.replace('/dashboard'); return; }
-    setKelompok(await res.json());
-    setLoading(false);
-  }
-
-  if (loading) return (
-    <><Navbar /><div className="container page"><div className="spinner" /></div></>
+  if (loading || !kelompok) return (
+    <div className="app-shell">
+      <div className="space-y-4 px-5 pt-8">
+        <div className="h-10 w-40 animate-pulse rounded-2xl bg-muted" />
+        <div className="h-32 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+        <div className="h-40 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
+      </div>
+    </div>
   );
 
-  const tk = TINGKATAN_LABEL[kelompok.tingkatan] || TINGKATAN_LABEL.kelompok;
+  const tk = TINGKATAN_LABEL[kelompok?.tingkatan] || TINGKATAN_LABEL.kelompok;
 
   return (
-    <>
-      <Navbar />
-      <div className="container page">
-        <button className="btn btn-outline btn-sm" style={{ marginBottom:'1.25rem' }} onClick={() => router.push('/dashboard')}>
-          ← Kembali
+    <div className="app-shell flex flex-col pb-6">
+      {/* Header */}
+      <header className="px-5 pt-6">
+        <button
+          onClick={() => router.push('/dashboard')}
+          aria-label="Kembali"
+          className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
+        >
+          <ChevronLeft className="size-5 text-ink" />
         </button>
-        <div className="card" style={{ marginBottom:'1.5rem' }}>
-          <h1 style={{ fontSize:'1.4rem', fontWeight:800, marginBottom:'.5rem' }}>
-            {tk.icon} {kelompok.nama_kelompok}
-          </h1>
-          <div style={{ display:'flex', gap:'.5rem', flexWrap:'wrap' }}>
-            <span className={`badge ${tk.cls}`}>{tk.label}</span>
-            <span className="badge" style={{ background:'#e0f2fe', color:'#0369a1' }}>📍 {kelompok.desa}</span>
-            <span className="badge" style={{ background:'#f0fdf4', color:'#166534' }}>🗺 {kelompok.daerah}</span>
+      </header>
+
+      <section className="px-5 pt-4">
+        <div className="rounded-3xl brand-gradient p-4 shadow-[var(--shadow-float)]">
+          <h1 className="text-xl font-extrabold text-primary-foreground">{tk.icon} {kelompok.nama_kelompok}</h1>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-primary-foreground">{tk.label}</span>
+            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-primary-foreground">📍 {kelompok.desa}</span>
+            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-primary-foreground">🗺 {kelompok.daerah}</span>
           </div>
-          <div style={{ display:'flex', gap:'.5rem', marginTop:'1.25rem', flexWrap:'wrap' }}>
-            <button className="btn btn-hijau" onClick={() => router.push(`/absensi/${kelompokId}`)}>✅ Absensi</button>
-            <button className="btn btn-outline" onClick={() => router.push(`/rekap/${kelompokId}`)}>📊 Rekap</button>
-            <button className="btn btn-outline" onClick={() => router.push(`/setup/${kelompokId}`)}>⚙️ Kelola</button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button onClick={() => router.push(`/absensi/${kelompokId}`)} className="rounded-full bg-white px-4 py-2.5 text-xs font-bold text-ink">
+              Absensi
+            </button>
+            <button onClick={() => router.push(`/rekap/${kelompokId}`)} className="rounded-full bg-white/20 px-4 py-2.5 text-xs font-bold text-primary-foreground">
+              Rekap
+            </button>
+            <button onClick={() => router.push(`/setup/${kelompokId}`)} className="rounded-full bg-white/20 px-4 py-2.5 text-xs font-bold text-primary-foreground">
+              Kelola
+            </button>
           </div>
         </div>
-        <div className="grid-2">
-          <div className="card">
-            <h3 style={{ fontWeight:700, marginBottom:'1rem' }}>👥 Murid ({kelompok.murid?.length || 0})</h3>
+      </section>
+
+      <section className="px-5 pt-4">
+        <div className="card-soft p-4">
+          <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+            <Users className="size-4 text-primary" /> Murid ({kelompok.murid?.length || 0})
+          </h2>
+          <ul className="mt-2 divide-y divide-border">
             {(kelompok.murid || []).map((m,i) => (
-              <div key={m.id} style={{ padding:'.45rem 0', borderBottom:'1px solid var(--batas)', fontSize:'.9rem' }}>
-                {i+1}. {m.nama_murid}
-              </div>
+              <li key={m.id} className="flex items-center gap-2.5 py-2.5 text-sm">
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-soft text-[10px] font-extrabold text-primary">{i+1}</span>
+                <span className="min-w-0 flex-1 truncate font-medium text-ink">{m.nama_murid}</span>
+              </li>
             ))}
-          </div>
-          <div className="card">
-            <h3 style={{ fontWeight:700, marginBottom:'1rem' }}>📅 Jadwal Ngaji</h3>
-            {(kelompok.jadwal || []).length === 0
-              ? <p style={{ color:'var(--teks-soft)', fontSize:'.88rem' }}>Belum ada jadwal. <button className="btn btn-outline btn-sm" onClick={() => router.push(`/setup/${kelompokId}`)}>Set Jadwal</button></p>
-              : (kelompok.jadwal || []).map(j => (
-                  <div key={j.id} style={{ padding:'.45rem .75rem', background:'var(--hijau-pale)', borderRadius:'8px', marginBottom:'.4rem', fontWeight:600, fontSize:'.9rem', color:'var(--hijau)' }}>
-                    📅 {j.hari}
-                  </div>
-                ))
-            }
-          </div>
+          </ul>
         </div>
-      </div>
-    </>
+      </section>
+
+      <section className="px-5 pt-4">
+        <div className="card-soft p-4">
+          <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+            <CalendarDays className="size-4 text-primary" /> Jadwal Ngaji
+          </h2>
+          {(kelompok.jadwal || []).length === 0 ? (
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              Belum ada jadwal.
+              <button onClick={() => router.push(`/setup/${kelompokId}`)} className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-ink">
+                Set Jadwal
+              </button>
+            </p>
+          ) : (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(kelompok.jadwal || []).map(j => (
+                <span key={j.id} className="rounded-full bg-brand-soft px-3.5 py-2 text-xs font-bold text-primary">
+                  📅 {j.hari}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
