@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { FileDown } from 'lucide-react';
 
 export function ExportPDF({ kelompok, rekap, periode }) {
   const [loading, setLoading] = useState(false);
@@ -149,9 +150,10 @@ export function ExportPDF({ kelompok, rekap, periode }) {
     <button
       onClick={handleExport}
       disabled={loading}
-      className="btn btn-emas btn-full"
+      className="flex w-full items-center justify-center gap-2 rounded-full brand-gradient py-4 text-base font-bold text-primary-foreground shadow-[var(--shadow-float)] transition-transform active:scale-[0.99] disabled:opacity-60"
     >
-      {loading ? '⏳ Membuat PDF...' : '📄 Export PDF'}
+      <FileDown className="size-5" />
+      {loading ? 'Membuat PDF...' : 'Export PDF'}
     </button>
   );
 }
