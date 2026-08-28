@@ -3,7 +3,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AppScreen } from '@/components/AppScreen';
-import { ChevronLeft, MapPin } from 'lucide-react';
+import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
+import { ChevronLeft, MapPin, Users, ClipboardList, ArrowLeft, Save, Check } from 'lucide-react';
 
 const STATUS_LIST = ['Hadir','Izin','Sakit','Alfa'];
 
@@ -12,14 +13,6 @@ const STATUS_COLOR = {
   Izin:  { border:'#eab308', bg:'#eab308', text:'white', pale:'#fef9c3', paleText:'#854d0e' },
   Sakit: { border:'#3b82f6', bg:'#3b82f6', text:'white', pale:'#dbeafe', paleText:'#1e40af' },
   Alfa:  { border:'#ef4444', bg:'#ef4444', text:'white', pale:'#fee2e2', paleText:'#991b1b' },
-};
-
-const TINGKATAN_LABEL = {
-  caberawit:  { label: 'Caberawit',     cls: 'tk-caberawit', icon: '🌱' },
-  praremaja:  { label: 'Pra Remaja',    cls: 'tk-praremaja', icon: '🌿' },
-  remaja:     { label: 'Remaja',        cls: 'tk-remaja',    icon: '🍃' },
-  usianikah:  { label: 'Usia Nikah',    cls: 'tk-usianikah', icon: '🌸' },
-  kelompok:   { label: 'Ngaji Kelompok',cls: 'tk-kelompok',  icon: '📖' },
 };
 
 export default function AbsensiPage() {
@@ -134,11 +127,11 @@ export default function AbsensiPage() {
     </AppScreen>
   );
 
-  const tk = TINGKATAN_LABEL[kelompok.tingkatan] || TINGKATAN_LABEL.kelompok;
+  const tk = getTingkatan(kelompok.tingkatan);
 
   return (
-    <>
-      <div className="app-shell flex flex-col">
+    <AppScreen>
+      <div className="relative">
         {/* Header hero */}
         <div className="brand-gradient relative overflow-hidden rounded-b-[2rem] pt-6 text-primary-foreground">
           <div className="flex items-center justify-between px-5">
@@ -155,7 +148,10 @@ export default function AbsensiPage() {
           </div>
           <div className="px-5 pb-6 pt-4">
             <h1 className="text-2xl leading-tight font-extrabold">{kelompok.nama_kelompok}</h1>
-            <p className="mt-1 text-sm text-primary-foreground/80">{tk.icon} {tk.label} · {murid.length} murid</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-primary-foreground/80">
+              <TingkatanIcon tingkatan={kelompok.tingkatan} className="size-3.5" />
+              {tk.label} · {murid.length} murid
+            </p>
           </div>
         </div>
 
@@ -213,7 +209,9 @@ export default function AbsensiPage() {
         <section className="px-5 pt-5">
           {murid.length === 0 ? (
             <div className="card-soft p-6 text-center">
-              <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-2xl">👥</div>
+              <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-primary">
+                <Users className="size-6" />
+              </div>
               <h3 className="mt-3 text-base font-extrabold text-ink">Belum ada murid</h3>
               <p className="mt-1 text-sm text-muted-foreground">Tambahkan murid terlebih dahulu</p>
               <button onClick={() => router.push(`/setup/${kelompokId}`)} className="mt-4 w-full rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)]">
@@ -253,22 +251,30 @@ export default function AbsensiPage() {
           )}
         </section>
 
-        {/* Bottom bar sticky */}
+        {/* Spacer agar konten bawah tidak tertutup bar melayang */}
+        {murid.length > 0 && <div className="h-40" />}
+
+        {/* Tombol melayang */}
         {murid.length > 0 && (
-          <div className="sticky bottom-6 z-30 mt-5 flex gap-3 px-5">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="rounded-full bg-surface px-5 py-3.5 text-sm font-bold text-ink shadow-[var(--shadow-card)]"
-            >
-              ← Kembali
-            </button>
-            <button
-              onClick={() => setShowKonfirmasi(true)}
-              disabled={saving}
-              className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99] disabled:opacity-60"
-            >
-              {saving ? 'Menyimpan...' : saved ? 'Tersimpan!' : 'Simpan Absensi'}
-            </button>
+          <div className="pointer-events-none fixed bottom-[5.75rem] left-1/2 z-40 w-full max-w-[26rem] -translate-x-1/2 px-5">
+            <div className="pointer-events-auto flex gap-3">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="flex items-center gap-1.5 rounded-full bg-surface px-5 py-3.5 text-sm font-bold text-ink shadow-[var(--shadow-card)]"
+              >
+                <ArrowLeft className="size-4" /> Kembali
+              </button>
+              <button
+                onClick={() => setShowKonfirmasi(true)}
+                disabled={saving}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold shadow-[var(--shadow-float)] transition-transform active:scale-[0.99] disabled:opacity-60 ${
+                  saved ? 'bg-primary text-primary-foreground' : 'brand-gradient text-primary-foreground shadow-[var(--shadow-float)]'
+                }`}
+              >
+                {saved ? <Check className="size-4" /> : <Save className="size-4" />}
+                {saving ? 'Menyimpan...' : saved ? 'Tersimpan' : 'Simpan Absensi'}
+              </button>
+            </div>
           </div>
         )}
 
@@ -277,7 +283,9 @@ export default function AbsensiPage() {
           <div className="fixed inset-0 z-50 bg-ink/40" onClick={() => setShowKonfirmasi(false)}>
             <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[26rem] rounded-t-[2rem] bg-surface p-5 pb-8 text-center shadow-[var(--shadow-float)]" onClick={e => e.stopPropagation()}>
               <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
-              <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-3xl">📋</div>
+              <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-primary">
+                <ClipboardList className="size-7" />
+              </div>
               <h3 className="mt-3 text-lg font-extrabold text-ink">Konfirmasi Absensi</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 {new Date(tanggal).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
@@ -306,6 +314,6 @@ export default function AbsensiPage() {
           </div>
         )}
       </div>
-    </>
+      </AppScreen>
   );
 }

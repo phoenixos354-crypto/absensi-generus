@@ -2,17 +2,11 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ChevronLeft, CalendarDays, Users, Pencil, Trash2, Check, X, Plus, ListChecks, BarChart3, UserCog } from 'lucide-react';
+import { AppScreen } from '@/components/AppScreen';
+import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
+import { ChevronLeft, CalendarDays, Users, Pencil, Trash2, Check, X, Plus, ListChecks, BarChart3, UserCog, MapPin, Map } from 'lucide-react';
 
 const HARI_LIST = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Ahad'];
-
-const TINGKATAN_LABEL = {
-  caberawit:  { label: 'Caberawit',     cls: 'tk-caberawit', icon: '🌱' },
-  praremaja:  { label: 'Pra Remaja',    cls: 'tk-praremaja', icon: '🌿' },
-  remaja:     { label: 'Remaja',        cls: 'tk-remaja',    icon: '🍃' },
-  usianikah:  { label: 'Usia Nikah',    cls: 'tk-usianikah', icon: '🌸' },
-  kelompok:   { label: 'Ngaji Kelompok',cls: 'tk-kelompok',  icon: '📖' },
-};
 
 export default function SetupPage() {
   const { data: session, status } = useSession();
@@ -152,20 +146,20 @@ export default function SetupPage() {
 
   if (loading || !kelompok) {
     return (
-      <div className="app-shell">
+      <AppScreen>
         <div className="space-y-4 px-5 pt-8">
           <div className="h-10 w-40 animate-pulse rounded-2xl bg-muted" />
           <div className="h-44 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
           <div className="h-64 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
         </div>
-      </div>
+      </AppScreen>
     );
   }
 
-  const tk = TINGKATAN_LABEL[kelompok.tingkatan] || TINGKATAN_LABEL.kelompok;
+  const tk = getTingkatan(kelompok.tingkatan);
 
   return (
-    <div className="app-shell flex flex-col pb-6">
+    <AppScreen>
       {/* Header */}
       <header className="px-5 pt-6">
         <button
@@ -175,8 +169,12 @@ export default function SetupPage() {
         >
           <ChevronLeft className="size-5 text-ink" />
         </button>
-        <h1 className="mt-3 truncate text-2xl font-extrabold text-ink">{tk.icon} {kelompok.nama_kelompok}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{tk.label} · 📍 {kelompok.desa} · 🗺 {kelompok.daerah}</p>
+        <h1 className="mt-3 flex items-center gap-2 truncate text-2xl font-extrabold text-ink">
+          <TingkatanIcon tingkatan={kelompok.tingkatan} className="size-6 text-primary" /> {kelompok.nama_kelompok}
+        </h1>
+        <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+          {tk.label} · <MapPin className="size-3.5" /> {kelompok.desa} · <Map className="size-3.5" /> {kelompok.daerah}
+        </p>
       </header>
 
       {/* JADWAL */}
@@ -333,7 +331,7 @@ export default function SetupPage() {
 
       {/* Kelompok siap */}
       {murid.length > 0 && hariPilih.length > 0 && (
-        <section className="px-5 pt-5">
+        <section className="px-5 pb-6 pt-5">
           <div className="rounded-3xl brand-gradient p-4 shadow-[var(--shadow-float)]">
             <p className="text-sm font-bold text-primary-foreground">
               Kelompok siap! {murid.length} murid · {hariPilih.length} hari/minggu
@@ -363,6 +361,6 @@ export default function SetupPage() {
           </div>
         </section>
       )}
-    </div>
+    </AppScreen>
   );
 }

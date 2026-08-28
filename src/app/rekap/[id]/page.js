@@ -3,16 +3,10 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
-import { ChevronLeft, BarChart3, CalendarDays, Users, FileDown } from 'lucide-react';
+import { AppScreen } from '@/components/AppScreen';
+import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
+import { ChevronLeft, ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { ExportPDF } from '@/components/ExportPDF';
-
-const TINGKATAN_LABEL = {
-  caberawit:  { label: 'Caberawit',     cls: 'tk-caberawit', icon: '🌱' },
-  praremaja:  { label: 'Pra Remaja',    cls: 'tk-praremaja', icon: '🌿' },
-  remaja:     { label: 'Remaja',        cls: 'tk-remaja',    icon: '🍃' },
-  usianikah:  { label: 'Usia Nikah',    cls: 'tk-usianikah', icon: '🌸' },
-  kelompok:   { label: 'Ngaji Kelompok',cls: 'tk-kelompok',  icon: '📖' },
-};
 
 // Generate daftar bulan (12 bulan terakhir)
 function getBulanList() {
@@ -103,19 +97,19 @@ export default function RekapPage() {
   }
 
   if (loading || !kelompok) return (
-    <div className="app-shell">
+    <AppScreen>
       <div className="space-y-4 px-5 pt-8">
         <div className="h-10 w-48 animate-pulse rounded-2xl bg-muted" />
         <div className="h-28 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
         <div className="h-20 animate-pulse rounded-3xl bg-surface shadow-[var(--shadow-card)]" />
       </div>
-    </div>
+    </AppScreen>
   );
 
-  const tk = TINGKATAN_LABEL[kelompok?.tingkatan] || TINGKATAN_LABEL.kelompok;
+  const tk = getTingkatan(kelompok?.tingkatan);
 
   return (
-    <div className="app-shell flex flex-col pb-6">
+    <AppScreen>
       {/* Header */}
       <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-5 pt-6">
         <button
@@ -127,7 +121,10 @@ export default function RekapPage() {
         </button>
         <div className="min-w-0">
           <h1 className="truncate text-xl font-extrabold text-ink">{kelompok?.nama_kelompok}</h1>
-          <p className="truncate text-xs text-muted-foreground">{tk.icon} {tk.label} · 📍 {kelompok?.desa}</p>
+          <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+            <TingkatanIcon tingkatan={kelompok?.tingkatan} className="size-3.5 shrink-0" />
+            {tk.label} · {kelompok?.desa}
+          </p>
         </div>
       </header>
 
@@ -145,7 +142,8 @@ export default function RekapPage() {
                     : 'bg-secondary text-muted-foreground'
                 }`}
               >
-                {m === 'hari' ? '📅 Hari' : m === 'minggu' ? '📆 Minggu' : '🗓 Bulan'}
+                {m === 'hari' ? <Calendar className="mr-1 inline size-4" /> : m === 'minggu' ? <CalendarRange className="mr-1 inline size-4" /> : <CalendarDays className="mr-1 inline size-4" />}
+                {m === 'hari' ? 'Hari' : m === 'minggu' ? 'Minggu' : 'Bulan'}
               </button>
             ))}
           </div>
@@ -262,7 +260,9 @@ export default function RekapPage() {
           {/* Rekap per murid */}
           {rekap.rekap_murid?.length === 0 ? (
             <div className="card-soft mx-5 mt-4 p-6 text-center">
-              <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-2xl">📭</div>
+              <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-primary">
+                <ClipboardList className="size-7" />
+              </div>
               <h3 className="mt-3 text-base font-extrabold text-ink">Belum ada data absensi</h3>
               <p className="mt-1 text-sm text-muted-foreground">Untuk periode ini belum ada absensi yang dicatat.</p>
               <button onClick={() => router.push(`/absensi/${kelompokId}`)} className="mt-4 w-full rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">
@@ -315,21 +315,26 @@ export default function RekapPage() {
         </>
       ) : null}
 
-      {/* Bottom bar */}
-      <div className="sticky bottom-6 z-30 mt-5 flex gap-3 px-5">
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="rounded-full bg-surface px-5 py-3.5 text-sm font-bold text-ink shadow-[var(--shadow-card)]"
-        >
-          ← Dashboard
-        </button>
-        <button
-          onClick={() => router.push(`/absensi/${kelompokId}`)}
-          className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]"
-        >
-          Absensi
-        </button>
+      {/* Spacer biar tidak tertutup tombol melayang */}
+      <div className="h-44" />
+
+      {/* Bar aksi melayang */}
+      <div className="pointer-events-none fixed bottom-[5.75rem] left-1/2 z-40 w-full max-w-[26rem] -translate-x-1/2 px-5">
+        <div className="pointer-events-auto flex gap-3">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-1.5 rounded-full bg-surface px-5 py-3.5 text-sm font-bold text-ink shadow-[var(--shadow-card)]"
+          >
+            <ArrowLeft className="size-4" /> Dashboard
+          </button>
+          <button
+            onClick={() => router.push(`/absensi/${kelompokId}`)}
+            className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]"
+          >
+            <CheckCircle2 className="mr-1 inline size-4" /> Absensi
+          </button>
+        </div>
       </div>
-    </div>
+    </AppScreen>
   );
 }

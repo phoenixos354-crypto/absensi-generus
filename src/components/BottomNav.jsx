@@ -26,7 +26,7 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="pointer-events-none sticky bottom-0 z-30 flex justify-center pb-5">
+    <nav className="pointer-events-none sticky bottom-0 z-30 flex justify-center pb-[max(1.25rem,env(safe-area-inset-bottom))]">
       <ul className="pointer-events-auto flex items-center gap-1 rounded-full bg-ink p-2 shadow-[var(--shadow-float)]">
         {items.map(({ href, icon: Icon, label, active }) => (
           <li key={label}>

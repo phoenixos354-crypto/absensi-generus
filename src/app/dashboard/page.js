@@ -4,16 +4,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
-import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, Plus } from 'lucide-react';
+import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
+import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, Plus, LayoutGrid, Landmark, MapPin, Map, ClipboardCheck, X, TriangleAlert } from 'lucide-react';
 import userAvatar from '@/assets/user-avatar.jpg';
-
-const TINGKATAN_LABEL = {
-  caberawit:  { label: 'Caberawit',     cls: 'tk-caberawit', icon: '🌱' },
-  praremaja:  { label: 'Pra Remaja',    cls: 'tk-praremaja', icon: '🌿' },
-  remaja:     { label: 'Remaja',        cls: 'tk-remaja',    icon: '🍃' },
-  usianikah:  { label: 'Usia Nikah',    cls: 'tk-usianikah', icon: '🌸' },
-  kelompok:   { label: 'Ngaji Kelompok',cls: 'tk-kelompok',  icon: '📖' },
-};
 
 const FORM_KOSONG = { nama_kelompok:'', tingkatan:'caberawit', desa:'', daerah:'' };
 
@@ -127,11 +120,11 @@ function DashboardContent() {
     : kelompok.filter(k => k.tingkatan === filterTingkatan);
 
   const ONBOARD_STEPS = [
-    { icon:'🕌', judul:'Selamat Datang!', isi:'Absensi Generus membantu Anda mencatat kehadiran murid pengajian dengan mudah langsung dari HP.' },
-    { icon:'➕', judul:'Buat Kelompok', isi:'Mulai dengan membuat kelompok pengajian. Isi nama kelompok, tingkatan, desa, dan daerah.' },
-    { icon:'👥', judul:'Tambah Murid', isi:'Setelah buat kelompok, tambahkan nama-nama murid dan tentukan jadwal ngaji mingguan.' },
-    { icon:'✅', judul:'Mulai Absensi', isi:'Tiap hari ngaji, buka kelompok → tap Absen → tandai Hadir/Izin/Sakit/Alfa → Simpan. Selesai!' },
-    { icon:'📊', judul:'Lihat Rekap', isi:'Pantau persentase kehadiran per murid, per hari, minggu, atau bulan kapan saja.' },
+    { Icon: Landmark, judul:'Selamat Datang!', isi:'Absensi Generus membantu Anda mencatat kehadiran murid pengajian dengan mudah langsung dari HP.' },
+    { Icon: Plus, judul:'Buat Kelompok', isi:'Mulai dengan membuat kelompok pengajian. Isi nama kelompok, tingkatan, desa, dan daerah.' },
+    { Icon: Users, judul:'Tambah Murid', isi:'Setelah buat kelompok, tambahkan nama-nama murid dan tentukan jadwal ngaji mingguan.' },
+    { Icon: ClipboardCheck, judul:'Mulai Absensi', isi:'Tiap hari ngaji, buka kelompok → tap Absen → tandai Hadir/Izin/Sakit/Alfa → Simpan. Selesai!' },
+    { Icon: BarChart3, judul:'Lihat Rekap', isi:'Pantau persentase kehadiran per murid, per hari, minggu, atau bulan kapan saja.' },
   ];
 
   if (loading) return (
@@ -157,7 +150,12 @@ function DashboardContent() {
           <div className="flex min-w-0 items-center gap-3">
             {session?.user?.image ? (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={session.user.image} alt={session.user.name} className="size-11 shrink-0 rounded-full object-cover" />
+              <img
+                src={session.user.image}
+                alt={session.user.name}
+                className="size-11 shrink-0 rounded-full object-cover"
+                onError={e => { e.currentTarget.src = userAvatar.src; }}
+              />
             ) : (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={userAvatar.src} alt={session?.user?.name || 'User'} className="size-11 shrink-0 rounded-full object-cover" />
@@ -184,9 +182,9 @@ function DashboardContent() {
 
         <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto px-5 pb-1">
           {[
-            { key: 'semua', label: 'Semua', icon: '📋' },
-            ...Object.entries(TINGKATAN_LABEL).map(([key, val]) => ({ key, label: val.label, icon: val.icon })),
-          ].map(({ key, label, icon }) => {
+            { key: 'semua', label: 'Semua' },
+            ...Object.entries(TINGKATAN_LABEL).map(([key, val]) => ({ key, label: val.label })),
+          ].map(({ key, label }) => {
             const count = key === 'semua' ? kelompok.length : kelompok.filter(k => k.tingkatan === key).length;
             if (count === 0 && key !== 'semua') return null;
             const isActive = filterTingkatan === key;
@@ -200,7 +198,9 @@ function DashboardContent() {
                     : 'bg-surface text-muted-foreground shadow-[var(--shadow-card)]'
                 }`}
               >
-                <span>{icon}</span>
+                {key === 'semua'
+                  ? <LayoutGrid className="size-3.5" />
+                  : <TingkatanIcon tingkatan={key} className="size-3.5" />}
                 <span>{label}</span>
                 <span className={`rounded-full px-1.5 text-[11px] font-bold ${isActive ? 'bg-white/25' : 'bg-border'}`}>{count}</span>
               </button>
@@ -210,7 +210,9 @@ function DashboardContent() {
 
         {kelompok.length === 0 ? (
           <div className="card-soft mx-5 mt-5 p-6 text-center">
-            <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-2xl">🕌</div>
+            <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-primary">
+              <Landmark className="size-7" />
+            </div>
             <h3 className="mt-3 text-base font-extrabold text-ink">Belum ada kelompok</h3>
             <p className="mt-1 text-sm text-muted-foreground">Mulai dengan membuat kelompok pengajian pertama Anda</p>
             <button
@@ -224,13 +226,15 @@ function DashboardContent() {
           <div className="mt-5 space-y-4 px-5">
             {kelompokTampil.length === 0 && (
               <div className="py-10 text-center">
-                <div className="text-4xl">{TINGKATAN_LABEL[filterTingkatan]?.icon || '🔍'}</div>
-                <p className="mt-2 text-sm font-bold text-ink">Tidak ada kelompok {TINGKATAN_LABEL[filterTingkatan]?.label}</p>
+                <div className="mx-auto grid size-12 w-fit place-items-center rounded-full bg-brand-soft text-primary">
+                  {(() => { const t = getTingkatan(filterTingkatan); const I = t.Icon; return <I className="size-6" />; })()}
+                </div>
+                <p className="mt-2 text-sm font-bold text-ink">Tidak ada kelompok {getTingkatan(filterTingkatan).label}</p>
                 <p className="text-xs text-muted-foreground">Coba pilih tingkatan lain</p>
               </div>
             )}
             {kelompokTampil.map((k, i) => {
-              const tk = TINGKATAN_LABEL[k.tingkatan] || TINGKATAN_LABEL.kelompok;
+              const tk = getTingkatan(k.tingkatan);
               const rk = rekapRingkas[k.id];
               const persen = rk?.persen ?? null;
               const persenColor = persen === null ? 'bg-border'
@@ -249,29 +253,40 @@ function DashboardContent() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`truncate text-sm font-bold ${featured ? '' : 'text-ink'}`}>{tk.icon} {k.nama_kelompok}</span>
-                    <span className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${featured ? 'bg-white/20' : 'bg-secondary text-muted-foreground'}`}>
+                    <span className={`truncate text-sm font-bold ${featured ? '' : 'text-ink'}`}>{k.nama_kelompok}</span>
+                    <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${featured ? 'bg-white/20' : 'bg-secondary text-muted-foreground'}`}>
+                      <TingkatanIcon tingkatan={k.tingkatan} className="size-3.5" />
                       {tk.label}
                     </span>
                   </div>
 
-                  <p className={`mt-1.5 truncate text-xs ${featured ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                    📍 {k.desa} · 🗺 {k.daerah}
+                  <p className={`mt-1.5 flex items-center gap-1 truncate text-xs ${featured ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                    <MapPin className="size-3 shrink-0" /> {k.desa}
+                    <span className="opacity-60">·</span>
+                    <Map className="size-3.5 shrink-0" /> {k.daerah}
                   </p>
 
                   <div className="mt-4" onClick={e => { e.stopPropagation(); router.push(`/rekap/${k.id}`); }}>
                     <div className="flex items-center justify-between gap-2">
                       <span className={`text-xs font-semibold ${featured ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                        📊 Kehadiran{rk ? ` · ${rk.total_sesi} sesi · ${rk.total_murid} murid` : ''}
+                        Kehadiran{rk ? ` · ${rk.total_sesi} sesi · ${rk.total_murid} murid` : ''}
                       </span>
-                      <span className={`text-sm font-extrabold ${featured ? '' : ''}`} style={persen !== null ? { color: persen === null ? undefined : (persen >= 80 ? '#22c55e' : persen >= 60 ? '#d97706' : '#ef4444') } : featured ? { color: 'rgba(255,255,255,.8)' } : {}}>
+                      <span
+                        className="text-sm font-extrabold"
+                        style={persen !== null ? { color: persen >= 80 ? '#22c55e' : persen >= 60 ? '#d97706' : '#ef4444' } : { opacity: featured ? 0.8 : 1, color: featured ? undefined : 'var(--muted-foreground)' }}
+                      >
                         {persen === null ? (rk === undefined ? '…' : 'Belum ada data') : `${persen}%`}
                       </span>
                     </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/25" style={!featured ? { background: 'var(--border)' } : undefined}>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full" style={{ background: featured ? 'rgba(255,255,255,.25)' : 'var(--border)' }}>
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${persenColor}`}
-                        style={{ width: persen !== null ? `${persen}%` : '0%', backgroundColor: featured && persen !== null ? '#fff' : undefined }}
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: persen !== null ? `${persen}%` : '0%',
+                          background: persen === null
+                            ? 'transparent'
+                            : featured ? '#fff' : (persen >= 80 ? '#22c55e' : persen >= 60 ? '#d97706' : '#ef4444'),
+                        }}
                       />
                     </div>
                   </div>
@@ -312,7 +327,7 @@ function DashboardContent() {
           </div>
         )}
 
-        <div className="px-5 pt-6 pb-2">
+        <div className="px-5 pb-6 pt-6">
           <button
             onClick={bukaModalBaru}
             className="flex w-full items-center justify-between rounded-3xl bg-surface p-4 shadow-[var(--shadow-card)]"
@@ -335,7 +350,7 @@ function DashboardContent() {
             <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
             <div className="mb-4 flex items-center justify-between">
               <span className="text-lg font-extrabold text-ink">{editTarget ? 'Edit Kelompok' : 'Kelompok Baru'}</span>
-              <button aria-label="Tutup" onClick={() => setShowModal(false)} className="grid size-8 place-items-center rounded-full bg-secondary text-muted-foreground">×</button>
+              <button aria-label="Tutup" onClick={() => setShowModal(false)} className="grid size-8 place-items-center rounded-full bg-secondary text-muted-foreground"><X className="size-4" /></button>
             </div>
             <form onSubmit={handleSimpan} className="space-y-3.5">
               <div>
@@ -347,11 +362,11 @@ function DashboardContent() {
                 <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Tingkatan Ngaji</label>
                 <select value={form.tingkatan} onChange={e => setForm({...form, tingkatan: e.target.value})}
                   className="w-full appearance-none rounded-2xl bg-secondary px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/40">
-                  <option value="caberawit">🌱 Caberawit</option>
-                  <option value="praremaja">🌿 Pra Remaja</option>
-                  <option value="remaja">🍃 Remaja</option>
-                  <option value="usianikah">🌸 Usia Nikah</option>
-                  <option value="kelompok">📖 Ngaji Kelompok</option>
+                  <option value="caberawit">Caberawit</option>
+                  <option value="praremaja">Pra Remaja</option>
+                  <option value="remaja">Remaja</option>
+                  <option value="usianikah">Usia Nikah</option>
+                  <option value="kelompok">Ngaji Kelompok</option>
                 </select>
               </div>
               <div>
@@ -366,7 +381,7 @@ function DashboardContent() {
               </div>
               <button type="submit" disabled={saving}
                 className="w-full rounded-full brand-gradient py-4 text-base font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99] disabled:opacity-60">
-                {saving ? 'Menyimpan...' : editTarget ? 'Simpan Perubahan' : 'Simpan & Setup →'}
+                {saving ? 'Menyimpan...' : editTarget ? 'Simpan Perubahan' : 'Simpan & Lanjut Setup'}
               </button>
             </form>
           </div>
@@ -377,7 +392,9 @@ function DashboardContent() {
         <div className="fixed inset-0 z-50 bg-ink/40" onClick={() => setHapusTarget(null)}>
           <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[26rem] rounded-t-[2rem] bg-surface p-5 pb-8 text-center shadow-[var(--shadow-float)]" onClick={e => e.stopPropagation()}>
             <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
-            <div className="mx-auto grid size-14 place-items-center rounded-full bg-destructive/10 text-3xl">⚠️</div>
+            <div className="mx-auto grid size-14 place-items-center rounded-full bg-destructive/10 text-destructive">
+              <TriangleAlert className="size-7" />
+            </div>
             <h3 className="mt-3 text-lg font-extrabold text-ink">Hapus Kelompok?</h3>
             <p className="mt-1 truncate text-sm font-semibold text-ink">{hapusTarget.nama_kelompok}</p>
             <p className="mt-3 rounded-2xl bg-destructive/10 p-3 text-xs font-medium text-destructive">
@@ -402,16 +419,18 @@ function DashboardContent() {
                 <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === onboardStep ? 'w-6 bg-primary' : 'w-2 bg-border'}`} />
               ))}
             </div>
-            <div className="text-6xl">{ONBOARD_STEPS[onboardStep].icon}</div>
+            <div className="mx-auto grid size-16 w-fit place-items-center rounded-full bg-brand-soft text-primary">
+              {(() => { const S = ONBOARD_STEPS[onboardStep].Icon; return <S className="size-8" />; })()}
+            </div>
             <h2 className="mt-3 text-xl font-extrabold text-ink">{ONBOARD_STEPS[onboardStep].judul}</h2>
             <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">{ONBOARD_STEPS[onboardStep].isi}</p>
             <div className="mt-6 flex gap-3">
               {onboardStep > 0 && (
-                <button onClick={() => setOnboardStep(s=>s-1)} className="flex-1 rounded-full bg-secondary py-3.5 text-sm font-bold text-ink">← Kembali</button>
+                <button onClick={() => setOnboardStep(s=>s-1)} className="flex-1 rounded-full bg-secondary py-3.5 text-sm font-bold text-ink">Kembali</button>
               )}
               {onboardStep < ONBOARD_STEPS.length-1
-                ? <button onClick={() => setOnboardStep(s=>s+1)} className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">Lanjut →</button>
-                : <button onClick={selesaiOnboarding} className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">Mulai!</button>
+                ? <button onClick={() => setOnboardStep(s=>s+1)} className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">Lanjut</button>
+                : <button onClick={selesaiOnboarding} className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">Mulai</button>
               }
             </div>
             <button onClick={selesaiOnboarding} className="mt-3 text-xs font-semibold text-muted-foreground">Lewati</button>
