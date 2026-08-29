@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
+import { DalilWidget } from '@/components/DalilWidget';
 import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
 import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert, ChevronRight } from 'lucide-react';
 import userAvatar from '@/assets/user-avatar.jpg';
@@ -243,11 +244,7 @@ function DashboardContent() {
           </button>
         </header>
 
-        <h1 className="px-5 pt-7 text-[2.15rem] leading-[1.1] font-extrabold tracking-tight text-ink">
-          Kelompok
-          <br />
-          Saya
-        </h1>
+        <DalilWidget />
 
         <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto px-5 pb-1">
           {[

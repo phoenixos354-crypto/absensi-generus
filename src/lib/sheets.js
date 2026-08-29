@@ -45,6 +45,7 @@ export const SHEETS = {
   JADWAL:         'jadwal',
   ABSENSI:        'absensi',
   ADMIN_KELOMPOK: 'admin_kelompok',
+  DALIL:          'dalil_harian',
 };
 
 // =============================================
@@ -151,6 +152,10 @@ export async function initializeSheets() {
     {
       name: SHEETS.ADMIN_KELOMPOK,
       headers: ['id', 'kelompok_id', 'email', 'permission', 'invited_by', 'created_at'],
+    },
+    {
+      name: SHEETS.DALIL,
+      headers: ['id', 'tanggal', 'tipe', 'teks_arab', 'teks_terjemah', 'sumber', 'mascot_index', 'created_at'],
     },
   ];
 
