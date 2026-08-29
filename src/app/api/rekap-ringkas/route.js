@@ -5,36 +5,41 @@ import { getKelompokAkses } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
 /**
- * GET /api/rekap-ringkas
+ * GET /api/rekap-ringkas?bulan=2026-08
  * Mengembalikan ringkasan persentase kehadiran untuk semua kelompok milik user
  * dalam satu request — efisien, tidak perlu panggil rekap per-kelompok.
+ * Persentase dihitung khusus untuk bulan yang diminta (default: bulan berjalan),
+ * BUKAN akumulasi dari semua data sejak awal.
  *
  * Response:
  * {
  *   [kelompok_id]: {
- *     persen: number,        // 0–100, rata-rata kehadiran semua murid
- *     total_sesi: number,    // jumlah pertemuan unik
+ *     persen: number,        // 0–100, rata-rata kehadiran semua murid di bulan ini
+ *     total_sesi: number,    // jumlah pertemuan unik di bulan ini
  *     total_murid: number,
- *     hadir: number,         // total record hadir
- *     total_absen: number,   // total semua record absensi
+ *     hadir: number,         // total record hadir di bulan ini
+ *     total_absen: number,   // total semua record absensi di bulan ini
  *   }
  * }
  */
-export async function GET() {
+export async function GET(req) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const now = new Date();
+  const bulan = searchParams.get('bulan') || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   // Ambil semua kelompok yang boleh diakses user ini
   const kelompokList = await getKelompokAkses(session.user.email, session.user.id);
   if (!kelompokList.length) return NextResponse.json({});
 
-  const kelompokIds = new Set(kelompokList.map(k => k.id));
-
-  // Baca absensi & murid sekali saja
-  const [absensiAll, muridAll] = await Promise.all([
+  // Baca absensi & murid sekali saja, lalu batasi ke bulan yang diminta
+  const [absensiAllRaw, muridAll] = await Promise.all([
     readSheet(SHEETS.ABSENSI),
     readSheet(SHEETS.MURID),
   ]);
+  const absensiAll = absensiAllRaw.filter(a => a.tanggal?.startsWith(bulan));
 
   const result = {};
 
@@ -43,14 +48,14 @@ export async function GET() {
     const murid   = muridAll.filter(m => m.kelompok_id === k.id);
 
     const totalHadir = absensi.filter(a => a.status === 'Hadir').length;
-    const totalAbsen  = absensi.length; // semua record (Hadir+Alfa+Izin+Sakit)
+    const totalAbsen  = absensi.length; // semua record (Hadir+Alfa+Izin+Sakit) di bulan ini
     const persen = totalAbsen > 0 ? Math.round((totalHadir / totalAbsen) * 100) : null;
 
-    // Jumlah pertemuan unik berdasar tanggal
+    // Jumlah pertemuan unik berdasar tanggal, di bulan ini saja
     const tanggalUnik = new Set(absensi.map(a => a.tanggal).filter(Boolean));
 
     result[k.id] = {
-      persen,          // null = belum ada data absensi sama sekali
+      persen,          // null = belum ada data absensi di bulan ini
       total_sesi: tanggalUnik.size,
       total_murid: murid.length,
       hadir: totalHadir,

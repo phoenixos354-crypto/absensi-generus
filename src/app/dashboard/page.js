@@ -1,7 +1,7 @@
 'use client';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
@@ -80,8 +80,16 @@ function DashboardContent() {
   const { data: kelompokData, isLoading: loadingKelompok, mutate: mutateKelompok } = useSWR(
     session ? '/api/kelompok' : null
   );
+  // Bulan berjalan, dipakai untuk key SWR sekaligus label di card kelompok
+  const bulanIni = useMemo(() => {
+    const now = new Date();
+    const nilai = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const label = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    return { nilai, label };
+  }, []);
+
   const { data: rekapRingkasData, mutate: mutateRekapRingkas } = useSWR(
-    session ? '/api/rekap-ringkas' : null
+    session ? `/api/rekap-ringkas?bulan=${bulanIni.nilai}` : null
   );
 
   const kelompok = Array.isArray(kelompokData) ? kelompokData : [];
@@ -348,7 +356,7 @@ function DashboardContent() {
                   <div className="mt-4" onClick={e => { e.stopPropagation(); router.push(`/rekap/${k.id}`); }}>
                     <div className="flex items-center justify-between gap-2">
                       <span className={`text-xs font-semibold ${featured ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                        Kehadiran{rk ? ` · ${rk.total_sesi} sesi · ${rk.total_murid} murid` : ''}
+                        {bulanIni.label}{rk ? ` · ${rk.total_murid} murid` : ''}
                       </span>
                       <span
                         className="text-sm font-extrabold"
