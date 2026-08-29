@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID } from '@/lib/sheets';
+import { readSheet, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -62,6 +62,7 @@ export async function POST(req) {
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: allRows },
   });
+  invalidateSheet(SHEETS.ABSENSI);
 
   return NextResponse.json({ success: true, count: newEntries.length });
 }

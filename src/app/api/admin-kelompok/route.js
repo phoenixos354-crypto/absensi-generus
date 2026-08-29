@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID } from '@/lib/sheets';
+import { readSheet, appendRow, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
 import { NextResponse } from 'next/server';
 
 // Helper: clear + tulis ulang sheet admin
@@ -90,6 +90,7 @@ export async function DELETE(req) {
   const filtered = admins.filter(a => a.id !== id);
   const sheets = getGoogleSheetsClient();
   await tulisAdminSheet(sheets, filtered);
+  invalidateSheet(SHEETS.ADMIN_KELOMPOK);
 
   return NextResponse.json({ success: true });
 }

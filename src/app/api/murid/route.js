@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID } from '@/lib/sheets';
+import { readSheet, appendRow, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -57,6 +57,7 @@ export async function PUT(req) {
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [headers, ...updated.map(m => [m.id, m.kelompok_id, m.nama_murid, m.created_at])] },
   });
+  invalidateSheet(SHEETS.MURID);
   return NextResponse.json({ success: true });
 }
 
@@ -84,5 +85,6 @@ export async function DELETE(req) {
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [headers, ...filtered.map(m => [m.id, m.kelompok_id, m.nama_murid, m.created_at])] },
   });
+  invalidateSheet(SHEETS.MURID);
   return NextResponse.json({ success: true });
 }

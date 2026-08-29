@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, SHEETS, getGoogleSheetsClient, SPREADSHEET_ID } from '@/lib/sheets';
+import { readSheet, SHEETS, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
 import { NextResponse } from 'next/server';
 
 // Helper tulis ulang sheet — sequential bukan parallel untuk hindari race condition
@@ -51,6 +51,7 @@ export async function PUT(req, { params }) {
     ['id','user_id','nama_kelompok','tingkatan','desa','daerah','created_at'],
     updated.map(k => [k.id,k.user_id,k.nama_kelompok,k.tingkatan,k.desa,k.daerah,k.created_at])
   );
+  invalidateSheet(SHEETS.KELOMPOK);
 
   return NextResponse.json({ success: true });
 }
@@ -99,6 +100,12 @@ export async function DELETE(req, { params }) {
     ['id','kelompok_id','email','permission','invited_by','created_at'],
     allAdmin.filter(a => a.kelompok_id !== id).map(a => [a.id,a.kelompok_id,a.email,a.permission,a.invited_by,a.created_at])
   );
+
+  invalidateSheet(SHEETS.KELOMPOK);
+  invalidateSheet(SHEETS.MURID);
+  invalidateSheet(SHEETS.JADWAL);
+  invalidateSheet(SHEETS.ABSENSI);
+  invalidateSheet(SHEETS.ADMIN_KELOMPOK);
 
   return NextResponse.json({ success: true });
 }

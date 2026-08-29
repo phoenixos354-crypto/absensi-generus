@@ -18,6 +18,24 @@ export function getGoogleSheetsClient() {
 export const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
 // =============================================
+// CACHE SEMENTARA DI MEMORI SERVER
+// Google Sheets API cukup lambat, jadi tiap sheet yang baru saja dibaca
+// disimpan sebentar (TTL) supaya request-request berikutnya (dalam waktu
+// dekat, termasuk beberapa request paralel di request yang sama) tidak
+// perlu bolak-balik ke Google lagi. Begitu ada tulis (appendRow/updateCell/
+// invalidateSheet manual), cache untuk sheet itu langsung dibuang supaya
+// data yang dibaca berikutnya tetap segar.
+// =============================================
+const CACHE_TTL_MS = 20_000; // 20 detik
+const _sheetCache = new Map(); // sheetName -> { data, expiry }
+const _inFlight = new Map();   // sheetName -> Promise (biar request paralel numpang satu fetch saja)
+
+export function invalidateSheet(sheetName) {
+  _sheetCache.delete(sheetName);
+  _inFlight.delete(sheetName);
+}
+
+// =============================================
 // NAMA SHEET (TAB) DI GOOGLE SHEETS
 // =============================================
 export const SHEETS = {
@@ -32,20 +50,37 @@ export const SHEETS = {
 // =============================================
 // HELPER: Baca semua data dari satu sheet
 // =============================================
-export async function readSheet(sheetName) {
-  const sheets = getGoogleSheetsClient();
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${sheetName}!A:Z`,
-  });
-  const rows = res.data.values || [];
-  if (rows.length < 2) return [];
-  const headers = rows[0];
-  return rows.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = row[i] || ''; });
-    return obj;
-  });
+export async function readSheet(sheetName, { skipCache = false } = {}) {
+  const cached = _sheetCache.get(sheetName);
+  if (!skipCache && cached && cached.expiry > Date.now()) {
+    return cached.data;
+  }
+
+  // Kalau ada request lain yang sedang baca sheet yang sama, numpang
+  // hasilnya saja daripada nembak Google Sheets dua kali bersamaan.
+  if (!skipCache && _inFlight.has(sheetName)) {
+    return _inFlight.get(sheetName);
+  }
+
+  const fetchPromise = (async () => {
+    const sheets = getGoogleSheetsClient();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!A:Z`,
+    });
+    const rows = res.data.values || [];
+    const data = rows.length < 2 ? [] : rows.slice(1).map(row => {
+      const obj = {};
+      rows[0].forEach((h, i) => { obj[h] = row[i] || ''; });
+      return obj;
+    });
+    _sheetCache.set(sheetName, { data, expiry: Date.now() + CACHE_TTL_MS });
+    _inFlight.delete(sheetName);
+    return data;
+  })();
+
+  _inFlight.set(sheetName, fetchPromise);
+  return fetchPromise;
 }
 
 // =============================================
@@ -59,6 +94,7 @@ export async function appendRow(sheetName, values) {
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [values] },
   });
+  invalidateSheet(sheetName);
 }
 
 // =============================================
@@ -72,6 +108,7 @@ export async function updateCell(sheetName, range, values) {
     valueInputOption: 'USER_ENTERED',
     requestBody: { values },
   });
+  invalidateSheet(sheetName);
 }
 
 // =============================================

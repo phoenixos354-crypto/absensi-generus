@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, SHEETS, generateId } from '@/lib/sheets';
+import { readSheet, appendRow, SHEETS, generateId, invalidateSheet } from '@/lib/sheets';
 import { NextResponse } from 'next/server';
 
 export async function GET(req) {
@@ -50,6 +50,7 @@ export async function POST(req) {
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: allRows },
   });
+  invalidateSheet(SHEETS.JADWAL);
 
   return NextResponse.json({ success: true, jadwal: newEntries.map(e => ({ id: e[0], kelompok_id: e[1], hari: e[2] })) });
 }

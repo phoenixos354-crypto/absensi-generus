@@ -42,12 +42,16 @@ export default function RekapGlobalPage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
-  const [tabTingkatan, setTabTingkatan] = useState(null);
+  // Default langsung ke 'caberawit' (kasus paling umum) supaya cuma perlu SATU
+  // request di awal. tingkatan_counts di response API sudah dihitung dari SEMUA
+  // kelompok (tidak terpengaruh filter tingkatan), jadi begitu respons pertama
+  // datang kita sudah tahu tab-tab yang tersedia tanpa perlu fetch tambahan.
+  const [tabTingkatan, setTabTingkatan] = useState('caberawit');
 
   const { data: kelompokAkses } = useSWR(session ? '/api/kelompok' : null);
 
   const { data: rekap, isLoading } = useSWR(
-    session ? `/api/rekap-global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan || 'semua'}` : null,
+    session ? `/api/rekap-global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}` : null,
     { keepPreviousData: true }
   );
 
@@ -59,12 +63,13 @@ export default function RekapGlobalPage() {
       .map(([key, val]) => ({ key, label: val.label, count: counts[key] }));
   }, [rekap]);
 
-  // Default: otomatis pilih tab Caberawit begitu daftar tingkatan tersedia (kalau tidak ada, pakai tab pertama)
+  // Cuma pindah tab kalau tab yang aktif sekarang ternyata TIDAK tersedia
+  // (mis. user ini tidak punya murid Caberawit sama sekali). Ini edge case,
+  // jadi request tambahan hanya terjadi saat memang perlu, bukan tiap buka halaman.
   useEffect(() => {
-    if (tabTingkatan === null && tabTersedia.length > 0) {
-      const adaCaberawit = tabTersedia.some(t => t.key === 'caberawit');
-      setTabTingkatan(adaCaberawit ? 'caberawit' : tabTersedia[0].key);
-    }
+    if (tabTersedia.length === 0) return;
+    const tersedia = tabTersedia.some(t => t.key === tabTingkatan);
+    if (!tersedia) setTabTingkatan(tabTersedia[0].key);
   }, [tabTersedia, tabTingkatan]);
 
   // Info wilayah: kalau semua kelompok yang tampil berasal dari daerah yang sama, tampilkan itu
