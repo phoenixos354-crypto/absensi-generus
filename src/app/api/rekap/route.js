@@ -17,23 +17,32 @@ export async function GET(req) {
   const perm = await getPermission(session.user.email, kelompok_id);
   if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
 
-  const [absensiAll, muridAll] = await Promise.all([
+  const [absensiAll, muridAll, sesiAll] = await Promise.all([
     readSheet(SHEETS.ABSENSI),
     readSheet(SHEETS.MURID),
+    readSheet(SHEETS.SESI),
   ]);
 
   let absensi = absensiAll.filter(a => a.kelompok_id === kelompok_id);
+  let sesi = sesiAll.filter(s => s.kelompok_id === kelompok_id);
 
   if (mode === 'hari' && nilai) {
     absensi = absensi.filter(a => a.tanggal === nilai);
+    sesi = sesi.filter(s => s.tanggal === nilai);
   } else if (mode === 'minggu' && nilai) {
     absensi = absensi.filter(a => {
       const d = new Date(a.tanggal);
       const week = getWeekNumber(d);
       return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
     });
+    sesi = sesi.filter(s => {
+      const d = new Date(s.tanggal);
+      const week = getWeekNumber(d);
+      return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
+    });
   } else if (mode === 'bulan' && nilai) {
     absensi = absensi.filter(a => a.tanggal.startsWith(nilai));
+    sesi = sesi.filter(s => s.tanggal.startsWith(nilai));
   }
 
   const murid = muridAll.filter(m => m.kelompok_id === kelompok_id);
@@ -54,12 +63,20 @@ export async function GET(req) {
   const persenGlobal = totalSesi > 0 ? Math.round((totalHadir / totalSesi) * 100) : 0;
   const tanggalSet = [...new Set(absensi.map(a => a.tanggal))].sort();
 
+  const daftarSesi = sesi
+    .filter(s => s.jurnal || Number(s.infaq) > 0)
+    .map(s => ({ tanggal: s.tanggal, jurnal: s.jurnal, infaq: Number(s.infaq) || 0 }))
+    .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+  const totalInfaq = sesi.reduce((s, x) => s + (Number(x.infaq) || 0), 0);
+
   return NextResponse.json({
     kelompok_id, mode, nilai,
     total_sesi: tanggalSet.length,
     tanggal_sesi: tanggalSet,
     persen_global: persenGlobal,
     rekap_murid: rekapMurid,
+    total_infaq: totalInfaq,
+    daftar_sesi: daftarSesi,
   });
 }
 

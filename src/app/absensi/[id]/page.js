@@ -4,7 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AppScreen } from '@/components/AppScreen';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { ChevronLeft, MapPin, Users, ClipboardList, ArrowLeft, Save, Check } from 'lucide-react';
+import { ChevronLeft, MapPin, Users, ClipboardList, ArrowLeft, Save, Check, NotebookPen, Wallet } from 'lucide-react';
 
 const STATUS_LIST = ['Hadir','Izin','Sakit','Alfa'];
 
@@ -25,6 +25,8 @@ export default function AbsensiPage() {
   const [murid, setMurid] = useState([]);
   const [absensiMap, setAbsensiMap] = useState({}); // murid_id -> status
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
+  const [jurnal, setJurnal] = useState('');
+  const [infaq, setInfaq] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -41,6 +43,18 @@ export default function AbsensiPage() {
   useEffect(() => {
     if (murid.length > 0) loadAbsensiTanggal();
   }, [tanggal, murid]);
+
+  useEffect(() => {
+    if (kelompokId) loadSesiTanggal();
+  }, [tanggal, kelompokId]);
+
+  async function loadSesiTanggal() {
+    const res = await fetch(`/api/sesi?kelompok_id=${kelompokId}&tanggal=${tanggal}`);
+    const data = await res.json();
+    const sesi = Array.isArray(data) ? data[0] : null;
+    setJurnal(sesi?.jurnal || '');
+    setInfaq(sesi?.infaq && Number(sesi.infaq) > 0 ? String(sesi.infaq) : '');
+  }
 
   async function fetchKelompok() {
     const res = await fetch(`/api/kelompok/${kelompokId}`);
@@ -94,12 +108,19 @@ export default function AbsensiPage() {
       murid_id: m.id,
       status: absensiMap[m.id] || 'Alfa',
     }));
-    const res = await fetch('/api/absensi', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kelompok_id: kelompokId, tanggal, absensi: absensiArr }),
-    });
-    if (res.ok) {
+    const [resAbsensi, resSesi] = await Promise.all([
+      fetch('/api/absensi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kelompok_id: kelompokId, tanggal, absensi: absensiArr }),
+      }),
+      fetch('/api/sesi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kelompok_id: kelompokId, tanggal, jurnal, infaq }),
+      }),
+    ]);
+    if (resAbsensi.ok && resSesi.ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     }
@@ -251,6 +272,47 @@ export default function AbsensiPage() {
           )}
         </section>
 
+        {/* Catatan Sesi: Jurnal & Infaq */}
+        {murid.length > 0 && (
+          <section className="px-5 pt-5">
+            <div className="card-soft p-4">
+              <div className="flex items-center gap-2">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-primary">
+                  <NotebookPen className="size-4" />
+                </span>
+                <h2 className="text-sm font-extrabold text-ink">Catatan Sesi</h2>
+              </div>
+
+              <label className="mt-3.5 mb-1.5 block text-xs font-semibold text-muted-foreground">
+                Jurnal / Materi Hari Ini
+              </label>
+              <textarea
+                value={jurnal}
+                onChange={e => { setJurnal(e.target.value); setSaved(false); }}
+                placeholder="Contoh: Materi akhlak, cerita nabi, tanya jawab..."
+                rows={3}
+                className="w-full resize-none rounded-2xl bg-secondary px-4 py-3 text-sm font-medium text-ink outline-none placeholder:text-muted-foreground/70 focus:ring-2 focus:ring-primary/40"
+              />
+
+              <label className="mt-4 mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                <Wallet className="size-3.5" /> Infaq Masuk (opsional)
+              </label>
+              <div className="flex items-center gap-2 rounded-2xl bg-secondary px-4 py-3 focus-within:ring-2 focus-within:ring-primary/40">
+                <span className="text-sm font-bold text-muted-foreground">Rp</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={infaq}
+                  onChange={e => { setInfaq(e.target.value); setSaved(false); }}
+                  placeholder="0"
+                  className="w-full bg-transparent text-sm font-semibold text-ink outline-none"
+                />
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Spacer agar konten bawah tidak tertutup bar melayang */}
         {murid.length > 0 && <div className="h-40" />}
 
@@ -304,6 +366,11 @@ export default function AbsensiPage() {
               <p className="mt-3 text-xs text-muted-foreground">
                 Total {murid.length} murid · Kehadiran <strong className="text-primary">{persen}%</strong>
               </p>
+              {Number(infaq) > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Infaq: <strong className="text-primary">Rp{Number(infaq).toLocaleString('id-ID')}</strong>
+                </p>
+              )}
               <div className="mt-5 flex gap-3">
                 <button onClick={() => setShowKonfirmasi(false)} className="flex-1 rounded-full bg-secondary py-3.5 text-sm font-bold text-ink">Cek Lagi</button>
                 <button onClick={() => { setShowKonfirmasi(false); handleSimpan(); }} className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">

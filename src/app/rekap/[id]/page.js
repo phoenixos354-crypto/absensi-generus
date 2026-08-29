@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { ChevronLeft, ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList, CheckCircle2, NotebookPen, Wallet } from 'lucide-react';
 import { ExportPDF } from '@/components/ExportPDF';
 
 // Generate daftar bulan (12 bulan terakhir)
@@ -175,7 +175,7 @@ export default function RekapPage() {
         <>
           {/* Stat ringkas */}
           <section className="px-5 pt-5">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="card-soft p-4">
                 <span className="grid size-9 place-items-center rounded-full bg-brand-soft text-primary">
                   <CalendarDays className="size-4" />
@@ -189,6 +189,15 @@ export default function RekapPage() {
                 </span>
                 <p className="mt-2 text-2xl font-extrabold text-ink">{rekap.rekap_murid?.length || 0}</p>
                 <p className="text-xs text-muted-foreground">Total Murid</p>
+              </div>
+              <div className="card-soft p-4">
+                <span className="grid size-9 place-items-center rounded-full bg-brand-soft text-primary">
+                  <Wallet className="size-4" />
+                </span>
+                <p className="mt-2 truncate text-2xl font-extrabold text-ink">
+                  {(rekap.total_infaq || 0) >= 1000 ? `${Math.round((rekap.total_infaq || 0)/1000)}rb` : (rekap.total_infaq || 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">Total Infaq</p>
               </div>
             </div>
           </section>
@@ -255,6 +264,47 @@ export default function RekapPage() {
                 }
               />
             </div>
+          )}
+
+          {/* Jurnal & Infaq per sesi */}
+          {rekap.daftar_sesi?.length > 0 && (
+            <section className="px-5 pt-4">
+              <div className="card-soft p-4">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="grid size-8 place-items-center rounded-full bg-brand-soft text-primary">
+                      <NotebookPen className="size-4" />
+                    </span>
+                    <h2 className="text-sm font-extrabold text-ink">Jurnal &amp; Infaq</h2>
+                  </span>
+                  {rekap.total_infaq > 0 && (
+                    <span className="text-sm font-extrabold text-primary">
+                      Rp{rekap.total_infaq.toLocaleString('id-ID')}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-3.5 space-y-3">
+                  {rekap.daftar_sesi.map(s => (
+                    <div key={s.tanggal} className="rounded-2xl bg-secondary p-3.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-muted-foreground">
+                          {new Date(s.tanggal).toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
+                        </span>
+                        {s.infaq > 0 && (
+                          <span className="shrink-0 rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-bold text-primary">
+                            Rp{s.infaq.toLocaleString('id-ID')}
+                          </span>
+                        )}
+                      </div>
+                      {s.jurnal && (
+                        <p className="mt-1.5 text-sm font-medium leading-relaxed text-ink">{s.jurnal}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
           )}
 
           {/* Rekap per murid */}
