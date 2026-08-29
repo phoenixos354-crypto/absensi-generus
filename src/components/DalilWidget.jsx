@@ -19,8 +19,8 @@ export function DalilWidget() {
 
   return (
     <>
-      <div className="relative mx-5 mt-7 min-h-[8.5rem] rounded-3xl bg-secondary p-5">
-        <div className="relative z-10 max-w-[62%]">
+      <div className="relative mx-5 mt-7 min-h-[10.5rem] rounded-3xl bg-secondary p-5">
+        <div className="relative z-10 max-w-[56%]">
           {isLoading || !data ? (
             <>
               <div className="h-4 w-24 animate-pulse rounded-full bg-surface/60" />
@@ -59,7 +59,7 @@ export function DalilWidget() {
         <img
           src={mascotSrc}
           alt="Mascot"
-          className="pointer-events-none absolute -bottom-4 -right-2 z-10 h-32 w-auto select-none"
+          className="pointer-events-none absolute -bottom-6 -right-3 z-10 h-52 w-auto select-none"
           onError={e => { e.currentTarget.style.display = 'none'; }}
         />
       </div>
