@@ -5,10 +5,71 @@ import { useEffect, useState, Suspense } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
-import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, Plus, LayoutGrid, Landmark, MapPin, Map, ClipboardCheck, X, TriangleAlert } from 'lucide-react';
+import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert } from 'lucide-react';
 import userAvatar from '@/assets/user-avatar.jpg';
 
 const FORM_KOSONG = { nama_kelompok:'', tingkatan:'caberawit', desa:'', daerah:'' };
+
+function IlusWelcome({ className }) {
+  return (
+    <svg viewBox="0 0 96 96" className={className} fill="none">
+      <circle cx="48" cy="22" r="4" fill="var(--color-accent)" />
+      <path d="M48 30 L70 46 H64 V70 H56 V54 H40 V70 H32 V46 H26 Z" fill="var(--color-primary)" />
+      <rect x="44" y="58" width="8" height="12" rx="2" fill="var(--color-brand-soft)" />
+      <rect x="20" y="70" width="56" height="6" rx="3" fill="var(--color-brand-soft)" />
+    </svg>
+  );
+}
+
+function IlusBuatKelompok({ className }) {
+  return (
+    <svg viewBox="0 0 96 96" className={className} fill="none">
+      <circle cx="36" cy="46" r="14" fill="var(--color-brand-soft)" />
+      <circle cx="36" cy="40" r="7" fill="var(--color-primary)" />
+      <path d="M22 60c0-8 6-13 14-13s14 5 14 13" fill="var(--color-primary)" />
+      <circle cx="66" cy="32" r="13" fill="var(--color-accent)" />
+      <path d="M66 26v12M60 32h12" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IlusTambahMurid({ className }) {
+  return (
+    <svg viewBox="0 0 96 96" className={className} fill="none">
+      <circle cx="32" cy="30" r="7" fill="var(--color-primary)" />
+      <rect x="46" y="26" width="28" height="8" rx="4" fill="var(--color-brand-soft)" />
+      <circle cx="32" cy="52" r="7" fill="var(--color-accent)" />
+      <rect x="46" y="48" width="28" height="8" rx="4" fill="var(--color-brand-soft)" />
+      <circle cx="32" cy="74" r="7" fill="var(--color-primary)" opacity="0.45" />
+      <rect x="46" y="70" width="18" height="8" rx="4" fill="var(--color-brand-soft)" />
+    </svg>
+  );
+}
+
+function IlusMulaiAbsensi({ className }) {
+  return (
+    <svg viewBox="0 0 96 96" className={className} fill="none">
+      <rect x="24" y="20" width="40" height="56" rx="7" fill="var(--color-brand-soft)" />
+      <rect x="36" y="16" width="16" height="9" rx="3.5" fill="var(--color-primary)" />
+      <rect x="32" y="40" width="22" height="5" rx="2.5" fill="var(--color-primary)" opacity="0.55" />
+      <rect x="32" y="50" width="16" height="5" rx="2.5" fill="var(--color-primary)" opacity="0.3" />
+      <circle cx="66" cy="60" r="16" fill="var(--color-accent)" />
+      <path d="M59 60l5 5 10-11" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IlusLihatRekap({ className }) {
+  return (
+    <svg viewBox="0 0 96 96" className={className} fill="none">
+      <rect x="22" y="52" width="12" height="24" rx="4" fill="var(--color-primary)" opacity="0.4" />
+      <rect x="42" y="38" width="12" height="38" rx="4" fill="var(--color-primary)" opacity="0.7" />
+      <rect x="62" y="24" width="12" height="52" rx="4" fill="var(--color-primary)" />
+      <path d="M22 34l14-10 12 8 16-14" stroke="var(--color-accent)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M56 15l8 3-2 8" stroke="var(--color-accent)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function DashboardContent() {
   const { data: session, status } = useSession();
@@ -120,11 +181,11 @@ function DashboardContent() {
     : kelompok.filter(k => k.tingkatan === filterTingkatan);
 
   const ONBOARD_STEPS = [
-    { Icon: Landmark, judul:'Selamat Datang!', isi:'Absensi Generus membantu Anda mencatat kehadiran murid pengajian dengan mudah langsung dari HP.' },
-    { Icon: Plus, judul:'Buat Kelompok', isi:'Mulai dengan membuat kelompok pengajian. Isi nama kelompok, tingkatan, desa, dan daerah.' },
-    { Icon: Users, judul:'Tambah Murid', isi:'Setelah buat kelompok, tambahkan nama-nama murid dan tentukan jadwal ngaji mingguan.' },
-    { Icon: ClipboardCheck, judul:'Mulai Absensi', isi:'Tiap hari ngaji, buka kelompok → tap Absen → tandai Hadir/Izin/Sakit/Alfa → Simpan. Selesai!' },
-    { Icon: BarChart3, judul:'Lihat Rekap', isi:'Pantau persentase kehadiran per murid, per hari, minggu, atau bulan kapan saja.' },
+    { Illus: IlusWelcome, judul:'Selamat Datang!', isi:'Absensi Generus membantu Anda mencatat kehadiran murid pengajian dengan mudah langsung dari HP.' },
+    { Illus: IlusBuatKelompok, judul:'Buat Kelompok', isi:'Mulai dengan membuat kelompok pengajian. Isi nama kelompok, tingkatan, desa, dan daerah.' },
+    { Illus: IlusTambahMurid, judul:'Tambah Murid', isi:'Setelah buat kelompok, tambahkan nama-nama murid dan tentukan jadwal ngaji mingguan.' },
+    { Illus: IlusMulaiAbsensi, judul:'Mulai Absensi', isi:'Tiap hari ngaji, buka kelompok → tap Absen → tandai Hadir/Izin/Sakit/Alfa → Simpan. Selesai!' },
+    { Illus: IlusLihatRekap, judul:'Lihat Rekap', isi:'Pantau persentase kehadiran per murid, per hari, minggu, atau bulan kapan saja.' },
   ];
 
   if (loading) return (
@@ -226,7 +287,7 @@ function DashboardContent() {
           <div className="mt-5 space-y-4 px-5">
             {kelompokTampil.length === 0 && (
               <div className="py-10 text-center">
-                <div className="mx-auto grid size-12 w-fit place-items-center rounded-full bg-brand-soft text-primary">
+                <div className="mx-auto grid size-12 place-items-center rounded-full bg-brand-soft text-primary">
                   {(() => { const t = getTingkatan(filterTingkatan); const I = t.Icon; return <I className="size-6" />; })()}
                 </div>
                 <p className="mt-2 text-sm font-bold text-ink">Tidak ada kelompok {getTingkatan(filterTingkatan).label}</p>
@@ -327,21 +388,6 @@ function DashboardContent() {
           </div>
         )}
 
-        <div className="px-5 pb-6 pt-6">
-          <button
-            onClick={bukaModalBaru}
-            className="flex w-full items-center justify-between rounded-3xl bg-surface p-4 shadow-[var(--shadow-card)]"
-          >
-            <span className="flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/icon-512.png" alt="Absensi Generus" width={512} height={512} className="size-9" />
-              <span className="text-sm font-bold text-ink">Kelompok Baru</span>
-            </span>
-            <span className="grid size-9 place-items-center rounded-full bg-primary text-primary-foreground">
-              <Plus className="size-5" />
-            </span>
-          </button>
-        </div>
       </AppScreen>
 
       {showModal && (
@@ -419,8 +465,8 @@ function DashboardContent() {
                 <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === onboardStep ? 'w-6 bg-primary' : 'w-2 bg-border'}`} />
               ))}
             </div>
-            <div className="mx-auto grid size-16 w-fit place-items-center rounded-full bg-brand-soft text-primary">
-              {(() => { const S = ONBOARD_STEPS[onboardStep].Icon; return <S className="size-8" />; })()}
+            <div className="mx-auto flex size-24 items-center justify-center">
+              {(() => { const Ilus = ONBOARD_STEPS[onboardStep].Illus; return <Ilus className="size-24" />; })()}
             </div>
             <h2 className="mt-3 text-xl font-extrabold text-ink">{ONBOARD_STEPS[onboardStep].judul}</h2>
             <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">{ONBOARD_STEPS[onboardStep].isi}</p>
