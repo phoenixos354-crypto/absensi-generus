@@ -4,7 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import useSWR, { mutate } from 'swr';
 import { AppScreen } from '@/components/AppScreen';
-import { KATEGORI, URUTAN_TINGKATAN, NILAI_LIST, NILAI_WARNA } from '@/lib/target-constants';
+import { KATEGORI, URUTAN_TINGKATAN, NILAI_LIST, NILAI_WARNA, NILAI_LABEL, NILAI_DOT } from '@/lib/target-constants';
 import { ChevronLeft, Share2, ChevronDown, Check, CalendarCheck, ChevronRight as ChevronRightIcon, Target as TargetIcon } from 'lucide-react';
 
 function bulanIniStr() {
@@ -338,17 +338,24 @@ export default function KartuTargetPage() {
           <div className="w-full rounded-t-[2rem] bg-surface p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
             <p className="mb-4 text-sm font-bold text-ink">{popupItem.nama_item}</p>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="space-y-2">
               {NILAI_LIST.map(n => {
                 const aktif = (progressMap[popupItem.id] || 'belum') === n;
                 return (
                   <button
                     key={n}
                     onClick={() => pilihNilai(popupItem.id, n)}
-                    className={`flex flex-col items-center gap-1 rounded-2xl py-3 text-sm font-extrabold ${NILAI_WARNA[n]} ${aktif ? 'ring-2 ring-ink/20' : ''}`}
+                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors ${
+                      aktif ? 'bg-ink' : 'bg-secondary active:opacity-70'
+                    }`}
                   >
-                    {aktif && <Check className="size-3.5" />}
-                    {n === 'belum' ? 'Belum' : n}
+                    <span className={`grid size-9 shrink-0 place-items-center rounded-full text-sm font-extrabold ${NILAI_WARNA[n]}`}>
+                      {n === 'belum' ? <span className={`size-2.5 rounded-full ${NILAI_DOT[n]}`} /> : n}
+                    </span>
+                    <span className={`min-w-0 flex-1 text-sm font-bold ${aktif ? 'text-primary-foreground' : 'text-ink'}`}>
+                      {NILAI_LABEL[n]}
+                    </span>
+                    {aktif && <Check className="size-4 shrink-0 text-primary-foreground" />}
                   </button>
                 );
               })}

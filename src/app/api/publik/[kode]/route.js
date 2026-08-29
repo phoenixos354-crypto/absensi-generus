@@ -2,9 +2,11 @@ import { readSheet, SHEETS } from '@/lib/sheets';
 import { KATEGORI, resolvePresetId } from '@/lib/target';
 import { NextResponse } from 'next/server';
 
-// GET /api/publik/[kode]  -> TANPA LOGIN, cuma data read-only untuk orang tua
+// GET /api/publik/[kode]?bulan=YYYY-MM  -> TANPA LOGIN, cuma data read-only untuk orang tua
 export async function GET(req, { params }) {
   const { kode } = params;
+  const { searchParams } = new URL(req.url);
+  const bulan = searchParams.get('bulan'); // opsional, format YYYY-MM
 
   const [muridList, kelompokList, absensiList, sesiList, itemList, progressList] = await Promise.all([
     readSheet(SHEETS.MURID),
@@ -21,11 +23,17 @@ export async function GET(req, { params }) {
   const kelompok = kelompokList.find(k => k.id === murid.kelompok_id);
   if (!kelompok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // Kehadiran
+  // Kehadiran keseluruhan (sejak awal)
   const absensiMurid = absensiList.filter(a => a.murid_id === murid.id);
   const totalSesiAbsen = absensiMurid.length;
   const totalHadir = absensiMurid.filter(a => a.status === 'Hadir').length;
   const persenHadir = totalSesiAbsen > 0 ? Math.round((totalHadir / totalSesiAbsen) * 100) : 0;
+
+  // Kehadiran per bulan yang dipilih
+  const absensiBulan = bulan ? absensiMurid.filter(a => a.tanggal.startsWith(bulan)) : absensiMurid;
+  const totalSesiBulan = absensiBulan.length;
+  const totalHadirBulan = absensiBulan.filter(a => a.status === 'Hadir').length;
+  const persenHadirBulan = totalSesiBulan > 0 ? Math.round((totalHadirBulan / totalSesiBulan) * 100) : 0;
 
   // Jurnal dari sesi-sesi yang dia hadiri
   const tanggalHadir = new Set(absensiMurid.filter(a => a.status === 'Hadir').map(a => a.tanggal));
@@ -57,6 +65,10 @@ export async function GET(req, { params }) {
     persen_hadir: persenHadir,
     total_sesi: totalSesiAbsen,
     total_hadir: totalHadir,
+    bulan,
+    persen_hadir_bulan: persenHadirBulan,
+    total_sesi_bulan: totalSesiBulan,
+    total_hadir_bulan: totalHadirBulan,
     jurnal,
     target: targetPerKategori,
   });

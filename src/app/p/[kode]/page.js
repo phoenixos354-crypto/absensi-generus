@@ -1,15 +1,33 @@
 'use client';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { NILAI_WARNA } from '@/lib/target-constants';
-import { BookOpen, CalendarCheck, NotebookPen, MapPin, Map } from 'lucide-react';
+import { BookOpen, CalendarCheck, NotebookPen, MapPin, Map, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const fetcher = (url) => fetch(url).then(r => r.json());
+
+function bulanIniStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function labelBulan(nilai) {
+  const [y, m] = nilai.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+}
+
+function geserBulan(nilai, delta) {
+  const [y, m] = nilai.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 export default function KartuPublikPage() {
   const params = useParams();
   const kode = params.kode;
-  const { data, error, isLoading } = useSWR(kode ? `/api/publik/${kode}` : null, fetcher);
+  const [bulanDipilih, setBulanDipilih] = useState(bulanIniStr());
+  const { data, error, isLoading } = useSWR(kode ? `/api/publik/${kode}?bulan=${bulanDipilih}` : null, fetcher, { keepPreviousData: true });
 
   if (isLoading) {
     return (
@@ -47,14 +65,53 @@ export default function KartuPublikPage() {
       </section>
 
       <section className="px-5 pt-4">
-        <div className="card-soft flex items-center gap-3 p-4">
-          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-primary">
-            <CalendarCheck className="size-5" />
-          </span>
-          <div>
-            <p className="text-2xl font-extrabold text-ink">{data.persen_hadir}%</p>
-            <p className="text-xs text-muted-foreground">Kehadiran &middot; {data.total_hadir} dari {data.total_sesi} sesi</p>
+        <div className="card-soft p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-sm font-extrabold text-ink">
+              <CalendarCheck className="size-4 text-primary" /> Kehadiran
+            </h2>
+            <div className="flex items-center gap-1">
+              <button
+                aria-label="Bulan sebelumnya"
+                onClick={() => setBulanDipilih(b => geserBulan(b, -1))}
+                className="grid size-7 place-items-center rounded-full bg-secondary text-ink"
+              >
+                <ChevronLeft className="size-3.5" />
+              </button>
+              <span className="min-w-[7.5rem] text-center text-xs font-bold text-ink">{labelBulan(bulanDipilih)}</span>
+              <button
+                aria-label="Bulan berikutnya"
+                onClick={() => setBulanDipilih(b => geserBulan(b, 1))}
+                disabled={bulanDipilih >= bulanIniStr()}
+                className="grid size-7 place-items-center rounded-full bg-secondary text-ink disabled:opacity-30"
+              >
+                <ChevronRight className="size-3.5" />
+              </button>
+            </div>
           </div>
+
+          {data.total_sesi_bulan === 0 ? (
+            <p className="mt-3 text-center text-sm text-muted-foreground">Belum ada data absensi di bulan ini.</p>
+          ) : (
+            <div className="mt-3 flex items-center gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-primary">
+                <CalendarCheck className="size-5" />
+              </span>
+              <div>
+                <p className="text-2xl font-extrabold text-ink">{data.persen_hadir_bulan}%</p>
+                <p className="text-xs text-muted-foreground">{data.total_hadir_bulan} dari {data.total_sesi_bulan} sesi</p>
+              </div>
+            </div>
+          )}
+
+          {data.total_sesi > 0 && (
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+              <span className="text-[11px] font-semibold text-muted-foreground">Total keseluruhan (sejak awal)</span>
+              <span className="text-xs font-extrabold text-ink">
+                {data.total_hadir} dari {data.total_sesi} sesi &middot; {data.persen_hadir}%
+              </span>
+            </div>
+          )}
         </div>
       </section>
 

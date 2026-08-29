@@ -22,3 +22,20 @@ export const NILAI_WARNA = {
   C: 'bg-amber-100 text-amber-700',
   D: 'bg-rose-100 text-rose-700',
 };
+
+export const NILAI_LABEL = {
+  belum: 'Belum Dinilai',
+  A: 'Sangat Baik',
+  B: 'Baik',
+  C: 'Cukup',
+  D: 'Perlu Bimbingan',
+};
+
+// Warna solid dipakai untuk bulatan indikator di popup pilih nilai
+export const NILAI_DOT = {
+  belum: 'bg-border',
+  A: 'bg-emerald-500',
+  B: 'bg-sky-500',
+  C: 'bg-amber-500',
+  D: 'bg-rose-500',
+};
