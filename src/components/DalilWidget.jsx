@@ -19,7 +19,7 @@ export function DalilWidget() {
 
   return (
     <>
-      <div className="relative mx-5 mt-7 min-h-[8.5rem] rounded-3xl bg-brand-soft p-5">
+      <div className="relative mx-5 mt-7 min-h-[8.5rem] rounded-3xl bg-secondary p-5">
         <div className="relative z-10 max-w-[62%]">
           {isLoading || !data ? (
             <>
@@ -45,7 +45,7 @@ export function DalilWidget() {
               {terjemahPanjang && (
                 <button
                   onClick={() => setBukaDetail(true)}
-                  className="mt-1 text-xs font-bold text-primary underline underline-offset-2"
+                  className="mt-1 text-xs font-bold text-muted-foreground"
                 >
                   Baca selengkapnya
                 </button>
