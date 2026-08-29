@@ -46,6 +46,9 @@ export default function KartuTargetPage() {
   const { data: rekapBulan, isLoading: loadingRekap } = useSWR(
     session && kelompokId && bulanDipilih ? `/api/rekap?kelompok_id=${kelompokId}&mode=bulan&nilai=${bulanDipilih}` : null
   );
+  const { data: rekapTotal } = useSWR(
+    session && kelompokId ? `/api/rekap?kelompok_id=${kelompokId}` : null
+  );
 
   const murid = kelompok?.murid?.find(m => m.id === muridId);
   const tingkatan = kelompok?.tingkatan;
@@ -57,6 +60,7 @@ export default function KartuTargetPage() {
   }, [progress]);
 
   const kehadiranBulanIni = rekapBulan?.rekap_murid?.find(r => r.murid_id === muridId);
+  const kehadiranTotal = rekapTotal?.rekap_murid?.find(r => r.murid_id === muridId);
 
   // Ringkasan target: seluruh kategori untuk jenjang murid ini
   const statPerKategori = useMemo(() => {
@@ -208,6 +212,15 @@ export default function KartuTargetPage() {
                 <span className="rounded-full bg-rose-100 px-3 py-1 text-[11px] font-bold text-rose-700">Alfa: {kehadiranBulanIni.alfa}</span>
               </div>
             </>
+          )}
+
+          {kehadiranTotal && kehadiranTotal.total > 0 && (
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+              <span className="text-[11px] font-semibold text-muted-foreground">Total keseluruhan (sejak awal)</span>
+              <span className="text-xs font-extrabold text-ink">
+                {kehadiranTotal.hadir} dari {kehadiranTotal.total} sesi &middot; {kehadiranTotal.persen_hadir}%
+              </span>
+            </div>
           )}
         </div>
       </section>
