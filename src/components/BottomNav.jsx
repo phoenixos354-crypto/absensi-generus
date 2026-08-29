@@ -6,21 +6,15 @@ import { Home, BarChart3, Plus, CircleHelp } from 'lucide-react';
 
 export function BottomNav() {
   const pathname = usePathname();
-  const [lastId, setLastId] = useState(null);
 
   useEffect(() => {
     const m = pathname.match(/^\/(absensi|rekap|kelompok|setup|admin)\/([^/]+)/);
-    if (m) {
-      localStorage.setItem('ag_last_kelompok', m[2]);
-      setLastId(m[2]);
-    } else {
-      setLastId(localStorage.getItem('ag_last_kelompok'));
-    }
+    if (m) localStorage.setItem('ag_last_kelompok', m[2]);
   }, [pathname]);
 
   const items = [
     { href: '/dashboard', icon: Home, label: 'Dashboard', active: pathname === '/dashboard' },
-    { href: lastId ? `/rekap/${lastId}` : '/dashboard', icon: BarChart3, label: 'Riwayat', active: pathname.startsWith('/rekap') },
+    { href: '/rekap', icon: BarChart3, label: 'Rekap', active: pathname.startsWith('/rekap') },
     { href: '/dashboard?baru=1', icon: Plus, label: 'Kelompok Baru', active: false },
     { href: '/dashboard?panduan=1', icon: CircleHelp, label: 'Panduan', active: false },
   ];

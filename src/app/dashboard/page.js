@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
-import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert } from 'lucide-react';
+import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert, ChevronRight } from 'lucide-react';
 import userAvatar from '@/assets/user-avatar.jpg';
 
 const FORM_KOSONG = { nama_kelompok:'', tingkatan:'caberawit', desa:'', daerah:'' };
@@ -268,6 +268,24 @@ function DashboardContent() {
             );
           })}
         </div>
+
+        {kelompok.length > 1 && (
+          <div className="px-5 pt-4">
+            <button
+              onClick={() => router.push('/rekap')}
+              className="flex w-full items-center gap-3 rounded-3xl p-4 text-left brand-gradient text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/20">
+                <BarChart3 className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold">Rekap Gabungan</p>
+                <p className="text-xs text-primary-foreground/80">Lihat rekap semua kelompok yang bisa kamu akses</p>
+              </div>
+              <ChevronRight className="size-4 shrink-0" />
+            </button>
+          </div>
+        )}
 
         {kelompok.length === 0 ? (
           <div className="card-soft mx-5 mt-5 p-6 text-center">
