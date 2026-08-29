@@ -5,7 +5,23 @@ import { useEffect, useState, useMemo } from 'react';
 import useSWR, { mutate } from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { KATEGORI, URUTAN_TINGKATAN, NILAI_LIST, NILAI_WARNA } from '@/lib/target-constants';
-import { ChevronLeft, Share2, ChevronDown, Check } from 'lucide-react';
+import { ChevronLeft, Share2, ChevronDown, Check, CalendarCheck, ChevronRight as ChevronRightIcon, Target as TargetIcon } from 'lucide-react';
+
+function bulanIniStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function labelBulan(nilai) {
+  const [y, m] = nilai.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+}
+
+function geserBulan(nilai, delta) {
+  const [y, m] = nilai.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 export default function KartuTargetPage() {
   const { data: session, status } = useSession();
@@ -18,6 +34,7 @@ export default function KartuTargetPage() {
   const [bukaTunggakan, setBukaTunggakan] = useState(false);
   const [popupItem, setPopupItem] = useState(null); // { id, nama_item }
   const [copied, setCopied] = useState(false);
+  const [bulanDipilih, setBulanDipilih] = useState(bulanIniStr());
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
@@ -26,6 +43,9 @@ export default function KartuTargetPage() {
   const { data: kelompok } = useSWR(session && kelompokId ? `/api/kelompok/${kelompokId}` : null);
   const { data: itemData } = useSWR(session && kelompokId ? `/api/target-item?kelompok_id=${kelompokId}` : null);
   const { data: progress } = useSWR(session && muridId ? `/api/target-progress?murid_id=${muridId}` : null);
+  const { data: rekapBulan, isLoading: loadingRekap } = useSWR(
+    session && kelompokId && bulanDipilih ? `/api/rekap?kelompok_id=${kelompokId}&mode=bulan&nilai=${bulanDipilih}` : null
+  );
 
   const murid = kelompok?.murid?.find(m => m.id === muridId);
   const tingkatan = kelompok?.tingkatan;
@@ -35,6 +55,21 @@ export default function KartuTargetPage() {
     (progress || []).forEach(p => { m[p.item_id] = p.nilai; });
     return m;
   }, [progress]);
+
+  const kehadiranBulanIni = rekapBulan?.rekap_murid?.find(r => r.murid_id === muridId);
+
+  // Ringkasan target: seluruh kategori untuk jenjang murid ini
+  const statPerKategori = useMemo(() => {
+    return KATEGORI.map(k => {
+      const its = items.filter(i => i.tingkatan === tingkatan && i.kategori === k.key);
+      const tercapai = its.filter(i => (progressMap[i.id] || 'belum') !== 'belum').length;
+      return { key: k.key, label: k.label, tercapai, total: its.length };
+    });
+  }, [items, tingkatan, progressMap]);
+
+  const totalItemSemua = statPerKategori.reduce((s, k) => s + k.total, 0);
+  const totalTercapaiSemua = statPerKategori.reduce((s, k) => s + k.tercapai, 0);
+  const persenTarget = totalItemSemua > 0 ? Math.round((totalTercapaiSemua / totalItemSemua) * 100) : 0;
 
   const itemKategoriIni = items
     .filter(i => i.tingkatan === tingkatan && i.kategori === kategoriAktif)
@@ -50,12 +85,35 @@ export default function KartuTargetPage() {
 
   async function pilihNilai(itemId, nilai) {
     setPopupItem(null);
-    await fetch('/api/target-progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ murid_id: muridId, item_id: itemId, nilai }),
-    });
-    mutate(`/api/target-progress?murid_id=${muridId}`);
+    const key = `/api/target-progress?murid_id=${muridId}`;
+    const nilaiSebelumnya = progressMap[itemId] || 'belum';
+
+    // Update tampilan langsung (optimistic), tanpa nunggu response server
+    mutate(key, (current) => {
+      const list = current ? [...current] : [];
+      const idx = list.findIndex(p => p.item_id === itemId);
+      if (idx >= 0) list[idx] = { ...list[idx], nilai };
+      else list.push({ item_id: itemId, nilai });
+      return list;
+    }, false);
+
+    try {
+      const res = await fetch('/api/target-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ murid_id: muridId, item_id: itemId, nilai }),
+      });
+      if (!res.ok) throw new Error('Gagal simpan');
+      mutate(key); // sinkron ulang dengan data server
+    } catch (err) {
+      // Rollback kalau gagal
+      mutate(key, (current) => {
+        const list = current ? [...current] : [];
+        const idx = list.findIndex(p => p.item_id === itemId);
+        if (idx >= 0) list[idx] = { ...list[idx], nilai: nilaiSebelumnya };
+        return list;
+      }, false);
+    }
   }
 
   async function salinLink() {
@@ -102,6 +160,91 @@ export default function KartuTargetPage() {
         <h1 className="text-xl font-extrabold text-ink">{murid.nama_murid}</h1>
         <p className="text-xs font-semibold text-muted-foreground">{kelompok.nama_kelompok}</p>
       </section>
+
+      {/* Kehadiran per bulan */}
+      <section className="px-5 pt-4">
+        <div className="card-soft p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-sm font-extrabold text-ink">
+              <CalendarCheck className="size-4 text-primary" /> Kehadiran
+            </h2>
+            <div className="flex items-center gap-1">
+              <button
+                aria-label="Bulan sebelumnya"
+                onClick={() => setBulanDipilih(b => geserBulan(b, -1))}
+                className="grid size-7 place-items-center rounded-full bg-secondary text-ink"
+              >
+                <ChevronLeft className="size-3.5" />
+              </button>
+              <span className="min-w-[7.5rem] text-center text-xs font-bold text-ink">{labelBulan(bulanDipilih)}</span>
+              <button
+                aria-label="Bulan berikutnya"
+                onClick={() => setBulanDipilih(b => geserBulan(b, 1))}
+                disabled={bulanDipilih >= bulanIniStr()}
+                className="grid size-7 place-items-center rounded-full bg-secondary text-ink disabled:opacity-30"
+              >
+                <ChevronRightIcon className="size-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {loadingRekap ? (
+            <div className="mt-3 h-16 animate-pulse rounded-2xl bg-muted" />
+          ) : !kehadiranBulanIni || kehadiranBulanIni.total === 0 ? (
+            <p className="mt-3 text-center text-sm text-muted-foreground">Belum ada data absensi di bulan ini.</p>
+          ) : (
+            <>
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Masuk {kehadiranBulanIni.hadir} dari {kehadiranBulanIni.total} sesi</span>
+                <span className="text-lg font-extrabold text-primary">{kehadiranBulanIni.persen_hadir}%</span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border">
+                <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${kehadiranBulanIni.persen_hadir}%` }} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700">Hadir: {kehadiranBulanIni.hadir}</span>
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold text-amber-700">Izin: {kehadiranBulanIni.izin}</span>
+                <span className="rounded-full bg-sky-100 px-3 py-1 text-[11px] font-bold text-sky-700">Sakit: {kehadiranBulanIni.sakit}</span>
+                <span className="rounded-full bg-rose-100 px-3 py-1 text-[11px] font-bold text-rose-700">Alfa: {kehadiranBulanIni.alfa}</span>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* Ringkasan target keseluruhan */}
+      <section className="px-5 pt-4">
+        <div className="card-soft p-4">
+          <h2 className="flex items-center gap-2 text-sm font-extrabold text-ink">
+            <TargetIcon className="size-4 text-primary" /> Ringkasan Target
+          </h2>
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Tercapai {totalTercapaiSemua} dari {totalItemSemua} target</span>
+            <span className="text-lg font-extrabold text-primary">{persenTarget}%</span>
+          </div>
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border">
+            <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${persenTarget}%` }} />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {statPerKategori.map(k => (
+              <button
+                key={k.key}
+                onClick={() => setKategoriAktif(k.key)}
+                className={`flex items-center justify-between gap-2 rounded-2xl px-3 py-2.5 text-left ${
+                  kategoriAktif === k.key ? 'bg-ink text-primary-foreground' : 'bg-secondary text-ink'
+                }`}
+              >
+                <span className="min-w-0 flex-1 truncate text-[11px] font-bold">{k.label}</span>
+                <span className={`shrink-0 text-[11px] font-extrabold ${kategoriAktif === k.key ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
+                  {k.tercapai}/{k.total}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <p className="px-5 pt-4 text-xs font-bold text-muted-foreground">Detail per kategori</p>
 
       {/* Tab kategori */}
       <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto px-5 pb-1">
