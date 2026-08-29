@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 import useSWR, { mutate } from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { KATEGORI, URUTAN_TINGKATAN, NILAI_LIST, NILAI_WARNA, NILAI_LABEL, NILAI_DOT } from '@/lib/target-constants';
+import { pilihNilaiLocalFirst, mergeOverlay, flushPending } from '@/lib/localOverlay';
 import { ChevronLeft, Share2, ChevronDown, Check, CalendarCheck, ChevronRight as ChevronRightIcon, Target as TargetIcon } from 'lucide-react';
 
 function bulanIniStr() {
@@ -40,6 +41,12 @@ export default function KartuTargetPage() {
     if (status === 'unauthenticated') router.replace('/login');
   }, [status]);
 
+  // Begitu halaman dibuka, coba kirim ulang nilai-nilai yang sempat gagal
+  // sync di sesi sebelumnya (misal: app ditutup sebelum request selesai).
+  useEffect(() => {
+    if (muridId) flushPending(muridId);
+  }, [muridId]);
+
   const { data: kelompok } = useSWR(session && kelompokId ? `/api/kelompok/${kelompokId}` : null);
   const { data: itemData } = useSWR(session && kelompokId ? `/api/target-item?kelompok_id=${kelompokId}` : null);
   const { data: progress } = useSWR(session && muridId ? `/api/target-progress?murid_id=${muridId}` : null);
@@ -54,10 +61,14 @@ export default function KartuTargetPage() {
   const tingkatan = kelompok?.tingkatan;
   const items = itemData?.items || [];
   const progressMap = useMemo(() => {
+    // Timpa data server dengan nilai lokal yang masih "pending" sync,
+    // supaya tampilan selalu nunjukin pilihan terakhir user — walau
+    // request ke server belum selesai atau baru saja reload halaman.
+    const progressGabungan = muridId ? mergeOverlay(progress, muridId) : (progress || []);
     const m = {};
-    (progress || []).forEach(p => { m[p.item_id] = p.nilai; });
+    progressGabungan.forEach(p => { m[p.item_id] = p.nilai; });
     return m;
-  }, [progress]);
+  }, [progress, muridId]);
 
   const kehadiranBulanIni = rekapBulan?.rekap_murid?.find(r => r.murid_id === muridId);
   const kehadiranTotal = rekapTotal?.rekap_murid?.find(r => r.murid_id === muridId);
@@ -87,12 +98,16 @@ export default function KartuTargetPage() {
     (progressMap[i.id] || 'belum') === 'belum'
   );
 
-  async function pilihNilai(itemId, nilai) {
+  function pilihNilai(itemId, nilai) {
     setPopupItem(null);
     const key = `/api/target-progress?murid_id=${muridId}`;
-    const nilaiSebelumnya = progressMap[itemId] || 'belum';
 
-    // Update tampilan langsung (optimistic), tanpa nunggu response server
+    // Simpan ke localStorage dulu (instan, tidak nunggu jaringan sama
+    // sekali) lalu kirim ke server di background — fungsi ini SENGAJA
+    // tidak di-await, biar UI tidak pernah ke-block nunggu Google Sheets.
+    pilihNilaiLocalFirst(muridId, itemId, nilai);
+
+    // Update tampilan langsung (SWR cache di memori, biar re-render instan)
     mutate(key, (current) => {
       const list = current ? [...current] : [];
       const idx = list.findIndex(p => p.item_id === itemId);
@@ -100,24 +115,6 @@ export default function KartuTargetPage() {
       else list.push({ item_id: itemId, nilai });
       return list;
     }, false);
-
-    try {
-      const res = await fetch('/api/target-progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ murid_id: muridId, item_id: itemId, nilai }),
-      });
-      if (!res.ok) throw new Error('Gagal simpan');
-      mutate(key); // sinkron ulang dengan data server
-    } catch (err) {
-      // Rollback kalau gagal
-      mutate(key, (current) => {
-        const list = current ? [...current] : [];
-        const idx = list.findIndex(p => p.item_id === itemId);
-        if (idx >= 0) list[idx] = { ...list[idx], nilai: nilaiSebelumnya };
-        return list;
-      }, false);
-    }
   }
 
   async function salinLink() {
