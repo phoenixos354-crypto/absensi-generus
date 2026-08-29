@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { DalilWidget } from '@/components/DalilWidget';
 import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
-import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert, ChevronRight } from 'lucide-react';
+import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert, ChevronRight, Target as TargetIcon } from 'lucide-react';
 import userAvatar from '@/assets/user-avatar.jpg';
 
 const FORM_KOSONG = { nama_kelompok:'', tingkatan:'caberawit', desa:'', daerah:'' };
@@ -383,6 +383,9 @@ function DashboardContent() {
                     )}
                     <button onClick={e => { e.stopPropagation(); router.push(`/rekap/${k.id}`); }} className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold ${featured ? 'bg-white/20 text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>
                       <BarChart3 className="size-3.5" /> Rekap
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); router.push(`/target/${k.id}`); }} className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold ${featured ? 'bg-white/20 text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>
+                      <TargetIcon className="size-3.5" /> Target
                     </button>
                     {k.permission === 'owner' && (
                       <button onClick={e => { e.stopPropagation(); router.push(`/setup/${k.id}`); }} className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold ${featured ? 'bg-white/20 text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>

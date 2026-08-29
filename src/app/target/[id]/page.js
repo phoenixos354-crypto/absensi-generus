@@ -1,7 +1,7 @@
 'use client';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
@@ -12,6 +12,7 @@ export default function TargetListPage() {
   const router = useRouter();
   const params = useParams();
   const kelompokId = params.id;
+  const [popupBukanOwner, setPopupBukanOwner] = useState(false);
 
   const { data: kelompok, isLoading } = useSWR(
     session && kelompokId ? `/api/kelompok/${kelompokId}` : null,
@@ -21,6 +22,10 @@ export default function TargetListPage() {
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
   }, [status]);
+
+  useEffect(() => {
+    if (kelompok && kelompok.permission !== 'owner') setPopupBukanOwner(true);
+  }, [kelompok]);
 
   if (isLoading || !kelompok) {
     return (
@@ -93,6 +98,26 @@ export default function TargetListPage() {
           </ul>
         </div>
       </section>
+
+      {popupBukanOwner && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 px-6" onClick={() => setPopupBukanOwner(false)}>
+          <div className="w-full max-w-xs rounded-3xl bg-surface p-5 text-center shadow-[var(--shadow-float)]" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto grid size-12 place-items-center rounded-full bg-brand-soft text-primary">
+              <Users className="size-6" />
+            </div>
+            <h3 className="mt-3 text-base font-extrabold text-ink">Anda Bukan Pemilik Kelompok Ini</h3>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Kamu tetap bisa melihat data target &amp; capaian, tapi hanya owner kelompok yang bisa mengelola target.
+            </p>
+            <button
+              onClick={() => setPopupBukanOwner(false)}
+              className="mt-4 w-full rounded-full bg-ink py-3 text-sm font-bold text-primary-foreground"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      )}
     </AppScreen>
   );
 }
