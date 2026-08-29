@@ -48,8 +48,8 @@ export async function PUT(req, { params }) {
   await tulisSheet(
     sheets,
     SHEETS.KELOMPOK,
-    ['id','user_id','nama_kelompok','tingkatan','desa','daerah','created_at'],
-    updated.map(k => [k.id,k.user_id,k.nama_kelompok,k.tingkatan,k.desa,k.daerah,k.created_at])
+    ['id','user_id','nama_kelompok','tingkatan','desa','daerah','preset_id','created_at'],
+    updated.map(k => [k.id,k.user_id,k.nama_kelompok,k.tingkatan,k.desa,k.daerah,k.preset_id || '',k.created_at])
   );
   invalidateSheet(SHEETS.KELOMPOK);
 
@@ -77,13 +77,13 @@ export async function DELETE(req, { params }) {
 
   // Hapus sequential — satu per satu agar tidak race condition di Google Sheets
   await tulisSheet(sheets, SHEETS.KELOMPOK,
-    ['id','user_id','nama_kelompok','tingkatan','desa','daerah','created_at'],
-    allKelompok.filter(k => k.id !== id).map(k => [k.id,k.user_id,k.nama_kelompok,k.tingkatan,k.desa,k.daerah,k.created_at])
+    ['id','user_id','nama_kelompok','tingkatan','desa','daerah','preset_id','created_at'],
+    allKelompok.filter(k => k.id !== id).map(k => [k.id,k.user_id,k.nama_kelompok,k.tingkatan,k.desa,k.daerah,k.preset_id || '',k.created_at])
   );
 
   await tulisSheet(sheets, SHEETS.MURID,
-    ['id','kelompok_id','nama_murid','created_at'],
-    allMurid.filter(m => m.kelompok_id !== id).map(m => [m.id,m.kelompok_id,m.nama_murid,m.created_at])
+    ['id','kelompok_id','nama_murid','kode_publik','created_at'],
+    allMurid.filter(m => m.kelompok_id !== id).map(m => [m.id,m.kelompok_id,m.nama_murid,m.kode_publik || '',m.created_at])
   );
 
   await tulisSheet(sheets, SHEETS.JADWAL,

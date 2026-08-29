@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { ChevronLeft, Users, CalendarDays, MapPin, Map } from 'lucide-react';
+import { ChevronLeft, Users, CalendarDays, MapPin, Map, Target } from 'lucide-react';
 
 export default function KelompokDetailPage() {
   const { data: session, status } = useSession();
@@ -70,6 +70,9 @@ export default function KelompokDetailPage() {
             </button>
             <button onClick={() => router.push(`/rekap/${kelompokId}`)} className="rounded-full bg-white/20 px-4 py-2.5 text-xs font-bold text-primary-foreground">
               Rekap
+            </button>
+            <button onClick={() => router.push(`/target/${kelompokId}`)} className="rounded-full bg-white/20 px-4 py-2.5 text-xs font-bold text-primary-foreground">
+              <span className="flex items-center gap-1"><Target className="size-3.5" /> Target</span>
             </button>
             <button onClick={() => router.push(`/setup/${kelompokId}`)} className="rounded-full bg-white/20 px-4 py-2.5 text-xs font-bold text-primary-foreground">
               Kelola

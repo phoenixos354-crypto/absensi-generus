@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
+import { readSheet, appendRow, SHEETS, generateId, generateKodePublik, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -32,8 +32,9 @@ export async function POST(req) {
   if (perm !== 'owner') return NextResponse.json({ error: 'Hanya owner yang bisa kelola murid' }, { status: 403 });
 
   const id = generateId();
-  await appendRow(SHEETS.MURID, [id, kelompok_id, nama_murid, new Date().toISOString()]);
-  return NextResponse.json({ id, kelompok_id, nama_murid });
+  const kode_publik = generateKodePublik();
+  await appendRow(SHEETS.MURID, [id, kelompok_id, nama_murid, kode_publik, new Date().toISOString()]);
+  return NextResponse.json({ id, kelompok_id, nama_murid, kode_publik });
 }
 
 export async function PUT(req) {
@@ -48,14 +49,14 @@ export async function PUT(req) {
   const allMurid = await readSheet(SHEETS.MURID);
   const updated = allMurid.map(m => m.id === id ? { ...m, nama_murid } : m);
 
-  const headers = ['id', 'kelompok_id', 'nama_murid', 'created_at'];
+  const headers = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'];
   const sheets = getGoogleSheetsClient();
   await sheets.spreadsheets.values.clear({ spreadsheetId: SPREADSHEET_ID, range: `${SHEETS.MURID}!A:Z` });
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `${SHEETS.MURID}!A1`,
     valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [headers, ...updated.map(m => [m.id, m.kelompok_id, m.nama_murid, m.created_at])] },
+    requestBody: { values: [headers, ...updated.map(m => [m.id, m.kelompok_id, m.nama_murid, m.kode_publik || '', m.created_at])] },
   });
   invalidateSheet(SHEETS.MURID);
   return NextResponse.json({ success: true });
@@ -76,14 +77,14 @@ export async function DELETE(req) {
   if (perm !== 'owner') return NextResponse.json({ error: 'Hanya owner yang bisa hapus murid' }, { status: 403 });
 
   const filtered = allMurid.filter(m => m.id !== id);
-  const headers = ['id', 'kelompok_id', 'nama_murid', 'created_at'];
+  const headers = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'];
   const sheets = getGoogleSheetsClient();
   await sheets.spreadsheets.values.clear({ spreadsheetId: SPREADSHEET_ID, range: `${SHEETS.MURID}!A:Z` });
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `${SHEETS.MURID}!A1`,
     valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [headers, ...filtered.map(m => [m.id, m.kelompok_id, m.nama_murid, m.created_at])] },
+    requestBody: { values: [headers, ...filtered.map(m => [m.id, m.kelompok_id, m.nama_murid, m.kode_publik || '', m.created_at])] },
   });
   invalidateSheet(SHEETS.MURID);
   return NextResponse.json({ success: true });
