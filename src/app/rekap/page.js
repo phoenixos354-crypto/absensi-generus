@@ -42,12 +42,12 @@ export default function RekapGlobalPage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
-  const [tabTingkatan, setTabTingkatan] = useState('semua');
+  const [tabTingkatan, setTabTingkatan] = useState(null);
 
   const { data: kelompokAkses } = useSWR(session ? '/api/kelompok' : null);
 
   const { data: rekap, isLoading } = useSWR(
-    session ? `/api/rekap-global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}` : null,
+    session ? `/api/rekap-global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan || 'semua'}` : null,
     { keepPreviousData: true }
   );
 
@@ -58,6 +58,14 @@ export default function RekapGlobalPage() {
       .filter(([key]) => counts[key] > 0)
       .map(([key, val]) => ({ key, label: val.label, count: counts[key] }));
   }, [rekap]);
+
+  // Default: otomatis pilih tab Caberawit begitu daftar tingkatan tersedia (kalau tidak ada, pakai tab pertama)
+  useEffect(() => {
+    if (tabTingkatan === null && tabTersedia.length > 0) {
+      const adaCaberawit = tabTersedia.some(t => t.key === 'caberawit');
+      setTabTingkatan(adaCaberawit ? 'caberawit' : tabTersedia[0].key);
+    }
+  }, [tabTersedia, tabTingkatan]);
 
   // Info wilayah: kalau semua kelompok yang tampil berasal dari daerah yang sama, tampilkan itu
   const infoWilayah = useMemo(() => {
@@ -111,8 +119,8 @@ export default function RekapGlobalPage() {
       </header>
 
       {/* Filter bulan */}
-      <section className="-mt-4 px-5">
-        <div className="card-soft p-3">
+      <section className="px-5 pt-5">
+        <div className="card-soft p-4">
           <select
             value={nilai}
             onChange={e => setNilai(e.target.value)}
@@ -164,7 +172,7 @@ export default function RekapGlobalPage() {
             <>
               {/* Stat cards */}
               <section className="px-5 pt-5">
-                <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+                <div className="grid grid-cols-3 gap-2.5">
                   <StatCard icon={Users} iconBg="#dbeafe" iconColor="#2563eb" value={rekap.stats.total_murid} label="Total Murid" />
                   <StatCard icon={Star} iconBg="#dcfce7" iconColor="#16a34a" value={rekap.stats.hadir_100} label="Hadir 100%" />
                   <StatCard icon={Percent} iconBg="#ffedd5" iconColor="#ea580c" value={`${rekap.stats.avg_persen}%`} label="Rata-rata Hadir" />
@@ -291,12 +299,12 @@ export default function RekapGlobalPage() {
 
 function StatCard({ icon: Icon, iconBg, iconColor, value, label }) {
   return (
-    <div className="card-soft w-[7.5rem] shrink-0 p-3.5">
-      <span className="grid size-8 place-items-center rounded-full" style={{ background: iconBg, color: iconColor }}>
-        <Icon className="size-4" />
+    <div className="card-soft min-w-0 p-3">
+      <span className="grid size-7 place-items-center rounded-full" style={{ background: iconBg, color: iconColor }}>
+        <Icon className="size-3.5" />
       </span>
-      <p className="mt-2 text-xl font-extrabold text-ink">{value}</p>
-      <p className="text-[11px] leading-tight text-muted-foreground">{label}</p>
+      <p className="mt-1.5 truncate text-lg font-extrabold text-ink">{value}</p>
+      <p className="truncate text-[10px] leading-tight text-muted-foreground">{label}</p>
     </div>
   );
 }
