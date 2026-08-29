@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
+import { readSheet, appendRow, appendRows, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { getPresetTerlihat, DEFAULT_PRESET_ID } from '@/lib/target';
 import { NextResponse } from 'next/server';
@@ -44,14 +44,12 @@ export async function POST(req) {
     kelompok.nama_kelompok, kelompok.desa, kelompok.daerah, session.user.email, new Date().toISOString(),
   ]);
 
-  // Duplikat semua item dari preset sumber ke preset baru (id baru semua)
+  // Duplikat semua item dari preset sumber ke preset baru (id baru semua), 1 request
   const semuaItem = await readSheet(SHEETS.TARGET_ITEM);
   const itemSumber = semuaItem.filter(i => i.preset_id === (source_preset_id || DEFAULT_PRESET_ID));
-  for (const item of itemSumber) {
-    await appendRow(SHEETS.TARGET_ITEM, [
-      generateId(), newPresetId, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString(),
-    ]);
-  }
+  await appendRows(SHEETS.TARGET_ITEM, itemSumber.map(item => [
+    generateId(), newPresetId, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString(),
+  ]));
 
   // Pindahkan kelompok ke preset baru
   const headers = ['id', 'user_id', 'nama_kelompok', 'tingkatan', 'desa', 'daerah', 'preset_id', 'created_at'];

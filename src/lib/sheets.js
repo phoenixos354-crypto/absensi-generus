@@ -103,6 +103,23 @@ export async function appendRow(sheetName, values) {
 }
 
 // =============================================
+// HELPER: Tulis BANYAK baris sekaligus dalam SATU request
+// (penting: appendRow satu-satu berkali-kali gampang kena rate limit
+// Google Sheets API — selalu pakai ini kalau nulis > 1 baris sekaligus)
+// =============================================
+export async function appendRows(sheetName, rowsArray) {
+  if (!rowsArray || rowsArray.length === 0) return;
+  const sheets = getGoogleSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!A:A`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: rowsArray },
+  });
+  invalidateSheet(sheetName);
+}
+
+// =============================================
 // HELPER: Update satu sel / range tertentu
 // =============================================
 export async function updateCell(sheetName, range, values) {
@@ -213,22 +230,30 @@ export async function initializeSheets() {
 
   // Migrasi: sheet yang SUDAH ada tapi belum punya kolom baru (mis. preset_id,
   // kode_publik) -> tambahkan nama kolomnya di akhir header, tanpa sentuh data lama.
-  for (const sc of sheetsConfig) {
-    if (!existingSheets.includes(sc.name)) continue;
-    const res = await sheets.spreadsheets.values.get({
+  // Pakai batchGet (1 request) supaya gak baca sheet satu-satu tiap dashboard dibuka.
+  const sheetLama = sheetsConfig.filter(sc => existingSheets.includes(sc.name));
+  if (sheetLama.length > 0) {
+    const batchRes = await sheets.spreadsheets.values.batchGet({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${sc.name}!1:1`,
+      ranges: sheetLama.map(sc => `${sc.name}!1:1`),
     });
-    const currentHeaders = res.data.values?.[0] || [];
-    const missing = sc.headers.filter(h => !currentHeaders.includes(h));
-    if (missing.length > 0) {
-      await sheets.spreadsheets.values.update({
+    const updateRequests = [];
+    sheetLama.forEach((sc, idx) => {
+      const currentHeaders = batchRes.data.valueRanges?.[idx]?.values?.[0] || [];
+      const missing = sc.headers.filter(h => !currentHeaders.includes(h));
+      if (missing.length > 0) {
+        updateRequests.push({
+          range: `${sc.name}!A1`,
+          values: [[...currentHeaders, ...missing]],
+        });
+        invalidateSheet(sc.name);
+      }
+    });
+    if (updateRequests.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${sc.name}!A1`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [[...currentHeaders, ...missing]] },
+        requestBody: { valueInputOption: 'USER_ENTERED', data: updateRequests },
       });
-      invalidateSheet(sc.name);
     }
   }
 }

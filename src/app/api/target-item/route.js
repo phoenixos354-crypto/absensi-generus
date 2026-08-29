@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
+import { readSheet, appendRow, appendRows, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { resolvePresetId, DEFAULT_PRESET_ID } from '@/lib/target';
 import { NextResponse } from 'next/server';
@@ -72,9 +72,9 @@ export async function POST(req) {
 
     const itemLama = semuaItem.filter(i => i.preset_id === presetId);
     const itemBaru = itemLama.map(i => ({ ...i, id: generateId(), preset_id: newPresetId }));
-    for (const item of itemBaru) {
-      await appendRow(SHEETS.TARGET_ITEM, [item.id, item.preset_id, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString()]);
-    }
+    await appendRows(SHEETS.TARGET_ITEM, itemBaru.map(item => [
+      item.id, item.preset_id, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString(),
+    ]));
 
     // Alihkan kelompok ke preset baru
     const kHeaders = ['id', 'user_id', 'nama_kelompok', 'tingkatan', 'desa', 'daerah', 'preset_id', 'created_at'];

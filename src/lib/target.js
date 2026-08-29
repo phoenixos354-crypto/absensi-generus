@@ -1,4 +1,4 @@
-import { readSheet, appendRow, SHEETS, generateId } from '@/lib/sheets';
+import { readSheet, appendRows, SHEETS, generateId } from '@/lib/sheets';
 import { KATEGORI, URUTAN_TINGKATAN, DEFAULT_PRESET_ID } from '@/lib/target-constants';
 
 export { KATEGORI, URUTAN_TINGKATAN, DEFAULT_PRESET_ID };
@@ -58,9 +58,8 @@ export async function seedDefaultTargetItems() {
       });
     }
   }
-  for (const row of rows) {
-    await appendRow(SHEETS.TARGET_ITEM, row);
-  }
+  if (rows.length === 0) return;
+  await appendRows(SHEETS.TARGET_ITEM, rows);
 }
 
 // =============================================
