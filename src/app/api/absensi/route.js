@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
+import { readLatestByKey, appendRows, SHEETS, generateId } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -18,7 +18,9 @@ export async function GET(req) {
     if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
   }
 
-  const absensi = await readSheet(SHEETS.ABSENSI);
+  // Append-only: tiap (kelompok_id + murid_id + tanggal) bisa punya beberapa
+  // baris riwayat kalau statusnya diubah-ubah, ambil yang paling terakhir saja.
+  const absensi = await readLatestByKey(SHEETS.ABSENSI, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`);
   let filtered = absensi;
   if (kelompok_id) filtered = filtered.filter(a => a.kelompok_id === kelompok_id);
   if (tanggal) filtered = filtered.filter(a => a.tanggal === tanggal);
@@ -37,32 +39,13 @@ export async function POST(req) {
   if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
   if (perm === 'viewer') return NextResponse.json({ error: 'Anda hanya bisa melihat laporan, tidak bisa absen' }, { status: 403 });
 
-  const existing = await readSheet(SHEETS.ABSENSI);
-  const tetap = existing.filter(a => !(a.kelompok_id === kelompok_id && a.tanggal === tanggal));
-
+  // Cukup tambah baris-baris baru di bawah — baris terbaru per murid+tanggal
+  // otomatis jadi status yang "berlaku" (lihat GET di atas). Tidak perlu
+  // baca-hapus-tulis ulang seluruh sheet absensi.
   const newEntries = absensi.map(a => [
     generateId(), kelompok_id, a.murid_id, tanggal, a.status, session.user.email, new Date().toISOString(),
   ]);
-
-  const headers = ['id', 'kelompok_id', 'murid_id', 'tanggal', 'status', 'dicatat_oleh', 'created_at'];
-  const allRows = [
-    headers,
-    ...tetap.map(a => [a.id, a.kelompok_id, a.murid_id, a.tanggal, a.status, a.dicatat_oleh, a.created_at]),
-    ...newEntries,
-  ];
-
-  const sheets = getGoogleSheetsClient();
-  await sheets.spreadsheets.values.clear({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.ABSENSI}!A:Z`,
-  });
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.ABSENSI}!A1`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: allRows },
-  });
-  invalidateSheet(SHEETS.ABSENSI);
+  await appendRows(SHEETS.ABSENSI, newEntries);
 
   return NextResponse.json({ success: true, count: newEntries.length });
 }

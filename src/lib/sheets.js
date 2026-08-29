@@ -74,8 +74,12 @@ export async function readSheet(sheetName, { skipCache = false } = {}) {
       range: `${sheetName}!A:Z`,
     });
     const rows = res.data.values || [];
-    const data = rows.length < 2 ? [] : rows.slice(1).map(row => {
-      const obj = {};
+    // _row = nomor baris ASLI di sheet (1 = header, jadi data mulai baris 2).
+    // Dipakai supaya update/hapus bisa langsung ke baris itu saja, tanpa
+    // perlu baca-hapus-tulis ulang seluruh sheet. Properti ini ikut terbawa
+    // kalau kode lain nge-spread object-nya ({ ...row, field: baru }).
+    const data = rows.length < 2 ? [] : rows.slice(1).map((row, idx) => {
+      const obj = { _row: idx + 2 };
       rows[0].forEach((h, i) => { obj[h] = row[i] || ''; });
       return obj;
     });
@@ -131,6 +135,83 @@ export async function updateCell(sheetName, range, values) {
     requestBody: { values },
   });
   invalidateSheet(sheetName);
+}
+
+// =============================================
+// HELPER: Update SATU baris spesifik (pakai nomor baris dari _row)
+// Jauh lebih cepat daripada clear+rewrite seluruh sheet — cocok untuk
+// edit 1 record (misal: ganti nama murid, ganti preset_id kelompok).
+// `row` harus punya properti _row (otomatis ada kalau berasal dari readSheet).
+// =============================================
+export async function updateRow(sheetName, row, headers) {
+  if (!row?._row) throw new Error(`updateRow: baris tidak punya _row (sheet: ${sheetName})`);
+  const sheets = getGoogleSheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!A${row._row}:${String.fromCharCode(64 + headers.length)}${row._row}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [headers.map(h => row[h] ?? '')] },
+  });
+  invalidateSheet(sheetName);
+}
+
+// =============================================
+// HELPER: cache sheetId (angka internal Google, beda dari nama sheet)
+// dibutuhkan khusus untuk operasi hapus baris (deleteDimension).
+// =============================================
+const _sheetIdCache = new Map();
+async function getSheetIdByName(sheets, sheetName) {
+  if (_sheetIdCache.has(sheetName)) return _sheetIdCache.get(sheetName);
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  for (const s of meta.data.sheets) {
+    _sheetIdCache.set(s.properties.title, s.properties.sheetId);
+  }
+  return _sheetIdCache.get(sheetName);
+}
+
+// =============================================
+// HELPER: Hapus baris-baris SPESIFIK (pakai nomor baris dari _row)
+// Jauh lebih cepat & aman daripada clear+rewrite seluruh sheet —
+// cocok untuk hapus 1 atau beberapa record sekaligus.
+// `rows` = array of object yang punya _row (dari readSheet).
+// =============================================
+export async function deleteRows(sheetName, rows) {
+  if (!rows || rows.length === 0) return;
+  const sheets = getGoogleSheetsClient();
+  const sheetId = await getSheetIdByName(sheets, sheetName);
+  // Urutkan dari nomor baris TERBESAR ke terkecil — supaya penghapusan
+  // baris atas tidak menggeser nomor baris bawah yang belum diproses
+  // dalam batch request yang sama.
+  const rowNumbers = [...new Set(rows.map(r => r._row))].sort((a, b) => b - a);
+  const requests = rowNumbers.map(rowNum => ({
+    deleteDimension: {
+      range: {
+        sheetId,
+        dimension: 'ROWS',
+        startIndex: rowNum - 1, // 0-indexed
+        endIndex: rowNum,
+      },
+    },
+  }));
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: { requests },
+  });
+  invalidateSheet(sheetName);
+}
+
+// =============================================
+// HELPER: untuk tabel "append-only" (absensi, target_progress, sesi) —
+// tiap perubahan cuma NAMBAH baris baru, tidak pernah hapus/timpa baris
+// lama. Baca-nya tinggal ambil baris TERAKHIR per kunci (kunci ditentukan
+// oleh keyFn), karena baris yang lebih baru selalu ditambahkan di bawah,
+// jadi otomatis "menang" menimpa nilai lama di Map.
+// =============================================
+export async function readLatestByKey(sheetName, keyFn) {
+  const rows = await readSheet(sheetName);
+  const map = new Map();
+  for (const row of rows) map.set(keyFn(row), row);
+  return [...map.values()];
 }
 
 // =============================================

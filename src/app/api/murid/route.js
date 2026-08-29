@@ -1,8 +1,10 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, SHEETS, generateId, generateKodePublik, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
+import { readSheet, appendRow, updateRow, deleteRows, SHEETS, generateId, generateKodePublik } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
+
+const MURID_HEADERS = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'];
 
 export async function GET(req) {
   const session = await getServerSession(authOptions);
@@ -47,18 +49,10 @@ export async function PUT(req) {
   if (perm !== 'owner') return NextResponse.json({ error: 'Hanya owner yang bisa edit murid' }, { status: 403 });
 
   const allMurid = await readSheet(SHEETS.MURID);
-  const updated = allMurid.map(m => m.id === id ? { ...m, nama_murid } : m);
+  const target = allMurid.find(m => m.id === id);
+  if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const headers = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'];
-  const sheets = getGoogleSheetsClient();
-  await sheets.spreadsheets.values.clear({ spreadsheetId: SPREADSHEET_ID, range: `${SHEETS.MURID}!A:Z` });
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.MURID}!A1`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [headers, ...updated.map(m => [m.id, m.kelompok_id, m.nama_murid, m.kode_publik || '', m.created_at])] },
-  });
-  invalidateSheet(SHEETS.MURID);
+  await updateRow(SHEETS.MURID, { ...target, nama_murid }, MURID_HEADERS);
   return NextResponse.json({ success: true });
 }
 
@@ -76,16 +70,6 @@ export async function DELETE(req) {
   const perm = await getPermission(session.user.email, target.kelompok_id);
   if (perm !== 'owner') return NextResponse.json({ error: 'Hanya owner yang bisa hapus murid' }, { status: 403 });
 
-  const filtered = allMurid.filter(m => m.id !== id);
-  const headers = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'];
-  const sheets = getGoogleSheetsClient();
-  await sheets.spreadsheets.values.clear({ spreadsheetId: SPREADSHEET_ID, range: `${SHEETS.MURID}!A:Z` });
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.MURID}!A1`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [headers, ...filtered.map(m => [m.id, m.kelompok_id, m.nama_murid, m.kode_publik || '', m.created_at])] },
-  });
-  invalidateSheet(SHEETS.MURID);
+  await deleteRows(SHEETS.MURID, [target]);
   return NextResponse.json({ success: true });
 }

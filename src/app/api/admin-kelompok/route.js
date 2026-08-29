@@ -1,24 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
+import { readSheet, appendRow, deleteRows, SHEETS, generateId } from '@/lib/sheets';
 import { NextResponse } from 'next/server';
-
-// Helper: clear + tulis ulang sheet admin
-async function tulisAdminSheet(sheets, rows) {
-  await sheets.spreadsheets.values.clear({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.ADMIN_KELOMPOK}!A:Z`,
-  });
-  const headers = ['id', 'kelompok_id', 'email', 'permission', 'invited_by', 'created_at'];
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.ADMIN_KELOMPOK}!A1`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: [headers, ...rows.map(a => [a.id, a.kelompok_id, a.email, a.permission, a.invited_by, a.created_at])]
-    },
-  });
-}
 
 // GET — list admin untuk kelompok tertentu
 export async function GET(req) {
@@ -62,7 +45,7 @@ export async function POST(req) {
   return NextResponse.json({ id, kelompok_id, email, permission });
 }
 
-// DELETE — hapus admin (pakai clear + tulis ulang agar bersih)
+// DELETE — hapus admin (hapus 1 baris spesifik saja)
 export async function DELETE(req) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -86,11 +69,9 @@ export async function DELETE(req) {
   if (target?.email === session.user.email) {
     return NextResponse.json({ error: 'Tidak bisa menghapus diri sendiri sebagai owner' }, { status: 400 });
   }
+  if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const filtered = admins.filter(a => a.id !== id);
-  const sheets = getGoogleSheetsClient();
-  await tulisAdminSheet(sheets, filtered);
-  invalidateSheet(SHEETS.ADMIN_KELOMPOK);
+  await deleteRows(SHEETS.ADMIN_KELOMPOK, [target]);
 
   return NextResponse.json({ success: true });
 }

@@ -1,9 +1,11 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, appendRows, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
+import { readSheet, appendRow, appendRows, updateRow, SHEETS, generateId } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { getPresetTerlihat, DEFAULT_PRESET_ID } from '@/lib/target';
 import { NextResponse } from 'next/server';
+
+const KELOMPOK_HEADERS = ['id', 'user_id', 'nama_kelompok', 'tingkatan', 'desa', 'daerah', 'preset_id', 'created_at'];
 
 // GET /api/target-preset?kelompok_id=...  -> daftar preset yang bisa diikuti kelompok itu
 export async function GET(req) {
@@ -51,20 +53,8 @@ export async function POST(req) {
     generateId(), newPresetId, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString(),
   ]));
 
-  // Pindahkan kelompok ke preset baru
-  const headers = ['id', 'user_id', 'nama_kelompok', 'tingkatan', 'desa', 'daerah', 'preset_id', 'created_at'];
-  const updated = kelompokList.map(k => k.id === kelompok_id ? { ...k, preset_id: newPresetId } : k);
-  const sheets = getGoogleSheetsClient();
-  await sheets.spreadsheets.values.clear({ spreadsheetId: SPREADSHEET_ID, range: `${SHEETS.KELOMPOK}!A:Z` });
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.KELOMPOK}!A1`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [headers, ...updated.map(k => [k.id, k.user_id, k.nama_kelompok, k.tingkatan, k.desa, k.daerah, k.preset_id || '', k.created_at])] },
-  });
-  invalidateSheet(SHEETS.KELOMPOK);
-  invalidateSheet(SHEETS.TARGET_PRESET);
-  invalidateSheet(SHEETS.TARGET_ITEM);
+  // Pindahkan kelompok ke preset baru — update 1 baris saja
+  await updateRow(SHEETS.KELOMPOK, { ...kelompok, preset_id: newPresetId }, KELOMPOK_HEADERS);
 
   return NextResponse.json({ id: newPresetId, nama_preset });
 }

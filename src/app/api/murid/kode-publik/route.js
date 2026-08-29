@@ -1,8 +1,10 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, SHEETS, generateKodePublik, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
+import { readSheet, updateRow, SHEETS, generateKodePublik } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
+
+const MURID_HEADERS = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'];
 
 // GET /api/murid/kode-publik?murid_id=...
 // Kalau murid belum punya kode_publik (data lama sebelum fitur ini ada),
@@ -24,17 +26,7 @@ export async function GET(req) {
   if (murid.kode_publik) return NextResponse.json({ kode_publik: murid.kode_publik });
 
   const kode_publik = generateKodePublik();
-  const updated = allMurid.map(m => m.id === murid_id ? { ...m, kode_publik } : m);
-  const headers = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'];
-  const sheets = getGoogleSheetsClient();
-  await sheets.spreadsheets.values.clear({ spreadsheetId: SPREADSHEET_ID, range: `${SHEETS.MURID}!A:Z` });
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.MURID}!A1`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [headers, ...updated.map(m => [m.id, m.kelompok_id, m.nama_murid, m.kode_publik || '', m.created_at])] },
-  });
-  invalidateSheet(SHEETS.MURID);
+  await updateRow(SHEETS.MURID, { ...murid, kode_publik }, MURID_HEADERS);
 
   return NextResponse.json({ kode_publik });
 }

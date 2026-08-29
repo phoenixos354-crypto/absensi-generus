@@ -1,9 +1,11 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, appendRows, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
+import { readSheet, appendRow, appendRows, updateRow, deleteRows, SHEETS, generateId } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { resolvePresetId, DEFAULT_PRESET_ID } from '@/lib/target';
 import { NextResponse } from 'next/server';
+
+const KELOMPOK_HEADERS = ['id', 'user_id', 'nama_kelompok', 'tingkatan', 'desa', 'daerah', 'preset_id', 'created_at'];
 
 // GET /api/target-item?kelompok_id=...&tingkatan=...            -> semua kategori (buat Kartu Target)
 // GET /api/target-item?kelompok_id=...&tingkatan=...&kategori=...  -> satu kategori (buat editor)
@@ -59,60 +61,41 @@ export async function POST(req) {
   const presetSaatIni = semuaPreset.find(p => p.id === presetId);
   const milikSendiri = presetSaatIni?.dibuat_oleh_kelompok_id === kelompok_id;
 
-  const sheets = getGoogleSheetsClient();
-  let daftarItemAktif = semuaItem;
-
   if (!milikSendiri) {
     // Fork: bikin preset baru milik kelompok ini, salin semua item preset lama
+    // KECUALI kategori+tingkatan yang sedang diedit ini — item barunya nanti
+    // langsung ditambah di bawah, jadi gak usah disalin dulu terus dihapus lagi.
     const newPresetId = generateId();
     await appendRow(SHEETS.TARGET_PRESET, [
       newPresetId, `Target ${kelompok.nama_kelompok}`, kelompok_id,
       kelompok.nama_kelompok, kelompok.desa, kelompok.daerah, session.user.email, new Date().toISOString(),
     ]);
 
-    const itemLama = semuaItem.filter(i => i.preset_id === presetId);
-    const itemBaru = itemLama.map(i => ({ ...i, id: generateId(), preset_id: newPresetId }));
-    await appendRows(SHEETS.TARGET_ITEM, itemBaru.map(item => [
-      item.id, item.preset_id, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString(),
+    const itemLama = semuaItem.filter(i =>
+      i.preset_id === presetId && !(i.tingkatan === tingkatan && i.kategori === kategori)
+    );
+    await appendRows(SHEETS.TARGET_ITEM, itemLama.map(item => [
+      generateId(), newPresetId, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString(),
     ]));
 
-    // Alihkan kelompok ke preset baru
-    const kHeaders = ['id', 'user_id', 'nama_kelompok', 'tingkatan', 'desa', 'daerah', 'preset_id', 'created_at'];
-    const kUpdated = kelompokList.map(k => k.id === kelompok_id ? { ...k, preset_id: newPresetId } : k);
-    await sheets.spreadsheets.values.clear({ spreadsheetId: SPREADSHEET_ID, range: `${SHEETS.KELOMPOK}!A:Z` });
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEETS.KELOMPOK}!A1`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [kHeaders, ...kUpdated.map(k => [k.id, k.user_id, k.nama_kelompok, k.tingkatan, k.desa, k.daerah, k.preset_id || '', k.created_at])] },
-    });
-    invalidateSheet(SHEETS.KELOMPOK);
+    // Alihkan kelompok ke preset baru — update 1 baris saja
+    await updateRow(SHEETS.KELOMPOK, { ...kelompok, preset_id: newPresetId }, KELOMPOK_HEADERS);
 
     presetId = newPresetId;
-    daftarItemAktif = [...semuaItem.filter(i => i.preset_id !== presetSaatIni?.id), ...itemBaru];
+  } else {
+    // Preset ini milik kelompok sendiri — cukup hapus baris-baris LAMA di
+    // kategori+tingkatan yang diedit ini saja, item kategori lain tidak disentuh.
+    const itemLamaKategoriIni = semuaItem.filter(i =>
+      i.preset_id === presetId && i.tingkatan === tingkatan && i.kategori === kategori
+    );
+    await deleteRows(SHEETS.TARGET_ITEM, itemLamaKategoriIni);
   }
 
-  // Ganti isi kategori+tingkatan yang diminta di preset aktif, item lain dibiarkan
-  const tetap = daftarItemAktif.filter(i => !(i.preset_id === presetId && i.tingkatan === tingkatan && i.kategori === kategori));
-  const baru = (items || []).map((it, idx) => ({
-    id: it.id || generateId(),
-    preset_id: presetId,
-    tingkatan, kategori,
-    urutan: idx + 1,
-    nama_item: it.nama_item,
-    created_at: it.created_at || new Date().toISOString(),
-  }));
-
-  const iHeaders = ['id', 'preset_id', 'tingkatan', 'kategori', 'urutan', 'nama_item', 'created_at'];
-  const semuaFinal = [...tetap, ...baru];
-  await sheets.spreadsheets.values.clear({ spreadsheetId: SPREADSHEET_ID, range: `${SHEETS.TARGET_ITEM}!A:Z` });
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.TARGET_ITEM}!A1`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [iHeaders, ...semuaFinal.map(i => [i.id, i.preset_id, i.tingkatan, i.kategori, i.urutan, i.nama_item, i.created_at])] },
-  });
-  invalidateSheet(SHEETS.TARGET_ITEM);
+  // Tambah baris-baris baru untuk kategori+tingkatan ini
+  const baru = (items || []).map((it, idx) => [
+    it.id || generateId(), presetId, tingkatan, kategori, idx + 1, it.nama_item, new Date().toISOString(),
+  ]);
+  await appendRows(SHEETS.TARGET_ITEM, baru);
 
   return NextResponse.json({ success: true, preset_id: presetId, forked: !milikSendiri });
 }

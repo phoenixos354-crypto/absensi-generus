@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, SHEETS, generateId, getGoogleSheetsClient, SPREADSHEET_ID, invalidateSheet } from '@/lib/sheets';
+import { readLatestByKey, appendRow, SHEETS, generateId } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -19,7 +19,8 @@ export async function GET(req) {
     if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
   }
 
-  const sesi = await readSheet(SHEETS.SESI);
+  // Append-only: kalau sesi yang sama diedit ulang, baris terbaru yang dipakai.
+  const sesi = await readLatestByKey(SHEETS.SESI, s => `${s.kelompok_id}|${s.tanggal}`);
   let filtered = sesi;
   if (kelompok_id) filtered = filtered.filter(s => s.kelompok_id === kelompok_id);
   if (tanggal) filtered = filtered.filter(s => s.tanggal === tanggal);
@@ -28,7 +29,8 @@ export async function GET(req) {
 }
 
 // POST { kelompok_id, tanggal, jurnal, infaq }
-// Satu sesi = satu baris per (kelompok_id, tanggal). Kalau sudah ada, ditimpa.
+// Satu sesi = satu baris per (kelompok_id, tanggal). Kalau diisi ulang,
+// tinggal tambah baris baru — baris terbaru yang dianggap berlaku (lihat GET).
 export async function POST(req) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -43,30 +45,9 @@ export async function POST(req) {
   // (dan jurnalnya kalau ada) tetap tercatat.
   const infaqNum = infaq === '' || infaq == null ? 0 : Number(infaq) || 0;
 
-  const existing = await readSheet(SHEETS.SESI);
-  const tetap = existing.filter(s => !(s.kelompok_id === kelompok_id && s.tanggal === tanggal));
-
-  const headers = ['id', 'kelompok_id', 'tanggal', 'jurnal', 'infaq', 'dicatat_oleh', 'created_at'];
-  const newRow = [generateId(), kelompok_id, tanggal, jurnal || '', infaqNum, session.user.email, new Date().toISOString()];
-
-  const allRows = [
-    headers,
-    ...tetap.map(s => [s.id, s.kelompok_id, s.tanggal, s.jurnal, s.infaq, s.dicatat_oleh, s.created_at]),
-    newRow,
-  ];
-
-  const sheets = getGoogleSheetsClient();
-  await sheets.spreadsheets.values.clear({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.SESI}!A:Z`,
-  });
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.SESI}!A1`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: allRows },
-  });
-  invalidateSheet(SHEETS.SESI);
+  await appendRow(SHEETS.SESI, [
+    generateId(), kelompok_id, tanggal, jurnal || '', infaqNum, session.user.email, new Date().toISOString(),
+  ]);
 
   return NextResponse.json({ success: true });
 }
