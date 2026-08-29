@@ -2,7 +2,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import useSWR, { mutate } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { KATEGORI, URUTAN_TINGKATAN, NILAI_LIST, NILAI_WARNA, NILAI_LABEL, NILAI_DOT } from '@/lib/target-constants';
 import { pilihNilaiLocalFirst, mergeOverlay, flushPending } from '@/lib/localOverlay';
@@ -30,6 +30,10 @@ export default function KartuTargetPage() {
   const params = useParams();
   const kelompokId = params.id;
   const muridId = params.muridId;
+  // Cache SWR di app ini pakai provider custom (localStorage), jadi mutate
+  // HARUS diambil dari useSWRConfig() supaya nempel ke cache yang sama
+  // dengan yang dibaca useSWR() di bawah — bukan cache default global.
+  const { mutate } = useSWRConfig();
 
   const [kategoriAktif, setKategoriAktif] = useState(KATEGORI[0].key);
   const [bukaTunggakan, setBukaTunggakan] = useState(false);

@@ -2,7 +2,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import useSWR, { mutate } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { getTingkatan } from '@/components/tingkatan';
 import { KATEGORI, URUTAN_TINGKATAN } from '@/lib/target-constants';
@@ -20,6 +20,10 @@ export default function PengaturanTargetPage() {
   const router = useRouter();
   const params = useParams();
   const kelompokId = params.id;
+  // Sama seperti halaman kartu murid: cache SWR di app ini pakai provider
+  // custom, jadi mutate wajib dari useSWRConfig() biar nempel ke cache
+  // yang benar (bukan cache default global yang gak kebaca siapa-siapa).
+  const { mutate } = useSWRConfig();
 
   const [tingkatanEdit, setTingkatanEdit] = useState(null);
   const [kategoriEdit, setKategoriEdit] = useState(KATEGORI[0].key);
