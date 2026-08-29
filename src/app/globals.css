@@ -93,7 +93,7 @@
   min-height: 100dvh;
   background: var(--color-background);
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 @utility card-soft {
