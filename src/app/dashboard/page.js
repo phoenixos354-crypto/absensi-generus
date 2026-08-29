@@ -320,7 +320,7 @@ function DashboardContent() {
                 : persen >= 80 ? 'bg-primary'
                 : persen >= 60 ? 'bg-amber-500'
                 : 'bg-destructive';
-              const featured = i === 0;
+              const featured = false; // semua card kelompok pakai style putih; "Rekap Gabungan" di atas tetap biru terpisah
               return (
                 <div
                   key={k.id}
