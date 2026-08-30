@@ -19,8 +19,8 @@ export function DalilWidget() {
 
   return (
     <>
-      <div className="mx-5 mt-7 flex items-end gap-2 rounded-3xl bg-secondary p-5">
-        <div className="min-w-0 flex-1">
+      <div className="relative mx-5 mt-7 min-h-[10.5rem] rounded-3xl bg-secondary p-5">
+        <div className="relative z-10 max-w-[56%]">
           {isLoading || !data ? (
             <>
               <div className="h-4 w-24 animate-pulse rounded-full bg-surface/60" />
@@ -55,17 +55,13 @@ export function DalilWidget() {
           )}
         </div>
 
-        {!isLoading && data && (
-          <div className="relative h-28 w-24 shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={mascotSrc}
-              alt="Mascot"
-              className="pointer-events-none absolute -bottom-5 -right-4 h-48 w-auto max-w-none select-none"
-              onError={e => { e.currentTarget.style.display = 'none'; }}
-            />
-          </div>
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={mascotSrc}
+          alt="Mascot"
+          className="pointer-events-none absolute -bottom-6 -right-3 z-10 h-52 w-auto select-none"
+          onError={e => { e.currentTarget.style.display = 'none'; }}
+        />
       </div>
 
       {bukaDetail && data && (
