@@ -19,46 +19,52 @@ export function DalilWidget() {
 
   return (
     <>
-      <div className="mx-5 mt-7 rounded-3xl bg-secondary p-5">
-        {isLoading || !data ? (
-          <>
-            <div className="h-4 w-24 animate-pulse rounded-full bg-surface/60" />
-            <div className="mt-3 h-3 w-full animate-pulse rounded-full bg-surface/60" />
-            <div className="mt-2 h-3 w-4/5 animate-pulse rounded-full bg-surface/60" />
-          </>
-        ) : (
-          <>
-            {data.teks_arab && (
-              <p
-                dir="rtl"
-                lang="ar"
-                className="text-right text-[1.05rem] font-bold leading-[2] text-primary"
-                style={{ fontFamily: "'Scheherazade New', 'Traditional Arabic', serif" }}
-              >
-                {data.teks_arab}
+      <div className="mx-5 mt-7 flex items-end gap-2 rounded-3xl bg-secondary p-5">
+        <div className="min-w-0 flex-1">
+          {isLoading || !data ? (
+            <>
+              <div className="h-4 w-24 animate-pulse rounded-full bg-surface/60" />
+              <div className="mt-3 h-3 w-full animate-pulse rounded-full bg-surface/60" />
+              <div className="mt-2 h-3 w-4/5 animate-pulse rounded-full bg-surface/60" />
+            </>
+          ) : (
+            <>
+              {data.teks_arab && (
+                <p
+                  dir="rtl"
+                  lang="ar"
+                  className="text-right text-[1.05rem] font-bold leading-[2] text-primary"
+                  style={{ fontFamily: "'Scheherazade New', 'Traditional Arabic', serif" }}
+                >
+                  {data.teks_arab}
+                </p>
+              )}
+              <p className={`${data.teks_arab ? 'mt-2' : ''} text-sm font-semibold leading-snug text-ink ${terjemahPanjang ? 'line-clamp-3' : ''}`}>
+                {data.teks_terjemah}
               </p>
-            )}
-            <p className={`${data.teks_arab ? 'mt-2' : ''} text-sm font-semibold leading-snug text-ink ${terjemahPanjang ? 'line-clamp-3' : ''}`}>
-              {data.teks_terjemah}
-            </p>
-            {terjemahPanjang && (
-              <button
-                onClick={() => setBukaDetail(true)}
-                className="mt-1 text-xs font-bold text-muted-foreground"
-              >
-                Baca selengkapnya
-              </button>
-            )}
-            <p className="mt-2 text-xs font-medium text-muted-foreground">{data.sumber}</p>
+              {terjemahPanjang && (
+                <button
+                  onClick={() => setBukaDetail(true)}
+                  className="mt-1 text-xs font-bold text-muted-foreground"
+                >
+                  Baca selengkapnya
+                </button>
+              )}
+              <p className="mt-2 text-xs font-medium text-muted-foreground">{data.sumber}</p>
+            </>
+          )}
+        </div>
 
+        {!isLoading && data && (
+          <div className="relative h-28 w-24 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={mascotSrc}
               alt="Mascot"
-              className="pointer-events-none mx-auto -mb-5 -mt-2 h-40 w-auto select-none"
+              className="pointer-events-none absolute -bottom-5 -right-4 h-48 w-auto select-none"
               onError={e => { e.currentTarget.style.display = 'none'; }}
             />
-          </>
+          </div>
         )}
       </div>
 
