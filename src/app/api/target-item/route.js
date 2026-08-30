@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, appendRows, updateRow, deleteRows, SHEETS, generateId } from '@/lib/sheets';
+import { readSheet, appendRow, appendRows, updateRow, deleteRows, ensureHeaderColumn, SHEETS, generateId } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { resolvePresetId, DEFAULT_PRESET_ID } from '@/lib/target';
 import { NextResponse } from 'next/server';
@@ -48,6 +48,10 @@ export async function POST(req) {
   const perm = await getPermission(session.user.email, kelompok_id);
   if (perm !== 'owner') return NextResponse.json({ error: 'Hanya owner yang bisa mengelola target' }, { status: 403 });
 
+  // Pastikan sheet target_item sudah punya kolom "kelas" (untuk instalasi
+  // lama yang dibuat sebelum fitur ini ada). Aman dipanggil berkali-kali.
+  await ensureHeaderColumn(SHEETS.TARGET_ITEM, 'kelas');
+
   const kelompokList = await readSheet(SHEETS.KELOMPOK);
   const kelompok = kelompokList.find(k => k.id === kelompok_id);
   if (!kelompok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -75,7 +79,7 @@ export async function POST(req) {
       i.preset_id === presetId && !(i.tingkatan === tingkatan && i.kategori === kategori)
     );
     await appendRows(SHEETS.TARGET_ITEM, itemLama.map(item => [
-      generateId(), newPresetId, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString(),
+      generateId(), newPresetId, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString(), item.kelas || '',
     ]));
 
     // Alihkan kelompok ke preset baru — update 1 baris saja
@@ -93,7 +97,7 @@ export async function POST(req) {
 
   // Tambah baris-baris baru untuk kategori+tingkatan ini
   const baru = (items || []).map((it, idx) => [
-    it.id || generateId(), presetId, tingkatan, kategori, idx + 1, it.nama_item, new Date().toISOString(),
+    it.id || generateId(), presetId, tingkatan, kategori, idx + 1, it.nama_item, new Date().toISOString(), it.kelas || '',
   ]);
   await appendRows(SHEETS.TARGET_ITEM, baru);
 

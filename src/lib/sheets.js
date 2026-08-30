@@ -138,6 +138,55 @@ export async function updateCell(sheetName, range, values) {
 }
 
 // =============================================
+// HELPER: Pastikan sebuah sheet punya kolom header tertentu.
+// Dipakai kalau ada fitur baru yang butuh kolom baru (mis. "kelas" di
+// target_item), tapi sheet-nya sudah lama ada di spreadsheet user dan
+// belum punya kolom itu. Kalau header belum ada, otomatis ditambahkan
+// di kolom paling kanan (sekali saja, aman dipanggil berkali-kali).
+// Return: nama huruf kolom tempat header itu berada (mis. "H").
+// =============================================
+const _headerColCache = new Map(); // `${sheetName}:${headerName}` -> huruf kolom
+function angkaKeKolom(idxNolBasis) {
+  // 0 -> A, 25 -> Z, 26 -> AA, dst.
+  let n = idxNolBasis + 1;
+  let hasil = '';
+  while (n > 0) {
+    const sisa = (n - 1) % 26;
+    hasil = String.fromCharCode(65 + sisa) + hasil;
+    n = Math.floor((n - 1) / 26);
+  }
+  return hasil;
+}
+export async function ensureHeaderColumn(sheetName, headerName) {
+  const cacheKey = `${sheetName}:${headerName}`;
+  if (_headerColCache.has(cacheKey)) return _headerColCache.get(cacheKey);
+
+  const sheets = getGoogleSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!1:1`,
+  });
+  const headers = res.data.values?.[0] || [];
+  const idxAda = headers.indexOf(headerName);
+  if (idxAda !== -1) {
+    const kolom = angkaKeKolom(idxAda);
+    _headerColCache.set(cacheKey, kolom);
+    return kolom;
+  }
+
+  const kolomBaru = angkaKeKolom(headers.length);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!${kolomBaru}1`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [[headerName]] },
+  });
+  invalidateSheet(sheetName);
+  _headerColCache.set(cacheKey, kolomBaru);
+  return kolomBaru;
+}
+
+// =============================================
 // HELPER: Update SATU baris spesifik (pakai nomor baris dari _row)
 // Jauh lebih cepat daripada clear+rewrite seluruh sheet — cocok untuk
 // edit 1 record (misal: ganti nama murid, ganti preset_id kelompok).
@@ -272,7 +321,7 @@ export async function initializeSheets() {
     {
       // Item target per preset. preset_id='default' + tingkatan + kategori = daftar bawaan (dummy).
       name: SHEETS.TARGET_ITEM,
-      headers: ['id', 'preset_id', 'tingkatan', 'kategori', 'urutan', 'nama_item', 'created_at'],
+      headers: ['id', 'preset_id', 'tingkatan', 'kategori', 'urutan', 'nama_item', 'created_at', 'kelas'],
     },
     {
       // Progress per murid per item. Tidak ada baris = otomatis dianggap 'belum'.

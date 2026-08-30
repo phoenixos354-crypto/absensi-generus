@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { getTingkatan } from '@/components/tingkatan';
-import { KATEGORI, URUTAN_TINGKATAN } from '@/lib/target-constants';
+import { KATEGORI, URUTAN_TINGKATAN, KELAS_CABERAWIT } from '@/lib/target-constants';
 import { ChevronLeft, Layers, Check, Plus, X, Save, Sparkles } from 'lucide-react';
 
 const TINGKATAN_TABS = [
@@ -43,7 +43,7 @@ export default function PengaturanTargetPage() {
   const { data: presetList } = useSWR(session && kelompokId ? `/api/target-preset?kelompok_id=${kelompokId}` : null);
   const { data: itemData } = useSWR(
     session && kelompokId && tingkatanEdit ? `/api/target-item?kelompok_id=${kelompokId}&tingkatan=${tingkatanEdit}&kategori=${kategoriEdit}` : null,
-    { onSuccess: (d) => setDraftItems((d?.items || []).map(i => ({ id: i.id, nama_item: i.nama_item }))) }
+    { onSuccess: (d) => setDraftItems((d?.items || []).map(i => ({ id: i.id, nama_item: i.nama_item, kelas: i.kelas || '' }))) }
   );
 
   if (kelompok && kelompok.permission !== 'owner') {
@@ -87,16 +87,21 @@ export default function PengaturanTargetPage() {
   function ubahNamaItem(idx, value) {
     setDraftItems(prev => prev.map((it, i) => i === idx ? { ...it, nama_item: value } : it));
   }
+  function ubahKelasItem(idx, value) {
+    setDraftItems(prev => prev.map((it, i) => i === idx ? { ...it, kelas: value } : it));
+  }
   function hapusItem(idx) {
     setDraftItems(prev => prev.filter((_, i) => i !== idx));
   }
   function tambahItem() {
-    setDraftItems(prev => [...prev, { nama_item: '' }]);
+    setDraftItems(prev => [...prev, { nama_item: '', kelas: '' }]);
   }
 
   async function simpanItem() {
     setSaving(true);
-    const items = (draftItems || []).filter(i => i.nama_item.trim() !== '');
+    const items = (draftItems || [])
+      .filter(i => i.nama_item.trim() !== '')
+      .map(i => ({ id: i.id, nama_item: i.nama_item, kelas: i.kelas || '' }));
     await fetch('/api/target-item', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -213,16 +218,29 @@ export default function PengaturanTargetPage() {
 
           <div className="mt-4 space-y-2">
             {(draftItems || []).map((it, idx) => (
-              <div key={it.id || `baru-${idx}`} className="flex items-center gap-2">
-                <input
-                  value={it.nama_item}
-                  onChange={e => ubahNamaItem(idx, e.target.value)}
-                  placeholder={`Item ${idx + 1}`}
-                  className="w-full rounded-xl bg-secondary px-3.5 py-2.5 text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-primary/40"
-                />
-                <button onClick={() => hapusItem(idx)} aria-label="Hapus" className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-muted-foreground">
-                  <X className="size-4" />
-                </button>
+              <div key={it.id || `baru-${idx}`} className="rounded-xl bg-secondary p-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    value={it.nama_item}
+                    onChange={e => ubahNamaItem(idx, e.target.value)}
+                    placeholder={`Item ${idx + 1}`}
+                    className="w-full rounded-xl bg-surface px-3.5 py-2.5 text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <button onClick={() => hapusItem(idx)} aria-label="Hapus" className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface text-muted-foreground">
+                    <X className="size-4" />
+                  </button>
+                </div>
+                {tingkatanEdit === 'caberawit' && (
+                  <select
+                    value={it.kelas || ''}
+                    onChange={e => ubahKelasItem(idx, e.target.value)}
+                    className="mt-1.5 w-full rounded-xl bg-surface px-3.5 py-2 text-xs font-semibold text-muted-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    {KELAS_CABERAWIT.map(k => (
+                      <option key={k.key} value={k.key}>{k.key ? `Untuk: ${k.label}` : k.label}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             ))}
             {(!draftItems || draftItems.length === 0) && (

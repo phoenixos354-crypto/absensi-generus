@@ -7,6 +7,20 @@ export const KATEGORI = [
   { key: 'makna_hadis',   label: 'Makna Hadis' },
 ];
 
+// Keterangan kelas/jenjang sekolah, khusus dipakai di tingkatan Caberawit
+// (karena Caberawit mencakup rentang usia Paud/TK s.d. SD Kelas 6).
+// Ini murni informasi/tag per-item, tidak dipakai untuk filter otomatis.
+export const KELAS_CABERAWIT = [
+  { key: '',        label: 'Semua Kelas' },
+  { key: 'paud_tk', label: 'Paud/TK' },
+  { key: 'sd_1',    label: 'SD Kelas 1' },
+  { key: 'sd_2',    label: 'SD Kelas 2' },
+  { key: 'sd_3',    label: 'SD Kelas 3' },
+  { key: 'sd_4',    label: 'SD Kelas 4' },
+  { key: 'sd_5',    label: 'SD Kelas 5' },
+  { key: 'sd_6',    label: 'SD Kelas 6' },
+];
+
 // Urutan jenjang dipakai buat cek "tunggakan dari level bawah".
 // 'kelompok' sengaja tidak dimasukkan (di luar jenjang caberawit->usia nikah).
 export const URUTAN_TINGKATAN = ['caberawit', 'praremaja', 'remaja', 'usianikah'];
