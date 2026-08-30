@@ -61,7 +61,7 @@ export function DalilWidget() {
             <img
               src={mascotSrc}
               alt="Mascot"
-              className="pointer-events-none absolute -bottom-5 -right-4 h-48 w-auto select-none"
+              className="pointer-events-none absolute -bottom-5 -right-4 h-48 w-auto max-w-none select-none"
               onError={e => { e.currentTarget.style.display = 'none'; }}
             />
           </div>
