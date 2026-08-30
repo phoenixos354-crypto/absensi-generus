@@ -33,14 +33,20 @@ ATURAN KETAT (WAJIB DIPATUHI):
 - Kalau kamu tidak 100% yakin dengan teks Arab, terjemahan, atau nomor rujukannya — JANGAN memaksakan jawaban. Balas {"yakin": false} saja.
 - Rujukan harus spesifik dan bisa ditelusuri, contoh: "QS. An-Nisa: 9" atau "HR. Muslim, no. 1631".
 - Jangan mengarang nomor ayat/hadis kalau kamu tidak yakin persis nomornya — lebih baik sebut nama suratnya saja / "HR. Bukhari" tanpa nomor, daripada nomor yang salah.
+- WAJIB: field "teks_terjemah" HARUS ditulis dalam Bahasa Indonesia baku, TIDAK BOLEH dalam Bahasa Inggris atau bahasa lain, apa pun bahasa yang dipakai user di pesan sebelumnya.
 
 Balas HANYA dengan JSON murni, tanpa teks lain, tanpa markdown, salah satu dari dua bentuk:
-{"yakin": true, "tipe": "quran" atau "hadis", "teks_arab": "...", "teks_terjemah": "...", "sumber": "..."}
+{"yakin": true, "tipe": "quran" atau "hadis", "teks_arab": "...", "teks_terjemah": "... (dalam Bahasa Indonesia)", "sumber": "..."}
 {"yakin": false}`;
 
-export async function generateDalilDariAI() {
+export async function generateDalilDariAI(sumberYangSudahDipakai = []) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
+
+  const daftarHindari = sumberYangSudahDipakai.filter(Boolean);
+  const pesanUser = daftarHindari.length
+    ? `Berikan satu dalil bertema generasi penerus. JANGAN pilih dalil yang rujukannya sama/mirip dengan salah satu dari daftar berikut yang sudah pernah ditampilkan sebelumnya: ${daftarHindari.join('; ')}. Pilih dalil lain yang berbeda. Terjemahan wajib Bahasa Indonesia. Kalau tidak 100% yakin, jawab {"yakin": false}.`
+    : 'Berikan satu dalil bertema generasi penerus. Terjemahan wajib Bahasa Indonesia. Kalau tidak 100% yakin, jawab {"yakin": false}.';
 
   let res;
   try {
@@ -54,9 +60,9 @@ export async function generateDalilDariAI() {
         model: GROQ_MODEL,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: 'Berikan satu dalil bertema generasi penerus. Kalau tidak 100% yakin, jawab {"yakin": false}.' },
+          { role: 'user', content: pesanUser },
         ],
-        temperature: 0.5,
+        temperature: 0.8,
         response_format: { type: 'json_object' },
       }),
     });

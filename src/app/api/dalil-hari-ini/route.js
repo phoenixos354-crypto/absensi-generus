@@ -52,6 +52,30 @@ const FALLBACK_DALIL = [
     teks_terjemah: 'Apabila seseorang meninggal dunia, terputuslah amalnya kecuali tiga perkara: sedekah jariyah, ilmu yang bermanfaat, atau anak saleh yang mendoakannya.',
     sumber: 'HR. Muslim',
   },
+  {
+    tipe: 'quran',
+    teks_arab: 'رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا',
+    teks_terjemah: 'Ya Tuhan kami, anugerahkanlah kepada kami pasangan dan keturunan kami sebagai penyejuk hati (kami), dan jadikanlah kami imam (pemimpin/teladan) bagi orang-orang yang bertakwa.',
+    sumber: 'QS. Al-Furqan: 74',
+  },
+  {
+    tipe: 'quran',
+    teks_arab: 'رَبِّ اجْعَلْنِي مُقِيمَ الصَّلَاةِ وَمِنْ ذُرِّيَّتِي رَبَّنَا وَتَقَبَّلْ دُعَاءِ',
+    teks_terjemah: 'Ya Tuhanku, jadikanlah aku dan anak cucuku orang-orang yang tetap mendirikan shalat. Ya Tuhan kami, perkenankanlah doaku.',
+    sumber: 'QS. Ibrahim: 40',
+  },
+  {
+    tipe: 'quran',
+    teks_arab: 'فَخَلَفَ مِنْ بَعْدِهِمْ خَلْفٌ أَضَاعُوا الصَّلَاةَ وَاتَّبَعُوا الشَّهَوَاتِ فَسَوْفَ يَلْقَوْنَ غَيًّا',
+    teks_terjemah: 'Kemudian datanglah setelah mereka, generasi pengganti yang menyia-nyiakan shalat dan memperturutkan hawa nafsunya, maka mereka kelak akan menemui kesesatan.',
+    sumber: 'QS. Maryam: 59',
+  },
+  {
+    tipe: 'hadis',
+    teks_arab: 'كُلُّ مَوْلُودٍ يُولَدُ عَلَى الْفِطْرَةِ، فَأَبَوَاهُ يُهَوِّدَانِهِ أَوْ يُنَصِّرَانِهِ أَوْ يُمَجِّسَانِهِ',
+    teks_terjemah: 'Setiap anak dilahirkan dalam keadaan fitrah (suci). Kedua orang tuanyalah yang menjadikannya Yahudi, Nasrani, atau Majusi.',
+    sumber: 'HR. Bukhari & Muslim',
+  },
 ];
 
 function tanggalHariIni() {
@@ -77,9 +101,25 @@ export async function GET() {
     });
   }
 
+  // Kumpulkan sumber-sumber yang sudah pernah ditampilkan (paling baru dulu), supaya
+  // AI diminta menghindarinya dan fallback juga tidak mengulang dalil yang sama.
+  const riwayatSumber = semuaDalil
+    .slice()
+    .sort((a, b) => (a.tanggal < b.tanggal ? 1 : -1))
+    .map(d => d.sumber)
+    .filter(Boolean);
+  const sumberBaruBaruIni = [...new Set(riwayatSumber)].slice(0, 15);
+
   // Belum ada cache untuk hari ini -> coba generate via AI (maksimal sekali per hari)
-  const hasilAI = await generateDalilDariAI();
-  const dipakai = hasilAI || FALLBACK_DALIL[new Date(tanggal).getDate() % FALLBACK_DALIL.length];
+  const hasilAI = await generateDalilDariAI(sumberBaruBaruIni);
+
+  // Fallback: pilih dalil cadangan yang sumbernya BELUM pernah dipakai baru-baru ini.
+  // Kalau semua cadangan sudah pernah dipakai, baru boleh mengulang (pakai rotasi tanggal).
+  const kandidatFallback = FALLBACK_DALIL.filter(d => !sumberBaruBaruIni.includes(d.sumber));
+  const daftarFallback = kandidatFallback.length ? kandidatFallback : FALLBACK_DALIL;
+  const fallback = daftarFallback[new Date(tanggal).getDate() % daftarFallback.length];
+
+  const dipakai = hasilAI || fallback;
   const mascotIndex = (new Date(tanggal).getDate() % JUMLAH_MASCOT) + 1;
 
   try {
