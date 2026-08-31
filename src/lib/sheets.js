@@ -121,12 +121,12 @@ export async function readSheet(sheetName, { skipCache = false } = {}) {
 // =============================================
 export async function appendRow(sheetName, values) {
   const sheets = getGoogleSheetsClient();
-  await sheets.spreadsheets.values.append({
+  await withRetry(() => sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
     range: `${sheetName}!A:A`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [values] },
-  });
+  }));
   invalidateSheet(sheetName);
 }
 
@@ -138,12 +138,12 @@ export async function appendRow(sheetName, values) {
 export async function appendRows(sheetName, rowsArray) {
   if (!rowsArray || rowsArray.length === 0) return;
   const sheets = getGoogleSheetsClient();
-  await sheets.spreadsheets.values.append({
+  await withRetry(() => sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
     range: `${sheetName}!A:A`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: rowsArray },
-  });
+  }));
   invalidateSheet(sheetName);
 }
 
@@ -152,12 +152,12 @@ export async function appendRows(sheetName, rowsArray) {
 // =============================================
 export async function updateCell(sheetName, range, values) {
   const sheets = getGoogleSheetsClient();
-  await sheets.spreadsheets.values.update({
+  await withRetry(() => sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `${sheetName}!${range}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values },
-  });
+  }));
   invalidateSheet(sheetName);
 }
 
@@ -219,12 +219,12 @@ export async function ensureHeaderColumn(sheetName, headerName) {
 export async function updateRow(sheetName, row, headers) {
   if (!row?._row) throw new Error(`updateRow: baris tidak punya _row (sheet: ${sheetName})`);
   const sheets = getGoogleSheetsClient();
-  await sheets.spreadsheets.values.update({
+  await withRetry(() => sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `${sheetName}!A${row._row}:${String.fromCharCode(64 + headers.length)}${row._row}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [headers.map(h => row[h] ?? '')] },
-  });
+  }));
   invalidateSheet(sheetName);
 }
 
@@ -266,10 +266,10 @@ export async function deleteRows(sheetName, rows) {
       },
     },
   }));
-  await sheets.spreadsheets.batchUpdate({
+  await withRetry(() => sheets.spreadsheets.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
     requestBody: { requests },
-  });
+  }));
   invalidateSheet(sheetName);
 }
 
