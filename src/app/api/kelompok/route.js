@@ -20,7 +20,7 @@ export async function POST(req) {
   const id = generateId();
 
   await appendRow(SHEETS.KELOMPOK, [
-    id, session.user.id, nama_kelompok, tingkatan, desa, daerah, new Date().toISOString(),
+    id, session.user.id, nama_kelompok, tingkatan, desa, daerah, null, new Date().toISOString(),
   ]);
 
   // Otomatis daftarkan pembuat sebagai owner

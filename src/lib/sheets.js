@@ -128,13 +128,34 @@ export async function readSheet(sheetName, { skipCache = false } = {}) {
     const headers = HEADERS[sheetName];
     if (!headers) throw new Error(`readSheet: tabel tidak dikenal: ${sheetName}`);
     const supabase = getSupabaseClient();
-    const result = await withRetry(() =>
-      supabase.from(sheetName).select(headers.join(',')).order('_seq', { ascending: true })
-    );
-    const data = throwIfError(result) || [];
-    _sheetCache.set(sheetName, { data, expiry: Date.now() + CACHE_TTL_MS });
+
+    // PENTING: Supabase/PostgREST membatasi jumlah baris per response
+    // (default ~1000, tergantung setelan project). Kalau tidak ditangani,
+    // tabel yang sudah punya banyak baris (absensi, murid, dst) akan
+    // KEPOTONG diam-diam — biasanya baris yang PALING BARU yang hilang
+    // (karena kita order ascending by _seq supaya "data terbaru menang"
+    // di readLatestByKey), jadi kelihatannya seperti "data baru gak
+    // kesimpan" padahal sebenarnya ada, cuma gak ke-load.
+    //
+    // Solusi: ambil per halaman (page) pakai .range() sampai halaman
+    // yang balik lebih sedikit dari PAGE_SIZE (tandanya sudah habis).
+    const PAGE_SIZE = 1000;
+    let allRows = [];
+    let from = 0;
+    while (true) {
+      const to = from + PAGE_SIZE - 1;
+      const result = await withRetry(() =>
+        supabase.from(sheetName).select(headers.join(',')).order('_seq', { ascending: true }).range(from, to)
+      );
+      const page = throwIfError(result) || [];
+      allRows = allRows.concat(page);
+      if (page.length < PAGE_SIZE) break; // halaman terakhir
+      from += PAGE_SIZE;
+    }
+
+    _sheetCache.set(sheetName, { data: allRows, expiry: Date.now() + CACHE_TTL_MS });
     _inFlight.delete(sheetName);
-    return data;
+    return allRows;
   })();
 
   _inFlight.set(sheetName, fetchPromise);
