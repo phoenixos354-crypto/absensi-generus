@@ -6,7 +6,11 @@ import { useEffect } from 'react';
 
 export const fetcher = (url) =>
   fetch(url).then(res => {
-    if (!res.ok) throw new Error(`Request gagal: ${res.status}`);
+    if (!res.ok) {
+      const error = new Error(`Request gagal: ${res.status}`);
+      error.status = res.status;
+      throw error;
+    }
     return res.json();
   });
 

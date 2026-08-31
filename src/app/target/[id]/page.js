@@ -16,7 +16,7 @@ export default function TargetListPage() {
 
   const { data: kelompok, isLoading } = useSWR(
     session && kelompokId ? `/api/kelompok/${kelompokId}` : null,
-    { onError: () => router.replace('/dashboard') }
+    { onError: (err) => { if ([401, 403, 404].includes(err?.status)) router.replace('/dashboard'); } }
   );
 
   useEffect(() => {

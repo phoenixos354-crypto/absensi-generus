@@ -18,6 +18,7 @@ export default function SetupPage() {
   const [murid, setMurid] = useState([]);
   const [jadwal, setJadwal] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [gagalMuat, setGagalMuat] = useState(false);
 
   const [namaMurid, setNamaMurid] = useState('');
   const [bulkNama, setBulkNama] = useState('');
@@ -43,8 +44,27 @@ export default function SetupPage() {
 
   async function fetchData() {
     setLoading(true);
-    const res = await fetch(`/api/kelompok/${kelompokId}`);
-    if (!res.ok) { router.replace('/dashboard'); return; }
+    setGagalMuat(false);
+
+    // Coba beberapa kali dulu sebelum menyerah — kalau gagalnya cuma
+    // gangguan sesaat (server lagi rame), jangan langsung dilempar ke
+    // dashboard, biar tidak terasa "masuk lalu keluar sendiri".
+    let res;
+    for (let percobaan = 0; percobaan < 3; percobaan++) {
+      try {
+        res = await fetch(`/api/kelompok/${kelompokId}`);
+      } catch {
+        res = null;
+      }
+      if (res?.ok) break;
+      if (res && [401, 403, 404].includes(res.status)) break; // error akses, jangan diulang
+      if (percobaan < 2) await new Promise(r => setTimeout(r, 600 * (percobaan + 1)));
+    }
+
+    if (!res) { setLoading(false); setGagalMuat(true); return; }
+    if ([401, 403, 404].includes(res.status)) { router.replace('/dashboard'); return; }
+    if (!res.ok) { setLoading(false); setGagalMuat(true); return; }
+
     const data = await res.json();
     // Hanya owner yang boleh akses halaman setup
     if (data.permission !== 'owner') {
@@ -142,6 +162,23 @@ export default function SetupPage() {
       prev.includes(h) ? prev.filter(x => x !== h) : [...prev, h]
     );
     setJadwalSaved(false);
+  }
+
+  if (gagalMuat) {
+    return (
+      <AppScreen>
+        <div className="px-5 pt-16 text-center">
+          <p className="text-sm font-semibold text-ink">Gagal memuat data kelompok</p>
+          <p className="mt-1 text-xs text-muted-foreground">Sepertinya ada gangguan sesaat. Coba lagi ya.</p>
+          <button
+            onClick={fetchData}
+            className="mt-4 rounded-full brand-gradient px-6 py-3 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      </AppScreen>
+    );
   }
 
   if (loading || !kelompok) {

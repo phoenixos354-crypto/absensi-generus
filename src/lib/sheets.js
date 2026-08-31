@@ -53,6 +53,30 @@ export const SHEETS = {
 };
 
 // =============================================
+// HELPER: Coba ulang otomatis kalau kena error SEMENTARA dari Google
+// (rate limit / server lagi sibuk). Ini penting terutama saat banyak
+// kelompok/admin buka Rekap-Target-Kelola-Admin bersamaan — tanpa ini,
+// satu kali kena rate limit langsung bikin halaman gagal dan user
+// dilempar balik ke dashboard. Delay-nya naik tiap percobaan (backoff).
+// =============================================
+async function withRetry(fn, { retries = 3, baseDelayMs = 400 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const status = err?.code || err?.response?.status;
+      const bisaDiulang = status === 429 || (status >= 500 && status < 600);
+      if (!bisaDiulang || attempt === retries) throw err;
+      const delay = baseDelayMs * Math.pow(2, attempt) + Math.random() * 200;
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
+
+// =============================================
 // HELPER: Baca semua data dari satu sheet
 // =============================================
 export async function readSheet(sheetName, { skipCache = false } = {}) {
@@ -69,10 +93,10 @@ export async function readSheet(sheetName, { skipCache = false } = {}) {
 
   const fetchPromise = (async () => {
     const sheets = getGoogleSheetsClient();
-    const res = await sheets.spreadsheets.values.get({
+    const res = await withRetry(() => sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: `${sheetName}!A:Z`,
-    });
+    }));
     const rows = res.data.values || [];
     // _row = nomor baris ASLI di sheet (1 = header, jadi data mulai baris 2).
     // Dipakai supaya update/hapus bisa langsung ke baris itu saja, tanpa

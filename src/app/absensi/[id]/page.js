@@ -31,6 +31,7 @@ export default function AbsensiPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [existingLoaded, setExistingLoaded] = useState(false);
+  const [gagalMuat, setGagalMuat] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
@@ -57,8 +58,27 @@ export default function AbsensiPage() {
   }
 
   async function fetchKelompok() {
-    const res = await fetch(`/api/kelompok/${kelompokId}`);
-    if (!res.ok) { router.replace('/dashboard'); return; }
+    setLoading(true);
+    setGagalMuat(false);
+
+    // Coba beberapa kali dulu — jangan langsung dilempar ke dashboard
+    // kalau gagalnya cuma gangguan sesaat (mis. server lagi rame).
+    let res;
+    for (let percobaan = 0; percobaan < 3; percobaan++) {
+      try {
+        res = await fetch(`/api/kelompok/${kelompokId}`);
+      } catch {
+        res = null;
+      }
+      if (res?.ok) break;
+      if (res && [401, 403, 404].includes(res.status)) break; // error akses, jangan diulang
+      if (percobaan < 2) await new Promise(r => setTimeout(r, 600 * (percobaan + 1)));
+    }
+
+    if (!res) { setLoading(false); setGagalMuat(true); return; }
+    if ([401, 403, 404].includes(res.status)) { router.replace('/dashboard'); return; }
+    if (!res.ok) { setLoading(false); setGagalMuat(true); return; }
+
     const data = await res.json();
     // Viewer tidak boleh absen
     if (data.permission === 'viewer') {
@@ -136,6 +156,21 @@ export default function AbsensiPage() {
   const persen = murid.length > 0
     ? Math.round((summary['Hadir'] / murid.length) * 100)
     : 0;
+
+  if (gagalMuat) return (
+    <AppScreen>
+      <div className="px-5 pt-16 text-center">
+        <p className="text-sm font-semibold text-ink">Gagal memuat data kelompok</p>
+        <p className="mt-1 text-xs text-muted-foreground">Sepertinya ada gangguan sesaat. Coba lagi ya.</p>
+        <button
+          onClick={fetchKelompok}
+          className="mt-4 rounded-full brand-gradient px-6 py-3 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]"
+        >
+          Coba Lagi
+        </button>
+      </div>
+    </AppScreen>
+  );
 
   if (loading || !kelompok) return (
     <AppScreen>

@@ -57,7 +57,7 @@ export default function RekapPage() {
   // SWR: kelompok + rekap, cache tampil instan lalu revalidate background
   const { data: kelompok, isLoading: loading } = useSWR(
     session && kelompokId ? `/api/kelompok/${kelompokId}` : null,
-    { onError: () => router.replace('/dashboard') }
+    { onError: (err) => { if ([401, 403, 404].includes(err?.status)) router.replace('/dashboard'); } }
   );
 
   const [mode, setMode] = useState('bulan');
