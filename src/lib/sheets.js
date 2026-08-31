@@ -15,7 +15,20 @@ export function getSupabaseClient() {
   _client = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false } }
+    {
+      auth: { persistSession: false },
+      global: {
+        // PENTING: Next.js secara otomatis meng-cache SEMUA panggilan
+        // fetch() di dalam API routes (termasuk yang dilakukan Supabase
+        // secara internal), kecuali diberitahu sebaliknya. Tanpa baris
+        // ini, data yang baru saja ditulis (mis. tambah murid) kadang
+        // masih kebaca versi LAMA sesaat setelahnya, karena Next.js
+        // balikin hasil dari cache-nya sendiri, bukan query fresh ke
+        // Supabase. `cache: 'no-store'` mematikan cache Next.js ini
+        // khusus untuk request ke Supabase.
+        fetch: (url, options = {}) => fetch(url, { ...options, cache: 'no-store' }),
+      },
+    }
   );
   return _client;
 }
