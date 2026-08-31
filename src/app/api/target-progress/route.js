@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, readLatestByKey, appendRow, SHEETS, generateId } from '@/lib/sheets';
+import { readSheet, readLatestByKeyWhere, appendRow, SHEETS, generateId } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -23,9 +23,9 @@ export async function GET(req) {
   if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
 
   // Append-only: tiap (murid_id + item_id) bisa punya beberapa baris riwayat,
-  // ambil yang paling terakhir ditulis saja (baris di bawah = paling baru).
-  const semuaProgress = await readLatestByKey(SHEETS.TARGET_PROGRESS, p => `${p.murid_id}|${p.item_id}`);
-  const progress = semuaProgress.filter(p => p.murid_id === murid_id);
+  // ambil yang paling terakhir ditulis saja. Filter murid_id dilakukan DI
+  // DATABASE, bukan tarik semua baris progress semua murid dulu.
+  const progress = await readLatestByKeyWhere(SHEETS.TARGET_PROGRESS, { murid_id }, p => `${p.murid_id}|${p.item_id}`);
   return NextResponse.json(progress);
 }
 

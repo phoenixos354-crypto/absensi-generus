@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readLatestByKey, appendRow, SHEETS, generateId } from '@/lib/sheets';
+import { readLatestByKeyWhere, appendRow, SHEETS, generateId } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -20,9 +20,9 @@ export async function GET(req) {
   }
 
   // Append-only: kalau sesi yang sama diedit ulang, baris terbaru yang dipakai.
-  const sesi = await readLatestByKey(SHEETS.SESI, s => `${s.kelompok_id}|${s.tanggal}`);
-  let filtered = sesi;
-  if (kelompok_id) filtered = filtered.filter(s => s.kelompok_id === kelompok_id);
+  // Filter kelompok_id dilakukan DI DATABASE, bukan tarik semua sesi kelompok lain dulu.
+  const filters = kelompok_id ? { kelompok_id } : {};
+  let filtered = await readLatestByKeyWhere(SHEETS.SESI, filters, s => `${s.kelompok_id}|${s.tanggal}`);
   if (tanggal) filtered = filtered.filter(s => s.tanggal === tanggal);
 
   return NextResponse.json(filtered);

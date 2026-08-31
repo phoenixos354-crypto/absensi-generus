@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, SHEETS } from '@/lib/sheets';
+import { readSheet, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
 import { getKelompokAkses } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -39,10 +39,7 @@ export async function GET(req) {
     });
   }
 
-  const [absensiAll, muridAll] = await Promise.all([
-    readSheet(SHEETS.ABSENSI),
-    readSheet(SHEETS.MURID),
-  ]);
+  const muridAll = await readSheet(SHEETS.MURID);
 
   // Hitung total murid per tingkatan (independen dari filter tingkatan, untuk badge tab)
   const tingkatanCounts = {};
@@ -56,8 +53,13 @@ export async function GET(req) {
     ? semuaKelompok
     : semuaKelompok.filter(k => k.tingkatan === tingkatanFilter);
 
-  const kelompokIds = new Set(kelompokList.map(k => k.id));
-  let absensi = absensiAll.filter(a => kelompokIds.has(a.kelompok_id));
+  const kelompokIds = kelompokList.map(k => k.id);
+  // PENTING: absensi itu append-only (simpan ulang tanggal yang sama = baris
+  // baru, bukan menimpa). Kalau tidak di-dedup, tanggal yang pernah disimpan
+  // ulang akan ketitung dobel di rekap gabungan ini. Ambil baris TERBARU saja
+  // per (kelompok,murid,tanggal), sekaligus filter di database via .in() —
+  // cuma tarik baris punya kelompok yang relevan, bukan semua kelompok semua user.
+  let absensi = await readLatestByKeyWhereIn(SHEETS.ABSENSI, 'kelompok_id', kelompokIds, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`);
 
   // Filter periode — sama seperti /api/rekap
   if (mode === 'hari' && nilai) {

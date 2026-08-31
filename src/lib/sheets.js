@@ -235,10 +235,105 @@ export async function deleteWhere(sheetName, matchObj) {
 }
 
 // =============================================
+// HELPER: sama seperti readLatestByKey, TAPI filter dulu di level
+// database (pakai .eq()) sebelum ditarik ke memori — jauh lebih cepat
+// untuk tabel append-only yang sudah besar (absensi, target_progress,
+// sesi), karena tidak perlu baca SELURUH riwayat semua kelompok/murid
+// cuma buat ambil punya satu kelompok/murid saja.
+//
+// `filters` = object kolom->nilai, mis. { kelompok_id: 'xxx' }
+// =============================================
+// =============================================
+// HELPER: baca satu tabel dengan filter kolom (.eq()) TANPA dedup —
+// dipakai kalau memang butuh semua baris (mis. cari baris yang mau
+// dihapus), bukan cuma nilai "terbaru" per key.
+// =============================================
+export async function readWhere(sheetName, filters) {
+  const headers = HEADERS[sheetName];
+  if (!headers) throw new Error(`readWhere: tabel tidak dikenal: ${sheetName}`);
+  const supabase = getSupabaseClient();
+
+  const PAGE_SIZE = 1000;
+  let allRows = [];
+  let from = 0;
+  while (true) {
+    const to = from + PAGE_SIZE - 1;
+    let query = supabase.from(sheetName).select(headers.join(',')).order('_seq', { ascending: true }).range(from, to);
+    for (const [col, val] of Object.entries(filters)) query = query.eq(col, val);
+    const result = await withRetry(() => query);
+    const page = throwIfError(result) || [];
+    allRows = allRows.concat(page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return allRows;
+}
+
+export async function readLatestByKeyWhere(sheetName, filters, keyFn) {
+  const headers = HEADERS[sheetName];
+  if (!headers) throw new Error(`readLatestByKeyWhere: tabel tidak dikenal: ${sheetName}`);
+  const supabase = getSupabaseClient();
+
+  const PAGE_SIZE = 1000;
+  let allRows = [];
+  let from = 0;
+  while (true) {
+    const to = from + PAGE_SIZE - 1;
+    let query = supabase.from(sheetName).select(headers.join(',')).order('_seq', { ascending: true }).range(from, to);
+    for (const [col, val] of Object.entries(filters)) query = query.eq(col, val);
+    const result = await withRetry(() => query);
+    const page = throwIfError(result) || [];
+    allRows = allRows.concat(page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  const map = new Map();
+  for (const row of allRows) map.set(keyFn(row), row);
+  return [...map.values()];
+}
+
+// =============================================
+// HELPER: sama seperti readLatestByKeyWhere, tapi filter kolomnya pakai
+// daftar nilai (.in()) — dipakai kalau butuh data BEBERAPA kelompok
+// sekaligus (mis. rekap gabungan lintas kelompok), supaya tetap difilter
+// di database, bukan tarik semua baris SEMUA kelompok punya siapa saja.
+// =============================================
+export async function readLatestByKeyWhereIn(sheetName, column, values, keyFn) {
+  const headers = HEADERS[sheetName];
+  if (!headers) throw new Error(`readLatestByKeyWhereIn: tabel tidak dikenal: ${sheetName}`);
+  if (!values || values.length === 0) return [];
+  const supabase = getSupabaseClient();
+
+  const PAGE_SIZE = 1000;
+  let allRows = [];
+  let from = 0;
+  while (true) {
+    const to = from + PAGE_SIZE - 1;
+    const result = await withRetry(() =>
+      supabase.from(sheetName).select(headers.join(',')).order('_seq', { ascending: true }).in(column, values).range(from, to)
+    );
+    const page = throwIfError(result) || [];
+    allRows = allRows.concat(page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  const map = new Map();
+  for (const row of allRows) map.set(keyFn(row), row);
+  return [...map.values()];
+}
+
+// =============================================
 // HELPER: untuk tabel "append-only" (absensi, target_progress, sesi)
 // — baca baris TERAKHIR per kunci (keyFn), karena data terbaru selalu
 // "menang" menimpa nilai lama secara logis (walau baris lama tetap
 // ada di tabel sebagai riwayat).
+//
+// CATATAN PERFORMA: ini baca SELURUH tabel. Kalau tabelnya sudah besar
+// (mis. absensi) dan kamu cuma butuh data 1 kelompok/1 murid, pakai
+// readLatestByKeyWhere() di atas supaya filternya kejadian di database,
+// bukan di JS setelah semua baris ditarik.
 // =============================================
 export async function readLatestByKey(sheetName, keyFn) {
   const rows = await readSheet(sheetName);

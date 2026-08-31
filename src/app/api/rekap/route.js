@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, SHEETS } from '@/lib/sheets';
+import { readSheet, readLatestByKeyWhere, SHEETS } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -17,14 +17,20 @@ export async function GET(req) {
   const perm = await getPermission(session.user.email, kelompok_id);
   if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
 
+  // PENTING: absensi & sesi itu append-only (simpan ulang tanggal yang sama
+  // = baris baru, bukan menimpa). Kalau tidak di-dedup, tanggal yang pernah
+  // disimpan ulang akan KETITUNG DOBEL di rekap (persentase kehadiran &
+  // total infaq jadi salah). readLatestByKeyWhere ambil baris TERBARU saja
+  // per (murid,tanggal) / (kelompok,tanggal), sekaligus filter di database
+  // (bukan tarik semua baris punya kelompok lain juga).
   const [absensiAll, muridAll, sesiAll] = await Promise.all([
-    readSheet(SHEETS.ABSENSI),
+    readLatestByKeyWhere(SHEETS.ABSENSI, { kelompok_id }, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`),
     readSheet(SHEETS.MURID),
-    readSheet(SHEETS.SESI),
+    readLatestByKeyWhere(SHEETS.SESI, { kelompok_id }, s => `${s.kelompok_id}|${s.tanggal}`),
   ]);
 
-  let absensi = absensiAll.filter(a => a.kelompok_id === kelompok_id);
-  let sesi = sesiAll.filter(s => s.kelompok_id === kelompok_id);
+  let absensi = absensiAll;
+  let sesi = sesiAll;
 
   if (mode === 'hari' && nilai) {
     absensi = absensi.filter(a => a.tanggal === nilai);

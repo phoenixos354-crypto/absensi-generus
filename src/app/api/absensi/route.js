@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readLatestByKey, appendRows, SHEETS, generateId } from '@/lib/sheets';
+import { readLatestByKey, readLatestByKeyWhere, appendRows, SHEETS, generateId } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -20,9 +20,10 @@ export async function GET(req) {
 
   // Append-only: tiap (kelompok_id + murid_id + tanggal) bisa punya beberapa
   // baris riwayat kalau statusnya diubah-ubah, ambil yang paling terakhir saja.
-  const absensi = await readLatestByKey(SHEETS.ABSENSI, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`);
-  let filtered = absensi;
-  if (kelompok_id) filtered = filtered.filter(a => a.kelompok_id === kelompok_id);
+  // Filter kelompok_id (kalau ada) dilakukan DI DATABASE, bukan tarik semua
+  // baris dulu — penting karena tabel absensi bisa punya puluhan ribu baris.
+  const filters = kelompok_id ? { kelompok_id } : {};
+  let filtered = await readLatestByKeyWhere(SHEETS.ABSENSI, filters, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`);
   if (tanggal) filtered = filtered.filter(a => a.tanggal === tanggal);
 
   return NextResponse.json(filtered);

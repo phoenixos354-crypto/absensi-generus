@@ -1,4 +1,4 @@
-import { readSheet, SHEETS } from '@/lib/sheets';
+import { readSheet, readLatestByKeyWhere, SHEETS } from '@/lib/sheets';
 import { KATEGORI, resolvePresetId } from '@/lib/target';
 import { NextResponse } from 'next/server';
 
@@ -8,13 +8,13 @@ export async function GET(req, { params }) {
   const { searchParams } = new URL(req.url);
   const bulan = searchParams.get('bulan'); // opsional, format YYYY-MM
 
-  const [muridList, kelompokList, absensiList, sesiList, itemList, progressList] = await Promise.all([
+  // Tahap 1: cari murid dari kode publiknya dulu (tabel murid & kelompok kecil,
+  // aman dibaca penuh). Baru setelah tau murid_id & kelompok_id, tabel-tabel
+  // besar (absensi, target_progress, dst) difilter DI DATABASE — bukan tarik
+  // semua baris punya SEMUA murid se-aplikasi tiap kali link publik dibuka.
+  const [muridList, kelompokList] = await Promise.all([
     readSheet(SHEETS.MURID),
     readSheet(SHEETS.KELOMPOK),
-    readSheet(SHEETS.ABSENSI),
-    readSheet(SHEETS.SESI),
-    readSheet(SHEETS.TARGET_ITEM),
-    readSheet(SHEETS.TARGET_PROGRESS),
   ]);
 
   const murid = muridList.find(m => m.kode_publik === kode);
@@ -23,8 +23,17 @@ export async function GET(req, { params }) {
   const kelompok = kelompokList.find(k => k.id === murid.kelompok_id);
   if (!kelompok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  // Tahap 2: baca tabel besar, difilter di database + di-dedup (append-only:
+  // baris terbaru per key yang berlaku, bukan dijumlah semua riwayatnya —
+  // kalau tidak, tanggal yang pernah diedit ulang bakal ketitung dobel).
+  const [absensiMurid, sesiKelompok, itemAll, progressMurid] = await Promise.all([
+    readLatestByKeyWhere(SHEETS.ABSENSI, { murid_id: murid.id }, a => `${a.murid_id}|${a.tanggal}`),
+    readLatestByKeyWhere(SHEETS.SESI, { kelompok_id: murid.kelompok_id }, s => `${s.kelompok_id}|${s.tanggal}`),
+    readSheet(SHEETS.TARGET_ITEM),
+    readLatestByKeyWhere(SHEETS.TARGET_PROGRESS, { murid_id: murid.id }, p => `${p.murid_id}|${p.item_id}`),
+  ]);
+
   // Kehadiran keseluruhan (sejak awal)
-  const absensiMurid = absensiList.filter(a => a.murid_id === murid.id);
   const totalSesiAbsen = absensiMurid.length;
   const totalHadir = absensiMurid.filter(a => a.status === 'Hadir').length;
   const persenHadir = totalSesiAbsen > 0 ? Math.round((totalHadir / totalSesiAbsen) * 100) : 0;
@@ -37,18 +46,18 @@ export async function GET(req, { params }) {
 
   // Jurnal dari sesi-sesi yang dia hadiri
   const tanggalHadir = new Set(absensiMurid.filter(a => a.status === 'Hadir').map(a => a.tanggal));
-  const jurnal = sesiList
-    .filter(s => s.kelompok_id === murid.kelompok_id && tanggalHadir.has(s.tanggal) && s.jurnal)
+  const jurnal = sesiKelompok
+    .filter(s => tanggalHadir.has(s.tanggal) && s.jurnal)
     .map(s => ({ tanggal: s.tanggal, jurnal: s.jurnal }))
     .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
 
   // Progress target per kategori (item sesuai tingkatan kelompoknya)
   const presetId = resolvePresetId(kelompok);
   const progressMap = {};
-  progressList.filter(p => p.murid_id === murid.id).forEach(p => { progressMap[p.item_id] = p.nilai; });
+  progressMurid.forEach(p => { progressMap[p.item_id] = p.nilai; });
 
   const targetPerKategori = KATEGORI.map(kat => {
-    const items = itemList
+    const items = itemAll
       .filter(i => i.preset_id === presetId && i.tingkatan === kelompok.tingkatan && i.kategori === kat.key)
       .sort((a, b) => Number(a.urutan) - Number(b.urutan))
       .map(i => ({ nama_item: i.nama_item, nilai: progressMap[i.id] || 'belum' }));

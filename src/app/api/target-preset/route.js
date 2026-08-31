@@ -50,7 +50,7 @@ export async function POST(req) {
   const semuaItem = await readSheet(SHEETS.TARGET_ITEM);
   const itemSumber = semuaItem.filter(i => i.preset_id === (source_preset_id || DEFAULT_PRESET_ID));
   await appendRows(SHEETS.TARGET_ITEM, itemSumber.map(item => [
-    generateId(), newPresetId, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString(),
+    generateId(), newPresetId, item.tingkatan, item.kategori, item.urutan, item.nama_item, new Date().toISOString(), item.kelas || '',
   ]));
 
   // Pindahkan kelompok ke preset baru — update 1 baris saja

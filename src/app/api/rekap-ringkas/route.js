@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, SHEETS } from '@/lib/sheets';
+import { readSheet, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
 import { getKelompokAkses } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -34,12 +34,17 @@ export async function GET(req) {
   const kelompokList = await getKelompokAkses(session.user.email, session.user.id);
   if (!kelompokList.length) return NextResponse.json({});
 
-  // Baca absensi & murid sekali saja, lalu batasi ke bulan yang diminta
-  const [absensiAllRaw, muridAll] = await Promise.all([
-    readSheet(SHEETS.ABSENSI),
+  // Baca absensi & murid, lalu batasi ke bulan yang diminta.
+  // PENTING: absensi itu append-only — kalau tidak di-dedup, tanggal yang
+  // pernah disimpan ulang bakal ketitung dobel di persentase dashboard ini.
+  // Ambil baris TERBARU saja per (kelompok,murid,tanggal), filter ke kelompok
+  // yang relevan langsung di database (bukan tarik punya semua user).
+  const kelompokIds = kelompokList.map(k => k.id);
+  const [absensiDeduped, muridAll] = await Promise.all([
+    readLatestByKeyWhereIn(SHEETS.ABSENSI, 'kelompok_id', kelompokIds, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`),
     readSheet(SHEETS.MURID),
   ]);
-  const absensiAll = absensiAllRaw.filter(a => a.tanggal?.startsWith(bulan));
+  const absensiAll = absensiDeduped.filter(a => a.tanggal?.startsWith(bulan));
 
   const result = {};
 
