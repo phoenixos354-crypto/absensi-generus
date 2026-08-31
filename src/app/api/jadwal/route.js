@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, SHEETS, generateId, invalidateSheet } from '@/lib/sheets';
+import { readSheet, appendRows, deleteWhere, SHEETS, generateId } from '@/lib/sheets';
 import { NextResponse } from 'next/server';
 
 export async function GET(req) {
@@ -21,36 +21,11 @@ export async function POST(req) {
 
   const { kelompok_id, hari } = await req.json();
 
-  // Hapus jadwal lama untuk kelompok ini, lalu tulis ulang
-  // Karena Google Sheets tidak punya DELETE row langsung,
-  // kita pakai pendekatan: baca semua, filter, tulis ulang
-  const { google } = await import('googleapis');
-  const { getGoogleSheetsClient, SPREADSHEET_ID } = await import('@/lib/sheets');
-  const sheets = getGoogleSheetsClient();
+  // Hapus jadwal lama untuk kelompok ini, lalu tulis yang baru.
+  await deleteWhere(SHEETS.JADWAL, { kelompok_id });
 
-  // Baca semua jadwal
-  const allJadwal = await readSheet(SHEETS.JADWAL);
-  const tetap = allJadwal.filter(j => j.kelompok_id !== kelompok_id);
-
-  // Buat entri baru
   const newEntries = hari.map(h => [generateId(), kelompok_id, h, new Date().toISOString()]);
-
-  // Gabungkan semua
-  const headers = ['id', 'kelompok_id', 'hari', 'created_at'];
-  const allRows = [
-    headers,
-    ...tetap.map(j => [j.id, j.kelompok_id, j.hari, j.created_at]),
-    ...newEntries,
-  ];
-
-  // Tulis ulang sheet jadwal
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEETS.JADWAL}!A:D`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: allRows },
-  });
-  invalidateSheet(SHEETS.JADWAL);
+  await appendRows(SHEETS.JADWAL, newEntries);
 
   return NextResponse.json({ success: true, jadwal: newEntries.map(e => ({ id: e[0], kelompok_id: e[1], hari: e[2] })) });
 }
