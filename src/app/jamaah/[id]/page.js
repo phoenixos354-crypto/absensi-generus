@@ -19,14 +19,14 @@ const FORM_KOSONG = {
   kategori_usia: 'caberawit', status_keluarga: 'lainnya', kepala_keluarga_id: '',
 };
 
-export default function WilayahJamaahDetailPage() {
+export default function KelompokJamaahDetailPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
-  const wilayahId = params.id;
+  const kelompokId = params.id;
 
-  const { data: wilayah, isLoading, mutate } = useSWR(
-    session && wilayahId ? `/api/wilayah-jamaah/${wilayahId}` : null,
+  const { data: kelompok, isLoading, mutate } = useSWR(
+    session && kelompokId ? `/api/kelompok-jamaah/${kelompokId}` : null,
     { onError: (err) => { if ([401, 403, 404].includes(err?.status)) router.replace('/jamaah'); } }
   );
 
@@ -69,7 +69,7 @@ export default function WilayahJamaahDetailPage() {
     setSaving(true);
     setErrorForm('');
 
-    const payload = { ...form, wilayah_id: wilayahId };
+    const payload = { ...form, kelompok_id: kelompokId };
     const url = editTarget ? `/api/jamaah/${editTarget.id}` : '/api/jamaah';
     const method = editTarget ? 'PUT' : 'POST';
 
@@ -105,11 +105,11 @@ export default function WilayahJamaahDetailPage() {
   }
 
   async function bagikanKartu() {
-    if (!wilayah?.kode_publik) return;
-    const url = `${window.location.origin}/kartu-jamaah/${wilayah.kode_publik}`;
+    if (!kelompok?.kode_publik) return;
+    const url = `${window.location.origin}/kartu-jamaah/${kelompok.kode_publik}`;
     const dataShare = {
-      title: `Data Jamaah ${wilayah.nama_wilayah}`,
-      text: `Lihat rekap data jamaah wilayah ${wilayah.nama_wilayah}`,
+      title: `Data Jamaah ${kelompok.nama_kelompok}`,
+      text: `Lihat rekap data jamaah kelompok ${kelompok.nama_kelompok}`,
       url,
     };
     if (navigator.share) {
@@ -129,7 +129,7 @@ export default function WilayahJamaahDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  if (isLoading || !wilayah) {
+  if (isLoading || !kelompok) {
     return (
       <AppScreen>
         <div className="space-y-4 px-5 pt-8">
@@ -140,8 +140,8 @@ export default function WilayahJamaahDetailPage() {
     );
   }
 
-  const daftarJamaah = wilayah.jamaah || [];
-  const stats = wilayah.stats || {};
+  const daftarJamaah = kelompok.jamaah || [];
+  const stats = kelompok.stats || {};
   const daftarKK = daftarJamaah.filter(j => j.status_keluarga === 'kepala_keluarga' && j.id !== editTarget?.id);
 
   const STAT_CARDS = [
@@ -175,17 +175,17 @@ export default function WilayahJamaahDetailPage() {
 
         <section className="px-5 pt-4">
           <div className="rounded-3xl brand-gradient p-4 shadow-[var(--shadow-float)]">
-            <h1 className="text-xl font-extrabold text-primary-foreground">{wilayah.nama_wilayah}</h1>
-            {(wilayah.desa || wilayah.daerah) && (
+            <h1 className="text-xl font-extrabold text-primary-foreground">{kelompok.nama_kelompok}</h1>
+            {(kelompok.desa || kelompok.daerah) && (
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {wilayah.desa && (
+                {kelompok.desa && (
                   <span className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-primary-foreground">
-                    <MapPin className="size-3" /> {wilayah.desa}
+                    <MapPin className="size-3" /> {kelompok.desa}
                   </span>
                 )}
-                {wilayah.daerah && (
+                {kelompok.daerah && (
                   <span className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-primary-foreground">
-                    <Map className="size-3.5" /> {wilayah.daerah}
+                    <Map className="size-3.5" /> {kelompok.daerah}
                   </span>
                 )}
               </div>
@@ -227,7 +227,7 @@ export default function WilayahJamaahDetailPage() {
 
           {daftarJamaah.length === 0 ? (
             <div className="card-soft mt-3 p-6 text-center">
-              <p className="text-sm text-muted-foreground">Belum ada data jamaah di wilayah ini.</p>
+              <p className="text-sm text-muted-foreground">Belum ada data jamaah di kelompok ini.</p>
             </div>
           ) : (
             <div className="mt-3 space-y-2.5">
@@ -360,7 +360,7 @@ export default function WilayahJamaahDetailPage() {
                     <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   </div>
                   {daftarKK.length === 0 && (
-                    <p className="mt-1.5 text-[11px] text-muted-foreground">Belum ada Kepala Keluarga di wilayah ini. Tambahkan Kepala Keluarga dulu.</p>
+                    <p className="mt-1.5 text-[11px] text-muted-foreground">Belum ada Kepala Keluarga di kelompok ini. Tambahkan Kepala Keluarga dulu.</p>
                   )}
                 </div>
               )}

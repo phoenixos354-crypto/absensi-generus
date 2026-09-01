@@ -1,4 +1,4 @@
-// Hitung rekap data jamaah (dipakai di API detail wilayah maupun API publik)
+// Hitung rekap data jamaah (dipakai di API detail kelompok maupun API publik)
 // dari daftar baris `jamaah`. Sengaja diletakkan di satu tempat supaya
 // angka yang tampil di halaman kelola (login) dan kartu publik (tanpa
 // login) selalu konsisten.

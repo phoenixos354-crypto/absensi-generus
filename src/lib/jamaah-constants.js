@@ -2,7 +2,7 @@ import { Sprout, Flower2, Users2, Heart } from 'lucide-react';
 
 // Kategori usia jamaah — dipilih MANUAL saat input (bukan otomatis dari
 // umur), karena batas usia tiap kategori bisa beda-beda kebijakannya per
-// wilayah/daerah.
+// kelompok/daerah.
 export const KATEGORI_USIA_JAMAAH = [
   { key: 'caberawit',  label: 'Caberawit',  Icon: Sprout },
   { key: 'muda_mudi',  label: 'Muda-Mudi',  Icon: Users2 },

@@ -66,7 +66,7 @@ export const SHEETS = {
   TARGET_PRESET:  'target_preset',
   TARGET_ITEM:    'target_item',
   TARGET_PROGRESS:'target_progress',
-  WILAYAH_JAMAAH: 'wilayah_jamaah',
+  KELOMPOK_JAMAAH: 'kelompok_jamaah',
   JAMAAH:         'jamaah',
 };
 
@@ -85,8 +85,8 @@ const HEADERS = {
   [SHEETS.TARGET_PRESET]:   ['id', 'nama_preset', 'dibuat_oleh_kelompok_id', 'nama_kelompok_asal', 'desa_asal', 'daerah_asal', 'dibuat_oleh_email', 'created_at', 'kode'],
   [SHEETS.TARGET_ITEM]:     ['id', 'preset_id', 'tingkatan', 'kategori', 'urutan', 'nama_item', 'created_at', 'kelas'],
   [SHEETS.TARGET_PROGRESS]: ['id', 'murid_id', 'item_id', 'nilai', 'tanggal', 'dicatat_oleh', 'created_at'],
-  [SHEETS.WILAYAH_JAMAAH]: ['id', 'user_id', 'nama_wilayah', 'desa', 'daerah', 'kode_publik', 'created_at'],
-  [SHEETS.JAMAAH]:         ['id', 'wilayah_id', 'nama', 'umur', 'jenis_kelamin', 'status_pernikahan', 'kategori_usia', 'status_keluarga', 'kepala_keluarga_id', 'created_at'],
+  [SHEETS.KELOMPOK_JAMAAH]: ['id', 'user_id', 'nama_kelompok', 'desa', 'daerah', 'kode_publik', 'created_at'],
+  [SHEETS.JAMAAH]:         ['id', 'kelompok_id', 'nama', 'umur', 'jenis_kelamin', 'status_pernikahan', 'kategori_usia', 'status_keluarga', 'kepala_keluarga_id', 'created_at'],
 };
 
 // =============================================

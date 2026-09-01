@@ -49,7 +49,7 @@ export default function KartuJamaahPublikPage() {
           <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary-foreground/75">
             <IdCard className="size-3.5" /> Kartu Data Jamaah
           </p>
-          <h1 className="mt-1 text-2xl font-extrabold text-primary-foreground">{data.nama_wilayah}</h1>
+          <h1 className="mt-1 text-2xl font-extrabold text-primary-foreground">{data.nama_kelompok}</h1>
           {(data.desa || data.daerah) && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {data.desa && (

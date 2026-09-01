@@ -7,17 +7,17 @@ import { NextResponse } from 'next/server';
 export async function GET(req, { params }) {
   const { kode } = params;
 
-  const wilayahList = await readSheet(SHEETS.WILAYAH_JAMAAH);
-  const wilayah = wilayahList.find(w => w.kode_publik === kode);
-  if (!wilayah) return NextResponse.json({ error: 'Kode tidak ditemukan' }, { status: 404 });
+  const kelompokList = await readSheet(SHEETS.KELOMPOK_JAMAAH);
+  const kelompok = kelompokList.find(k => k.kode_publik === kode);
+  if (!kelompok) return NextResponse.json({ error: 'Kode tidak ditemukan' }, { status: 404 });
 
   const jamaahList = await readSheet(SHEETS.JAMAAH);
-  const anggota = jamaahList.filter(j => j.wilayah_id === wilayah.id);
+  const anggota = jamaahList.filter(j => j.kelompok_id === kelompok.id);
 
   return NextResponse.json({
-    nama_wilayah: wilayah.nama_wilayah,
-    desa: wilayah.desa,
-    daerah: wilayah.daerah,
+    nama_kelompok: kelompok.nama_kelompok,
+    desa: kelompok.desa,
+    daerah: kelompok.daerah,
     stats: hitungStatsJamaah(anggota),
   });
 }

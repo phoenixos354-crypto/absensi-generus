@@ -3,18 +3,18 @@ import { authOptions } from '@/lib/auth';
 import { readSheet, updateRow, deleteRows, SHEETS } from '@/lib/sheets';
 import { NextResponse } from 'next/server';
 
-const JAMAAH_HEADERS = ['id', 'wilayah_id', 'nama', 'umur', 'jenis_kelamin', 'status_pernikahan', 'kategori_usia', 'status_keluarga', 'kepala_keluarga_id', 'created_at'];
+const JAMAAH_HEADERS = ['id', 'kelompok_id', 'nama', 'umur', 'jenis_kelamin', 'status_pernikahan', 'kategori_usia', 'status_keluarga', 'kepala_keluarga_id', 'created_at'];
 
 async function ambilJamaahMilikUser(id, userId) {
-  const [jamaahList, wilayahList] = await Promise.all([
+  const [jamaahList, kelompokList] = await Promise.all([
     readSheet(SHEETS.JAMAAH),
-    readSheet(SHEETS.WILAYAH_JAMAAH),
+    readSheet(SHEETS.KELOMPOK_JAMAAH),
   ]);
   const jamaah = jamaahList.find(j => j.id === id);
-  if (!jamaah) return { jamaah: null, wilayah: null };
-  const wilayah = wilayahList.find(w => w.id === jamaah.wilayah_id);
-  if (!wilayah || wilayah.user_id !== userId) return { jamaah: null, wilayah: null };
-  return { jamaah, wilayah };
+  if (!jamaah) return { jamaah: null, kelompok: null };
+  const kelompok = kelompokList.find(k => k.id === jamaah.kelompok_id);
+  if (!kelompok || kelompok.user_id !== userId) return { jamaah: null, kelompok: null };
+  return { jamaah, kelompok };
 }
 
 export async function PUT(req, { params }) {
@@ -32,7 +32,7 @@ export async function PUT(req, { params }) {
     kepala_keluarga_id = '';
   } else if (kepala_keluarga_id) {
     const jamaahList = await readSheet(SHEETS.JAMAAH);
-    const kk = jamaahList.find(j => j.id === kepala_keluarga_id && j.wilayah_id === jamaah.wilayah_id);
+    const kk = jamaahList.find(j => j.id === kepala_keluarga_id && j.kelompok_id === jamaah.kelompok_id);
     if (!kk || kk.status_keluarga !== 'kepala_keluarga') {
       return NextResponse.json({ error: 'Kepala keluarga yang dipilih tidak valid' }, { status: 400 });
     }

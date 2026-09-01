@@ -9,14 +9,14 @@ import {
   IdCard, Plus, X, MapPin, Map, Users, Home, Pencil, Trash2, TriangleAlert, ChevronRight,
 } from 'lucide-react';
 
-const FORM_KOSONG = { nama_wilayah: '', desa: '', daerah: '' };
+const FORM_KOSONG = { nama_kelompok: '', desa: '', daerah: '' };
 
 export default function JamaahListPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const { data, isLoading, mutate } = useSWR(session ? '/api/wilayah-jamaah' : null);
-  const wilayahList = Array.isArray(data) ? data : [];
+  const { data, isLoading, mutate } = useSWR(session ? '/api/kelompok-jamaah' : null);
+  const kelompokList = Array.isArray(data) ? data : [];
 
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
@@ -36,10 +36,10 @@ export default function JamaahListPage() {
     setShowModal(true);
   }
 
-  function bukaModalEdit(w, e) {
+  function bukaModalEdit(k, e) {
     e.stopPropagation();
-    setEditTarget(w);
-    setForm({ nama_wilayah: w.nama_wilayah, desa: w.desa || '', daerah: w.daerah || '' });
+    setEditTarget(k);
+    setForm({ nama_kelompok: k.nama_kelompok, desa: k.desa || '', daerah: k.daerah || '' });
     setShowModal(true);
   }
 
@@ -47,7 +47,7 @@ export default function JamaahListPage() {
     e.preventDefault();
     setSaving(true);
     if (editTarget) {
-      await fetch(`/api/wilayah-jamaah/${editTarget.id}`, {
+      await fetch(`/api/kelompok-jamaah/${editTarget.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -55,7 +55,7 @@ export default function JamaahListPage() {
       mutate();
       setShowModal(false);
     } else {
-      const res = await fetch('/api/wilayah-jamaah', {
+      const res = await fetch('/api/kelompok-jamaah', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -75,13 +75,13 @@ export default function JamaahListPage() {
     if (!hapusTarget) return;
     setHapusing(true);
     setErrorHapus('');
-    const res = await fetch(`/api/wilayah-jamaah/${hapusTarget.id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/kelompok-jamaah/${hapusTarget.id}`, { method: 'DELETE' });
     if (res.ok) {
       mutate();
       setHapusTarget(null);
     } else {
       const data = await res.json().catch(() => ({}));
-      setErrorHapus(data.error || 'Gagal menghapus wilayah.');
+      setErrorHapus(data.error || 'Gagal menghapus kelompok.');
     }
     setHapusing(false);
   }
@@ -112,11 +112,11 @@ export default function JamaahListPage() {
               <h1 className="flex items-center gap-1.5 text-lg font-extrabold text-ink">
                 <IdCard className="size-5 text-primary" /> Manajemen Jamaah
               </h1>
-              <p className="text-xs text-muted-foreground">Data jamaah per wilayah/dusun</p>
+              <p className="text-xs text-muted-foreground">Data jamaah per kelompok</p>
             </div>
           </div>
           <button
-            aria-label="Wilayah Baru"
+            aria-label="Kelompok Baru"
             onClick={bukaModalBaru}
             className="grid size-10 shrink-0 place-items-center rounded-full brand-gradient text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.95]"
           >
@@ -124,63 +124,63 @@ export default function JamaahListPage() {
           </button>
         </header>
 
-        {wilayahList.length === 0 ? (
+        {kelompokList.length === 0 ? (
           <div className="card-soft mx-5 mt-6 p-6 text-center">
             <div className="mx-auto grid size-14 place-items-center rounded-full bg-brand-soft text-primary">
               <Home className="size-7" />
             </div>
-            <h3 className="mt-3 text-base font-extrabold text-ink">Belum ada data wilayah</h3>
-            <p className="mt-1 text-sm text-muted-foreground">Buat wilayah/dusun untuk mulai mendata jamaah</p>
+            <h3 className="mt-3 text-base font-extrabold text-ink">Belum ada data kelompok</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Buat kelompok untuk mulai mendata jamaah</p>
             <button
               onClick={bukaModalBaru}
               className="mt-4 w-full rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]"
             >
-              Buat Wilayah Pertama
+              Buat Kelompok Pertama
             </button>
           </div>
         ) : (
           <div className="mt-5 space-y-4 px-5">
-            {wilayahList.map(w => (
+            {kelompokList.map(k => (
               <div
-                key={w.id}
-                onClick={() => router.push(`/jamaah/${w.id}`)}
+                key={k.id}
+                onClick={() => router.push(`/jamaah/${k.id}`)}
                 className="block cursor-pointer rounded-3xl p-4 transition-transform active:scale-[0.99] card-soft"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="truncate text-sm font-bold text-ink">{w.nama_wilayah}</span>
+                  <span className="truncate text-sm font-bold text-ink">{k.nama_kelompok}</span>
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                 </div>
-                {(w.desa || w.daerah) && (
+                {(k.desa || k.daerah) && (
                   <p className="mt-1.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
-                    {w.desa && <><MapPin className="size-3 shrink-0" /> {w.desa}</>}
-                    {w.desa && w.daerah && <span className="opacity-60">·</span>}
-                    {w.daerah && <><Map className="size-3.5 shrink-0" /> {w.daerah}</>}
+                    {k.desa && <><MapPin className="size-3 shrink-0" /> {k.desa}</>}
+                    {k.desa && k.daerah && <span className="opacity-60">·</span>}
+                    {k.daerah && <><Map className="size-3.5 shrink-0" /> {k.daerah}</>}
                   </p>
                 )}
 
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <div className="rounded-2xl bg-secondary p-2.5 text-center">
-                    <p className="text-base font-extrabold text-ink">{w.stats?.jumlah_kk ?? 0}</p>
+                    <p className="text-base font-extrabold text-ink">{k.stats?.jumlah_kk ?? 0}</p>
                     <p className="text-[10px] font-semibold text-muted-foreground">KK</p>
                   </div>
                   <div className="rounded-2xl bg-secondary p-2.5 text-center">
-                    <p className="text-base font-extrabold text-ink">{w.stats?.total ?? 0}</p>
+                    <p className="text-base font-extrabold text-ink">{k.stats?.total ?? 0}</p>
                     <p className="text-[10px] font-semibold text-muted-foreground">Jamaah</p>
                   </div>
                   <div className="rounded-2xl bg-secondary p-2.5 text-center">
-                    <p className="text-base font-extrabold text-ink">{w.stats?.lansia ?? 0}</p>
+                    <p className="text-base font-extrabold text-ink">{k.stats?.lansia ?? 0}</p>
                     <p className="text-[10px] font-semibold text-muted-foreground">Lansia</p>
                   </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <button onClick={e => { e.stopPropagation(); router.push(`/jamaah/${w.id}`); }} className="flex items-center gap-1 rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground">
+                  <button onClick={e => { e.stopPropagation(); router.push(`/jamaah/${k.id}`); }} className="flex items-center gap-1 rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground">
                     <Users className="size-3.5" /> Kelola Jamaah
                   </button>
-                  <button aria-label="Edit" onClick={e => bukaModalEdit(w, e)} className="grid size-8 place-items-center rounded-full bg-brand-soft text-primary">
+                  <button aria-label="Edit" onClick={e => bukaModalEdit(k, e)} className="grid size-8 place-items-center rounded-full bg-brand-soft text-primary">
                     <Pencil className="size-3.5" />
                   </button>
-                  <button aria-label="Hapus" onClick={e => { e.stopPropagation(); setErrorHapus(''); setHapusTarget(w); }} className="grid size-8 place-items-center rounded-full bg-destructive/10 text-destructive">
+                  <button aria-label="Hapus" onClick={e => { e.stopPropagation(); setErrorHapus(''); setHapusTarget(k); }} className="grid size-8 place-items-center rounded-full bg-destructive/10 text-destructive">
                     <Trash2 className="size-3.5" />
                   </button>
                 </div>
@@ -195,13 +195,13 @@ export default function JamaahListPage() {
           <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[26rem] rounded-t-[2rem] bg-surface p-5 pb-8 shadow-[var(--shadow-float)]" onClick={e => e.stopPropagation()}>
             <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-lg font-extrabold text-ink">{editTarget ? 'Edit Wilayah' : 'Wilayah Baru'}</span>
+              <span className="text-lg font-extrabold text-ink">{editTarget ? 'Edit Kelompok' : 'Kelompok Baru'}</span>
               <button aria-label="Tutup" onClick={() => setShowModal(false)} className="grid size-8 place-items-center rounded-full bg-secondary text-muted-foreground"><X className="size-4" /></button>
             </div>
             <form onSubmit={handleSimpan} className="space-y-3.5">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Nama Wilayah/Dusun</label>
-                <input placeholder="cth: Dusun Krajan" value={form.nama_wilayah} onChange={e => setForm({ ...form, nama_wilayah: e.target.value })} required
+                <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Nama Kelompok</label>
+                <input placeholder="cth: Kelompok Krajan" value={form.nama_kelompok} onChange={e => setForm({ ...form, nama_kelompok: e.target.value })} required
                   className="w-full rounded-2xl bg-secondary px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40" />
               </div>
               <div>
@@ -230,10 +230,10 @@ export default function JamaahListPage() {
             <div className="mx-auto grid size-14 place-items-center rounded-full bg-destructive/10 text-destructive">
               <TriangleAlert className="size-7" />
             </div>
-            <h3 className="mt-3 text-lg font-extrabold text-ink">Hapus Wilayah?</h3>
-            <p className="mt-1 truncate text-sm font-semibold text-ink">{hapusTarget.nama_wilayah}</p>
+            <h3 className="mt-3 text-lg font-extrabold text-ink">Hapus Kelompok?</h3>
+            <p className="mt-1 truncate text-sm font-semibold text-ink">{hapusTarget.nama_kelompok}</p>
             <p className="mt-3 rounded-2xl bg-destructive/10 p-3 text-xs font-medium text-destructive">
-              Semua data jamaah di wilayah ini akan ikut terhapus permanen!
+              Semua data jamaah di kelompok ini akan ikut terhapus permanen!
             </p>
             {errorHapus && <p className="mt-2 text-xs font-semibold text-destructive">{errorHapus}</p>}
             <div className="mt-5 flex gap-3">
