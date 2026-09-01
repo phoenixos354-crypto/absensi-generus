@@ -150,6 +150,35 @@ create table if not exists target_progress (
 create index if not exists idx_target_progress_murid_id on target_progress (murid_id);
 create index if not exists idx_target_progress_item_id on target_progress (item_id);
 
+create table if not exists wilayah_jamaah (
+  id text primary key,
+  user_id text,
+  nama_wilayah text,
+  desa text,
+  daerah text,
+  kode_publik text,
+  created_at text,
+  _seq bigint generated always as identity
+);
+create index if not exists idx_wilayah_jamaah_user_id on wilayah_jamaah (user_id);
+create index if not exists idx_wilayah_jamaah_kode_publik on wilayah_jamaah (kode_publik);
+
+create table if not exists jamaah (
+  id text primary key,
+  wilayah_id text,
+  nama text,
+  umur text,
+  jenis_kelamin text,
+  status_pernikahan text,
+  kategori_usia text,
+  status_keluarga text,
+  kepala_keluarga_id text,
+  created_at text,
+  _seq bigint generated always as identity
+);
+create index if not exists idx_jamaah_wilayah_id on jamaah (wilayah_id);
+create index if not exists idx_jamaah_kepala_keluarga_id on jamaah (kepala_keluarga_id);
+
 -- =============================================================
 -- Row Level Security: dimatikan (RLS off) karena semua akses ke
 -- tabel ini SELALU lewat API routes Next.js pakai service role key
