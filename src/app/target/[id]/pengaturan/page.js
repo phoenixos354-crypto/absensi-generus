@@ -4,8 +4,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { AppScreen } from '@/components/AppScreen';
+import { BackButton } from '@/components/BackButton';
 import { KATEGORI, KELAS_CABERAWIT } from '@/lib/target-constants';
-import { ChevronLeft, Layers, Check, Plus, X, Save, Sparkles, KeyRound, Copy, Undo2, Lock } from 'lucide-react';
+import { Layers, Check, Plus, X, Save, Sparkles, KeyRound, Copy, Undo2, Lock } from 'lucide-react';
 
 const TINGKATAN_TABS = [
   { key: 'caberawit', label: 'Caberawit' },
@@ -160,13 +161,10 @@ export default function PengaturanTargetPage() {
   return (
     <AppScreen>
       <header className="flex items-center gap-3 px-5 pt-6">
-        <button
-          onClick={() => router.push(`/target/${kelompokId}`)}
-          aria-label="Kembali"
+        <BackButton
+          fallbackHref={`/target/${kelompokId}`}
           className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
-        >
-          <ChevronLeft className="size-5 text-ink" />
-        </button>
+        />
         <h1 className="text-lg font-extrabold text-ink">Kelola Target</h1>
       </header>
 

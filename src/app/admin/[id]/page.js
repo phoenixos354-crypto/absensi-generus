@@ -4,7 +4,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
-import { ChevronLeft, Plus, Crown, CheckCircle2, Eye, Lightbulb } from 'lucide-react';
+import { BackButton } from '@/components/BackButton';
+import { Plus, Crown, CheckCircle2, Eye, Lightbulb } from 'lucide-react';
 
 const PERMISSION_INFO = {
   owner:  { label: 'Owner',         Icon: Crown,        desc: 'Akses penuh' },
@@ -84,13 +85,10 @@ export default function AdminKelompokPage() {
     <AppScreen>
       {/* Header */}
       <header className="px-5 pt-6">
-        <button
-          onClick={() => router.push(`/setup/${kelompokId}`)}
-          aria-label="Kembali"
+        <BackButton
+          fallbackHref={`/setup/${kelompokId}`}
           className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
-        >
-          <ChevronLeft className="size-5 text-ink" />
-        </button>
+        />
         <h1 className="mt-4 text-2xl font-extrabold text-ink">Kelola Admin</h1>
         <p className="mt-0.5 truncate text-sm text-muted-foreground">{kelompok?.nama_kelompok}</p>
       </header>

@@ -23,6 +23,19 @@ function RegisterServiceWorker() {
   return null;
 }
 
+// Catat panjang history browser begitu app pertama kali dibuka (sekali per
+// tab/sesi, disimpan di sessionStorage). Dipakai oleh <BackButton> untuk
+// tahu apakah halaman saat ini punya riwayat in-app buat di-back-in, atau
+// harus fallback ke navigasi biasa (misal: dibuka langsung lewat deep link).
+function TrackEntryHistory() {
+  useEffect(() => {
+    if (!sessionStorage.getItem('ag_entry_history_len')) {
+      sessionStorage.setItem('ag_entry_history_len', String(window.history.length));
+    }
+  }, []);
+  return null;
+}
+
 const CACHE_KEY = 'absensi-generus-swr-cache';
 
 // Cache SWR yang disimpan ke localStorage supaya bertahan lintas sesi.
@@ -71,6 +84,7 @@ export function Providers({ children }) {
         }}
       >
         <RegisterServiceWorker />
+        <TrackEntryHistory />
         {children}
         <InstallPrompt />
       </SWRConfig>

@@ -1,7 +1,7 @@
 'use client';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useEffect, useState, useMemo, useRef, Suspense } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { DalilWidget } from '@/components/DalilWidget';
@@ -106,10 +106,49 @@ function DashboardContent() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardStep, setOnboardStep] = useState(0);
   const [filterTingkatan, setFilterTingkatan] = useState('semua');
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const izinkanKeluarRef = useRef(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
   }, [status]);
+
+  // Dashboard = halaman "paling dasar" di app ini. Tombol back fisik/gesture
+  // di HP, kalau dipencet dari sini, seharusnya nanya dulu sebelum beneran
+  // keluar aplikasi -- bukan langsung nutup.
+  //
+  // Caranya: begitu dashboard dibuka, kita tambah satu entry history kosong
+  // di atasnya. Back pertama cuma "memakan" entry kosong itu (ke-tangkap
+  // lewat event popstate, BUKAN benar-benar keluar) -> baru kita tampilkan
+  // dialog konfirmasi, sekalian re-trap lagi kalau usernya pilih "Tidak"
+  // supaya back berikutnya juga ke-tangkap.
+  useEffect(() => {
+    window.history.pushState({ agExitTrap: true }, '', window.location.href);
+
+    function handlePopState() {
+      if (izinkanKeluarRef.current) return; // sudah dikonfirmasi "Ya" -> biarkan beneran keluar
+      setShowExitConfirm(true);
+      window.history.pushState({ agExitTrap: true }, '', window.location.href);
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  function konfirmasiKeluar() {
+    izinkanKeluarRef.current = true;
+    setShowExitConfirm(false);
+    // Browser tidak selalu izinkan script nutup tab/app-nya sendiri (aturan
+    // keamanan browser), jadi ini best-effort: kalau didukung (misal di
+    // beberapa konteks PWA/TWA), tab/app langsung tertutup. Kalau tidak,
+    // riwayat trap-nya sudah dilepas, jadi back fisik berikutnya akan benar-
+    // benar keluar tanpa nanya lagi.
+    window.close();
+  }
+
+  function batalKeluar() {
+    setShowExitConfirm(false);
+  }
 
   useEffect(() => {
     if (session) init();
@@ -506,6 +545,19 @@ function DashboardContent() {
               }
             </div>
             <button onClick={selesaiOnboarding} className="mt-3 text-xs font-semibold text-muted-foreground">Lewati</button>
+          </div>
+        </div>
+      )}
+
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-6" onClick={batalKeluar}>
+          <div className="w-full max-w-xs rounded-3xl bg-surface p-5 text-center shadow-[var(--shadow-float)]" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-extrabold text-ink">Keluar Aplikasi?</h3>
+            <p className="mt-1.5 text-sm text-muted-foreground">Apakah Anda ingin keluar aplikasi?</p>
+            <div className="mt-5 flex gap-3">
+              <button onClick={batalKeluar} className="flex-1 rounded-full bg-secondary py-3 text-sm font-bold text-ink">Tidak</button>
+              <button onClick={konfirmasiKeluar} className="flex-1 rounded-full bg-destructive py-3 text-sm font-bold text-destructive-foreground active:scale-[0.99]">Ya</button>
+            </div>
           </div>
         </div>
       )}

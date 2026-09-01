@@ -4,8 +4,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
+import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { ChevronLeft, ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList, CheckCircle2, NotebookPen, Wallet } from 'lucide-react';
+import { ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList, CheckCircle2, NotebookPen, Wallet } from 'lucide-react';
 import { ExportPDF } from '@/components/ExportPDF';
 
 // Generate daftar bulan (12 bulan terakhir)
@@ -112,13 +113,10 @@ export default function RekapPage() {
     <AppScreen>
       {/* Header */}
       <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-5 pt-6">
-        <button
-          onClick={() => router.push('/dashboard')}
-          aria-label="Kembali"
+        <BackButton
+          fallbackHref="/dashboard"
           className="grid size-10 shrink-0 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
-        >
-          <ChevronLeft className="size-5 text-ink" />
-        </button>
+        />
         <div className="min-w-0">
           <h1 className="truncate text-xl font-extrabold text-ink">{kelompok?.nama_kelompok}</h1>
           <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">

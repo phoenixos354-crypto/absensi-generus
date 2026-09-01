@@ -4,8 +4,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
+import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { ChevronLeft, Users, CalendarDays, MapPin, Map, Target } from 'lucide-react';
+import { Users, CalendarDays, MapPin, Map, Target } from 'lucide-react';
 
 export default function KelompokDetailPage() {
   const { data: session, status } = useSession();
@@ -39,13 +40,10 @@ export default function KelompokDetailPage() {
     <AppScreen>
       {/* Header */}
       <header className="px-5 pt-6">
-        <button
-          onClick={() => router.push('/dashboard')}
-          aria-label="Kembali"
+        <BackButton
+          fallbackHref="/dashboard"
           className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
-        >
-          <ChevronLeft className="size-5 text-ink" />
-        </button>
+        />
       </header>
 
       <section className="px-5 pt-4">

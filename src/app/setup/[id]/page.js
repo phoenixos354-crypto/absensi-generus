@@ -3,8 +3,9 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AppScreen } from '@/components/AppScreen';
+import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { ChevronLeft, CalendarDays, Users, Pencil, Trash2, Check, X, Plus, ListChecks, BarChart3, UserCog, MapPin, Map } from 'lucide-react';
+import { CalendarDays, Users, Pencil, Trash2, Check, X, Plus, ListChecks, BarChart3, UserCog, MapPin, Map } from 'lucide-react';
 
 const HARI_LIST = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Ahad'];
 
@@ -199,13 +200,10 @@ export default function SetupPage() {
     <AppScreen>
       {/* Header */}
       <header className="px-5 pt-6">
-        <button
-          onClick={() => router.push('/dashboard')}
-          aria-label="Kembali"
+        <BackButton
+          fallbackHref="/dashboard"
           className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
-        >
-          <ChevronLeft className="size-5 text-ink" />
-        </button>
+        />
         <h1 className="mt-3 flex items-center gap-2 truncate text-2xl font-extrabold text-ink">
           <TingkatanIcon tingkatan={kelompok.tingkatan} className="size-6 text-primary" /> {kelompok.nama_kelompok}
         </h1>

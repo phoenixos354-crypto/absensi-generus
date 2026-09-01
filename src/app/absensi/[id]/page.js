@@ -3,8 +3,9 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AppScreen } from '@/components/AppScreen';
+import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { ChevronLeft, MapPin, Users, ClipboardList, ArrowLeft, Save, Check, NotebookPen, Wallet } from 'lucide-react';
+import { MapPin, Users, ClipboardList, ArrowLeft, Save, Check, NotebookPen, Wallet } from 'lucide-react';
 
 const STATUS_LIST = ['Hadir','Izin','Sakit','Alfa'];
 
@@ -191,13 +192,11 @@ export default function AbsensiPage() {
         {/* Header hero */}
         <div className="brand-gradient relative overflow-hidden rounded-b-[2rem] pt-6 text-primary-foreground">
           <div className="flex items-center justify-between px-5">
-            <button
-              onClick={() => router.push('/dashboard')}
-              aria-label="Kembali"
+            <BackButton
+              fallbackHref="/dashboard"
               className="grid size-10 place-items-center rounded-full bg-white/20"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
+              iconClassName="size-5"
+            />
             <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold">
               <MapPin className="size-3" /> {kelompok.desa}
             </span>

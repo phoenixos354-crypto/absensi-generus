@@ -4,9 +4,10 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
+import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, TINGKATAN_LABEL } from '@/components/tingkatan';
 import {
-  ChevronLeft, Users, Trophy, Percent, Layers, CheckCircle2,
+  Users, Trophy, Percent, Layers, CheckCircle2,
   Target, MapPin, ChevronRight, ClipboardList,
 } from 'lucide-react';
 
@@ -65,13 +66,11 @@ export default function RekapTargetGlobalPage() {
     <AppScreen>
       <header className="relative overflow-hidden px-5 pb-8 pt-6" style={{ background: 'linear-gradient(160deg,#155dfc 0%,#1447c9 100%)' }}>
         <div className="relative z-10 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
-          <button
-            onClick={() => router.push('/dashboard')}
-            aria-label="Kembali"
+          <BackButton
+            fallbackHref="/dashboard"
             className="grid size-10 shrink-0 place-items-center rounded-full bg-white/15 text-white"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
+            iconClassName="size-5"
+          />
           <div className="text-center">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
               Rekap Target

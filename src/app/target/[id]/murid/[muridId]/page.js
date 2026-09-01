@@ -4,9 +4,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { AppScreen } from '@/components/AppScreen';
+import { BackButton } from '@/components/BackButton';
 import { KATEGORI, URUTAN_TINGKATAN, NILAI_LIST, NILAI_WARNA, NILAI_LABEL, NILAI_DOT } from '@/lib/target-constants';
 import { pilihNilaiLocalFirst, mergeOverlay, flushPending } from '@/lib/localOverlay';
-import { ChevronLeft, Share2, ChevronDown, Check, CalendarCheck, ChevronRight as ChevronRightIcon, Target as TargetIcon } from 'lucide-react';
+import { Share2, ChevronLeft, ChevronDown, Check, CalendarCheck, ChevronRight as ChevronRightIcon, Target as TargetIcon } from 'lucide-react';
 
 function bulanIniStr() {
   const d = new Date();
@@ -124,12 +125,38 @@ export default function KartuTargetPage() {
   async function salinLink() {
     const res = await fetch(`/api/murid/kode-publik?murid_id=${muridId}`);
     const data = await res.json();
-    if (data.kode_publik) {
-      const url = `${window.location.origin}/p/${data.kode_publik}`;
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    if (!data.kode_publik) return;
+
+    const url = `${window.location.origin}/p/${data.kode_publik}`;
+    const dataShare = {
+      title: `Kartu Pencapaian ${murid?.nama_murid || ''}`.trim(),
+      text: `Lihat kartu pencapaian target ${murid?.nama_murid || 'murid'} di Absensi Generus`,
+      url,
+    };
+
+    // Di HP, navigator.share() memunculkan sheet share bawaan OS — bisa
+    // langsung kirim ke WhatsApp/Instagram/Facebook/TikTok/dll (tergantung
+    // app apa saja yang terpasang di HP), jadi ini diprioritaskan daripada
+    // cuma nyalin link.
+    if (navigator.share) {
+      try {
+        await navigator.share(dataShare);
+      } catch (err) {
+        // User membatalkan share sheet -> bukan error, biarkan saja.
+        // Kalau share-nya gagal karena sebab lain, fallback ke salin link.
+        if (err?.name !== 'AbortError') {
+          await navigator.clipboard?.writeText(url);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }
+      }
+      return;
     }
+
+    // Fallback untuk browser desktop yang belum dukung Web Share API
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   if (!kelompok || !murid) {
@@ -146,18 +173,15 @@ export default function KartuTargetPage() {
   return (
     <AppScreen>
       <header className="flex items-center justify-between px-5 pt-6">
-        <button
-          onClick={() => router.push(`/target/${kelompokId}`)}
-          aria-label="Kembali"
+        <BackButton
+          fallbackHref={`/target/${kelompokId}`}
           className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
-        >
-          <ChevronLeft className="size-5 text-ink" />
-        </button>
+        />
         <button
           onClick={salinLink}
           className="flex items-center gap-1.5 rounded-full bg-surface px-4 py-2.5 text-xs font-bold text-ink shadow-[var(--shadow-card)]"
         >
-          <Share2 className="size-4" /> {copied ? 'Tersalin!' : 'Salin Link'}
+          <Share2 className="size-4" /> {copied ? 'Tersalin!' : 'Bagikan'}
         </button>
       </header>
 

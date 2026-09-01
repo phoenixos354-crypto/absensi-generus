@@ -4,8 +4,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
+import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { ChevronLeft, ChevronRight, Target, Settings2, Users } from 'lucide-react';
+import { ChevronRight, Target, Settings2, Users } from 'lucide-react';
 
 export default function TargetListPage() {
   const { data: session, status } = useSession();
@@ -44,13 +45,10 @@ export default function TargetListPage() {
   return (
     <AppScreen>
       <header className="flex items-center justify-between px-5 pt-6">
-        <button
-          onClick={() => router.push(`/kelompok/${kelompokId}`)}
-          aria-label="Kembali"
+        <BackButton
+          fallbackHref={`/kelompok/${kelompokId}`}
           className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
-        >
-          <ChevronLeft className="size-5 text-ink" />
-        </button>
+        />
         {bisaKelola && (
           <button
             onClick={() => router.push(`/target/${kelompokId}/pengaturan`)}
