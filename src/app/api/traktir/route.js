@@ -63,6 +63,10 @@ export async function POST(req) {
 
     const qrAction = (data.actions || []).find((a) => a.name === 'generate-qr-code');
 
+    if (!data.qr_string && !qrAction?.url) {
+      console.error('[traktir] Midtrans QRIS response tanpa qr_string/actions:', JSON.stringify(data));
+    }
+
     return NextResponse.json({
       order_id: data.order_id,
       qr_url: qrAction?.url || null,

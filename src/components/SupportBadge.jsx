@@ -99,17 +99,22 @@ function KopiForm({ onCreated }) {
 function KopiQr({ data, onReset }) {
   const [status, setStatus] = useState(data.transaction_status || 'pending');
   const [qrImage, setQrImage] = useState(null);
+  const [qrError, setQrError] = useState(false);
   const intervalRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
+
     if (data.qr_string) {
       QRCode.toDataURL(data.qr_string, { width: 320, margin: 1 })
         .then((url) => { if (!cancelled) setQrImage(url); })
-        .catch(() => { if (!cancelled) setQrImage(null); });
+        .catch(() => { if (!cancelled) setQrError(true); });
     } else if (data.qr_url) {
       setQrImage(data.qr_url);
+    } else {
+      setQrError(true);
     }
+
     return () => { cancelled = true; };
   }, [data.qr_string, data.qr_url]);
 
@@ -147,6 +152,11 @@ function KopiQr({ data, onReset }) {
       {qrImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={qrImage} alt="QRIS" className="size-56 rounded-xl border border-black/10" />
+      ) : qrError ? (
+        <div className="flex size-56 flex-col items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-center">
+          <p className="text-xs font-semibold text-red-500">QR gagal dibuat</p>
+          <p className="text-[11px] text-red-500/70">Coba lagi, atau cek konfigurasi Midtrans-nya.</p>
+        </div>
       ) : (
         <div className="flex size-56 items-center justify-center rounded-xl border border-black/10">
           <Loader2 className="size-6 animate-spin text-ink/40" />
@@ -154,7 +164,11 @@ function KopiQr({ data, onReset }) {
       )}
       <p className="text-sm font-bold text-ink">{formatRupiah(data.amount)}</p>
 
-      {isDead ? (
+      {qrError ? (
+        <button onClick={onReset} className="mt-1 text-xs font-bold text-ink underline">
+          Coba lagi
+        </button>
+      ) : isDead ? (
         <>
           <p className="text-xs font-semibold text-red-500">QR kedaluwarsa / dibatalkan</p>
           <button onClick={onReset} className="mt-1 text-xs font-bold text-ink underline">
