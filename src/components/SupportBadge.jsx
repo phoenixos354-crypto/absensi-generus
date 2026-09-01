@@ -1,15 +1,11 @@
 'use client';
 import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Globe, MessageCircle, Coffee, ChevronLeft, ExternalLink } from 'lucide-react';
+import { X, Globe, MessageCircle, Coffee, ChevronLeft } from 'lucide-react';
 
 const WA_NUMBER = '6285895970918';
 const WEBSITE_URL = 'https://galipatmedia.id';
 const WA_URL = (msg) => `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
-
-// Payment Link reusable + nominal bebas dari Midtrans (Galipat Media)
-const TRAKTIR_LINK_URL =
-  'https://app.midtrans.com/payment-links/a622673b-05a3-432a-b4f2-9e0f759999b2-KjXRbXQJ';
 
 function KopiView() {
   const [note, setNote] = useState('');
@@ -19,8 +15,8 @@ function KopiView() {
       <Coffee className="size-10 text-[#f2a900]" />
       <Dialog.Title className="mt-2 text-base font-bold text-ink">Traktir Kopi ☕</Dialog.Title>
       <Dialog.Description className="mt-1 text-sm text-ink/60">
-        Scan QRIS di bawah untuk traktir kopi developer (nominal bebas), atau tap tombolnya
-        langsung dari HP kamu.
+        Scan QRIS di bawah pakai GoPay, OVO, DANA, ShopeePay, atau m-banking apa saja — nominal
+        bisa langsung diisi bebas di aplikasi kamu.
       </Dialog.Description>
 
       <div className="mt-4 w-full">
@@ -30,16 +26,6 @@ function KopiView() {
           alt="QRIS Traktir Kopi"
           className="mx-auto w-full max-w-[240px] rounded-xl border border-black/10"
         />
-
-        <a
-          href={TRAKTIR_LINK_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 flex items-center justify-center gap-2 rounded-full bg-[#f2a900] py-3 text-sm font-bold text-ink active:scale-[0.98]"
-        >
-          <ExternalLink className="size-4" />
-          Buka Halaman Pembayaran
-        </a>
 
         <textarea
           placeholder="Kirim masukan (opsional)"
