@@ -138,12 +138,17 @@ function DashboardContent() {
   function konfirmasiKeluar() {
     izinkanKeluarRef.current = true;
     setShowExitConfirm(false);
-    // Browser tidak selalu izinkan script nutup tab/app-nya sendiri (aturan
-    // keamanan browser), jadi ini best-effort: kalau didukung (misal di
-    // beberapa konteks PWA/TWA), tab/app langsung tertutup. Kalau tidak,
-    // riwayat trap-nya sudah dilepas, jadi back fisik berikutnya akan benar-
-    // benar keluar tanpa nanya lagi.
+    // window.close() cuma manjur kalau tab/window ini dibuka lewat script
+    // (window.open()) - hampir mustahil buat tab yang dibuka user manual
+    // atau lewat ikon PWA, jadi ini biasanya diam-diam gagal tanpa error.
     window.close();
+    // Best-effort lain: langsung lompat 2 langkah di history (lewatin
+    // trap yang kita pasang + 1 entry dashboard duplikat), biar user
+    // langsung kelihat pindah ke halaman sebelum dashboard alih-alih
+    // kerasa "nge-freeze" di dashboard yang sama padahal window.close()
+    // gagal. Kalau history-nya nggak sedalam itu (misal dashboard adalah
+    // halaman pertama), ini aman - browser cuma diem di titik terdalam.
+    window.history.go(-2);
   }
 
   function batalKeluar() {
