@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 
 const TIPE_LABEL = { quran: "Al-Qur'an", hadis: 'Hadis' };
 const BATAS_RINGKAS = 90; // di atas ini, terjemah dipotong dan tombol "baca selengkapnya" muncul
+const BATAS_RINGKAS_ARAB = 60; // di atas ini, teks arab juga dipotong (ambang lebih kecil karena tulisan arab lebih "lebar" per karakter)
 
 // Mascot burung: taruh 5 file di /public/mascots/ dengan nama persis
 // mascot-1.webp ... mascot-5.webp (background transparan, format webp).
@@ -16,6 +17,8 @@ export function DalilWidget() {
 
   const mascotSrc = `/mascots/mascot-${data?.mascot_index || 1}.webp`;
   const terjemahPanjang = (data?.teks_terjemah?.length || 0) > BATAS_RINGKAS;
+  const arabPanjang = (data?.teks_arab?.length || 0) > BATAS_RINGKAS_ARAB;
+  const adaYangDipotong = terjemahPanjang || arabPanjang;
 
   return (
     <>
@@ -33,7 +36,7 @@ export function DalilWidget() {
                 <p
                   dir="rtl"
                   lang="ar"
-                  className="text-right text-[1.05rem] font-bold leading-[2] text-primary"
+                  className={`text-right text-[1.05rem] font-bold leading-[2] text-primary ${arabPanjang ? 'line-clamp-2' : ''}`}
                   style={{ fontFamily: "'Scheherazade New', 'Traditional Arabic', serif" }}
                 >
                   {data.teks_arab}
@@ -42,7 +45,7 @@ export function DalilWidget() {
               <p className={`${data.teks_arab ? 'mt-2' : ''} text-sm font-semibold leading-snug text-ink ${terjemahPanjang ? 'line-clamp-3' : ''}`}>
                 {data.teks_terjemah}
               </p>
-              {terjemahPanjang && (
+              {adaYangDipotong && (
                 <button
                   onClick={() => setBukaDetail(true)}
                   className="mt-1 text-xs font-bold text-muted-foreground"
