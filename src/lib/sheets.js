@@ -80,7 +80,7 @@ const HEADERS = {
   [SHEETS.ADMIN_KELOMPOK]:  ['id', 'kelompok_id', 'email', 'permission', 'invited_by', 'created_at'],
   [SHEETS.DALIL]:           ['id', 'tanggal', 'tipe', 'teks_arab', 'teks_terjemah', 'sumber', 'mascot_index', 'created_at'],
   [SHEETS.SESI]:            ['id', 'kelompok_id', 'tanggal', 'jurnal', 'infaq', 'dicatat_oleh', 'created_at'],
-  [SHEETS.TARGET_PRESET]:   ['id', 'nama_preset', 'dibuat_oleh_kelompok_id', 'nama_kelompok_asal', 'desa_asal', 'daerah_asal', 'dibuat_oleh_email', 'created_at'],
+  [SHEETS.TARGET_PRESET]:   ['id', 'nama_preset', 'dibuat_oleh_kelompok_id', 'nama_kelompok_asal', 'desa_asal', 'daerah_asal', 'dibuat_oleh_email', 'created_at', 'kode'],
   [SHEETS.TARGET_ITEM]:     ['id', 'preset_id', 'tingkatan', 'kategori', 'urutan', 'nama_item', 'created_at', 'kelas'],
   [SHEETS.TARGET_PROGRESS]: ['id', 'murid_id', 'item_id', 'nilai', 'tanggal', 'dicatat_oleh', 'created_at'],
 };
