@@ -2,6 +2,7 @@
 import { SessionProvider } from 'next-auth/react';
 import { SWRConfig } from 'swr';
 import { InstallPrompt } from './InstallPrompt';
+import { SupportBadge } from './SupportBadge';
 import { useEffect } from 'react';
 
 export const fetcher = (url) =>
@@ -87,6 +88,7 @@ export function Providers({ children }) {
         <TrackEntryHistory />
         {children}
         <InstallPrompt />
+        <SupportBadge />
       </SWRConfig>
     </SessionProvider>
   );
