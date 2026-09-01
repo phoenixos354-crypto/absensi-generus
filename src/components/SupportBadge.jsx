@@ -9,7 +9,7 @@ const WA_URL = (msg) => `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(ms
 
 // Payment Link reusable + nominal bebas dari Midtrans (Galipat Media)
 const TRAKTIR_LINK_URL =
-  'https://app.midtrans.com/payment-links/5201cfc8-8dc0-46cb-9972-0e15ddb661ba-B1Ff8WOJ';
+  'https://app.midtrans.com/payment-links/a622673b-05a3-432a-b4f2-9e0f759999b2-KjXRbXQJ';
 
 function KopiView() {
   const [note, setNote] = useState('');
