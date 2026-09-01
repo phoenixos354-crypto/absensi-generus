@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Globe, MessageCircle, Coffee, ChevronLeft, Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
 
@@ -8,37 +8,46 @@ const WEBSITE_URL = 'https://galipatmedia.id';
 const WA_URL = (msg) => `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
 
 const QUICK_AMOUNTS = [5000, 10000, 20000, 50000];
-const EXPIRY_SECONDS = 15 * 60; // samain dengan custom_expiry di API route
+const SNAP_IS_PROD = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true';
+const SNAP_JS_SRC = SNAP_IS_PROD
+  ? 'https://app.midtrans.com/snap/snap.js'
+  : 'https://app.sandbox.midtrans.com/snap/snap.js';
 
 function formatRupiah(n) {
   return 'Rp ' + Number(n || 0).toLocaleString('id-ID');
 }
 
-function mmss(sec) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
+// Muat script Snap.js sekali saja, balikin Promise yang resolve begitu window.snap siap
+function loadSnapScript() {
+  if (typeof window === 'undefined') return Promise.reject(new Error('No window'));
+  if (window.snap) return Promise.resolve(window.snap);
+
+  return new Promise((resolve, reject) => {
+    const existing = document.getElementById('midtrans-snap-script');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(window.snap));
+      existing.addEventListener('error', () => reject(new Error('Gagal memuat Snap.js')));
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'midtrans-snap-script';
+    script.src = SNAP_JS_SRC;
+    script.setAttribute('data-client-key', process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '');
+    script.onload = () => resolve(window.snap);
+    script.onerror = () => reject(new Error('Gagal memuat Snap.js'));
+    document.body.appendChild(script);
+  });
 }
 
 function KopiView() {
-  const [step, setStep] = useState('input'); // input | loading | qr | success | error | expired
+  const [step, setStep] = useState('input'); // input | loading | waiting | success | error
   const [amount, setAmount] = useState(10000);
   const [customAmount, setCustomAmount] = useState('');
   const [note, setNote] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [qr, setQr] = useState(null); // { order_id, qr_url, gross_amount }
-  const [secondsLeft, setSecondsLeft] = useState(EXPIRY_SECONDS);
-  const pollRef = useRef(null);
-  const timerRef = useRef(null);
+  const [paidAmount, setPaidAmount] = useState(0);
 
   const finalAmount = customAmount ? Number(customAmount) : amount;
-
-  useEffect(() => {
-    return () => {
-      clearInterval(pollRef.current);
-      clearInterval(timerRef.current);
-    };
-  }, []);
 
   async function buatQris() {
     setErrorMsg('');
@@ -48,66 +57,41 @@ function KopiView() {
     }
     setStep('loading');
     try {
-      const res = await fetch('/api/traktir-kopi', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: finalAmount, note }),
-      });
+      const [snap, res] = await Promise.all([
+        loadSnapScript(),
+        fetch('/api/traktir-kopi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: finalAmount, note }),
+        }),
+      ]);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal bikin QRIS');
-      if (data.detail) console.log('[traktir-kopi] Detail respons Midtrans:', data.detail);
+      if (!res.ok) throw new Error(data.error || 'Gagal bikin transaksi');
 
-      setQr(data);
-      setSecondsLeft(EXPIRY_SECONDS);
-      setStep('qr');
-      mulaiPolling(data.order_id);
-      mulaiCountdown();
+      setPaidAmount(data.gross_amount);
+      setStep('waiting');
+
+      snap.pay(data.token, {
+        onSuccess: () => setStep('success'),
+        onPending: () => {
+          // masih nunggu pembayaran (QR sudah ditampilkan Snap), biarkan popup Snap yang urus
+        },
+        onError: (result) => {
+          setErrorMsg(result?.status_message || 'Pembayaran gagal.');
+          setStep('error');
+        },
+        onClose: () => {
+          // user nutup popup tanpa nyelesain bayar
+          setStep('input');
+        },
+      });
     } catch (err) {
       setErrorMsg(err.message);
       setStep('error');
     }
   }
 
-  function mulaiCountdown() {
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) {
-          clearInterval(timerRef.current);
-          clearInterval(pollRef.current);
-          setStep('expired');
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-  }
-
-  function mulaiPolling(order_id) {
-    clearInterval(pollRef.current);
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/traktir-kopi?order_id=${order_id}`);
-        const data = await res.json();
-        if (data.transaction_status === 'settlement' || data.transaction_status === 'capture') {
-          clearInterval(pollRef.current);
-          clearInterval(timerRef.current);
-          setStep('success');
-        } else if (['expire', 'cancel', 'deny'].includes(data.transaction_status)) {
-          clearInterval(pollRef.current);
-          clearInterval(timerRef.current);
-          setStep('expired');
-        }
-      } catch {
-        // koneksi gagal, coba lagi di polling berikutnya
-      }
-    }, 4000);
-  }
-
   function ulangi() {
-    clearInterval(pollRef.current);
-    clearInterval(timerRef.current);
-    setQr(null);
     setErrorMsg('');
     setStep('input');
   }
@@ -189,37 +173,16 @@ function KopiView() {
       {step === 'loading' && (
         <div className="mt-6 flex flex-col items-center gap-2 py-8">
           <Loader2 className="size-8 animate-spin text-[#f2a900]" />
-          <p className="text-sm text-ink/60">Membuat QRIS...</p>
+          <p className="text-sm text-ink/60">Menyiapkan QRIS...</p>
         </div>
       )}
 
-      {step === 'qr' && qr && (
-        <div className="mt-3 w-full">
-          <Dialog.Description className="text-sm text-ink/60">
-            Scan pakai GoPay, OVO, DANA, ShopeePay, atau m-banking apa saja.
-          </Dialog.Description>
-
-          <p className="mt-2 text-lg font-extrabold text-ink">{formatRupiah(qr.gross_amount)}</p>
-
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={qr.qr_url}
-            alt="QRIS Traktir Kopi"
-            className="mx-auto mt-2 w-full max-w-[240px] rounded-xl border border-black/10"
-          />
-
-          <div className="mt-3 flex items-center justify-center gap-2 text-xs text-ink/50">
-            <Loader2 className="size-3.5 animate-spin" />
-            Menunggu pembayaran... berlaku {mmss(secondsLeft)} lagi
-          </div>
-
-          <button
-            onClick={ulangi}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-black/10 py-2.5 text-sm font-semibold text-ink/60 active:scale-[0.98]"
-          >
-            <RefreshCw className="size-3.5" />
-            Ganti Nominal
-          </button>
+      {step === 'waiting' && (
+        <div className="mt-6 flex flex-col items-center gap-2 py-8">
+          <Loader2 className="size-8 animate-spin text-[#f2a900]" />
+          <p className="text-sm text-ink/60">
+            Menunggu pembayaran {formatRupiah(paidAmount)} di jendela Midtrans...
+          </p>
         </div>
       )}
 
@@ -227,7 +190,7 @@ function KopiView() {
         <div className="mt-4 flex flex-col items-center gap-2 py-4 text-center">
           <CheckCircle2 className="size-12 text-green-500" />
           <p className="text-sm font-bold text-ink">
-            Makasih traktirannya, {formatRupiah(qr?.gross_amount)}! ☕
+            Makasih traktirannya, {formatRupiah(paidAmount)}! ☕
           </p>
           <p className="text-xs text-ink/50">Developer kamu happy hari ini.</p>
           <button
@@ -239,11 +202,9 @@ function KopiView() {
         </div>
       )}
 
-      {(step === 'expired' || step === 'error') && (
+      {step === 'error' && (
         <div className="mt-4 flex flex-col items-center gap-2 py-4 text-center">
-          <p className="text-sm font-semibold text-ink">
-            {step === 'expired' ? 'QRIS sudah kedaluwarsa.' : errorMsg || 'Terjadi kesalahan.'}
-          </p>
+          <p className="text-sm font-semibold text-ink">{errorMsg || 'Terjadi kesalahan.'}</p>
           <button
             onClick={ulangi}
             className="mt-2 flex items-center gap-2 rounded-full bg-[#f2a900] px-5 py-2.5 text-sm font-bold text-ink active:scale-[0.98]"

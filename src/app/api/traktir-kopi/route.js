@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 
 const IS_PROD = process.env.MIDTRANS_IS_PRODUCTION === 'true';
-const MIDTRANS_BASE = IS_PROD
+const MIDTRANS_API_BASE = IS_PROD
   ? 'https://api.midtrans.com'
   : 'https://api.sandbox.midtrans.com';
+const MIDTRANS_SNAP_BASE = IS_PROD
+  ? 'https://app.midtrans.com'
+  : 'https://app.sandbox.midtrans.com';
 
 function authHeader() {
   const serverKey = process.env.MIDTRANS_SERVER_KEY;
@@ -11,7 +14,8 @@ function authHeader() {
   return 'Basic ' + Buffer.from(`${serverKey}:`).toString('base64');
 }
 
-// POST: bikin transaksi QRIS baru sesuai nominal yang diisi user, balikin QR-nya
+// POST: bikin transaksi Snap sesuai nominal yang diisi user, cuma nawarin QRIS,
+// balikin snap token buat dibuka via window.snap.pay() di frontend.
 export async function POST(req) {
   try {
     const { amount, note } = await req.json();
@@ -26,7 +30,7 @@ export async function POST(req) {
 
     const order_id = `traktir-${Date.now()}`;
 
-    const res = await fetch(`${MIDTRANS_BASE}/v2/charge`, {
+    const res = await fetch(`${MIDTRANS_SNAP_BASE}/snap/v1/transactions`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -34,13 +38,11 @@ export async function POST(req) {
         Authorization: authHeader(),
       },
       body: JSON.stringify({
-        payment_type: 'qris',
         transaction_details: { order_id, gross_amount },
-        qris: { acquirer: 'gopay' },
-        custom_expiry: {
-          expiry_duration: 15,
-          unit: 'minute',
-        },
+        // Cuma tawarin QRIS - biar Snap langsung nunjukin QR-nya,
+        // skip halaman pilih metode pembayaran.
+        enabled_payments: ['other_qris'],
+        expiry: { unit: 'minutes', duration: 15 },
         item_details: [
           {
             id: 'traktir-kopi',
@@ -54,32 +56,17 @@ export async function POST(req) {
 
     const data = await res.json();
 
-    if (!res.ok) {
-      console.error('[traktir-kopi] Midtrans charge error:', data);
+    if (!res.ok || !data.token) {
+      console.error('[traktir-kopi] Midtrans Snap error:', data);
       return NextResponse.json(
-        { error: data.status_message || 'Gagal bikin QRIS', detail: data },
-        { status: res.status }
-      );
-    }
-
-    const qrAction = (data.actions || []).find((a) => a.name === 'generate-qr-code');
-    if (!qrAction) {
-      console.error('[traktir-kopi] Respon Midtrans tanpa generate-qr-code:', data);
-      return NextResponse.json(
-        {
-          error:
-            data.status_message ||
-            `QR tidak tersedia dari Midtrans (status_code: ${data.status_code || '?'})`,
-          detail: data,
-        },
-        { status: 500 }
+        { error: (data.error_messages || []).join(', ') || 'Gagal bikin transaksi', detail: data },
+        { status: res.status || 500 }
       );
     }
 
     return NextResponse.json({
-      order_id: data.order_id,
-      qr_url: qrAction.url,
-      expiry_time: data.expiry_time,
+      order_id,
+      token: data.token,
       gross_amount,
     });
   } catch (err) {
@@ -87,23 +74,23 @@ export async function POST(req) {
   }
 }
 
-// GET: cek status pembayaran buat polling dari frontend
+// GET: cek status pembayaran (dipakai sebagai cadangan/verifikasi tambahan,
+// snap.pay() sendiri sudah punya callback onSuccess/onPending/onError)
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const order_id = searchParams.get('order_id');
     if (!order_id) return NextResponse.json({ error: 'order_id wajib diisi' }, { status: 400 });
 
-    const res = await fetch(`${MIDTRANS_BASE}/v2/${order_id}/status`, {
+    const res = await fetch(`${MIDTRANS_API_BASE}/v2/${order_id}/status`, {
       headers: { Accept: 'application/json', Authorization: authHeader() },
     });
     const data = await res.json();
 
     if (!res.ok) {
-      return NextResponse.json(
-        { error: data.status_message || 'Gagal cek status' },
-        { status: res.status }
-      );
+      // Transaksi Snap yang baru dibuat & belum disentuh user kadang belum
+      // punya status (404) - anggap masih pending, bukan error keras.
+      return NextResponse.json({ transaction_status: 'pending' });
     }
 
     return NextResponse.json({
