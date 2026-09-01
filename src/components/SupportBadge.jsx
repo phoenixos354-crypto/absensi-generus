@@ -55,6 +55,7 @@ function KopiView() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal bikin QRIS');
+      if (data.detail) console.log('[traktir-kopi] Detail respons Midtrans:', data.detail);
 
       setQr(data);
       setSecondsLeft(EXPIRY_SECONDS);

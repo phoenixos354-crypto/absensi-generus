@@ -55,15 +55,25 @@ export async function POST(req) {
     const data = await res.json();
 
     if (!res.ok) {
+      console.error('[traktir-kopi] Midtrans charge error:', data);
       return NextResponse.json(
-        { error: data.status_message || 'Gagal bikin QRIS' },
+        { error: data.status_message || 'Gagal bikin QRIS', detail: data },
         { status: res.status }
       );
     }
 
     const qrAction = (data.actions || []).find((a) => a.name === 'generate-qr-code');
     if (!qrAction) {
-      return NextResponse.json({ error: 'QR tidak tersedia dari Midtrans' }, { status: 500 });
+      console.error('[traktir-kopi] Respon Midtrans tanpa generate-qr-code:', data);
+      return NextResponse.json(
+        {
+          error:
+            data.status_message ||
+            `QR tidak tersedia dari Midtrans (status_code: ${data.status_code || '?'})`,
+          detail: data,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
