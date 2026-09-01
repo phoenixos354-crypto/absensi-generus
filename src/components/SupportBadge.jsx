@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
+import QRCode from 'qrcode';
 import { X, Globe, MessageCircle, Coffee, ChevronLeft, Loader2, CheckCircle2 } from 'lucide-react';
 
 const WA_NUMBER = '6285895970918';
@@ -74,7 +75,7 @@ function KopiForm({ onCreated }) {
       />
 
       <textarea
-        placeholder="Request fitur / masukan (opsional)"
+        placeholder="Kirim masukan (opsional)"
         value={note}
         onChange={(e) => setNote(e.target.value)}
         rows={2}
@@ -97,7 +98,20 @@ function KopiForm({ onCreated }) {
 
 function KopiQr({ data, onReset }) {
   const [status, setStatus] = useState(data.transaction_status || 'pending');
+  const [qrImage, setQrImage] = useState(null);
   const intervalRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (data.qr_string) {
+      QRCode.toDataURL(data.qr_string, { width: 320, margin: 1 })
+        .then((url) => { if (!cancelled) setQrImage(url); })
+        .catch(() => { if (!cancelled) setQrImage(null); });
+    } else if (data.qr_url) {
+      setQrImage(data.qr_url);
+    }
+    return () => { cancelled = true; };
+  }, [data.qr_string, data.qr_url]);
 
   useEffect(() => {
     if (!data.order_id || status === 'settlement' || status === 'capture') return;
@@ -130,11 +144,13 @@ function KopiQr({ data, onReset }) {
 
   return (
     <div className="mt-4 flex w-full flex-col items-center gap-2">
-      {data.qr_url ? (
+      {qrImage ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={data.qr_url} alt="QRIS" className="size-56 rounded-xl border border-black/10" />
+        <img src={qrImage} alt="QRIS" className="size-56 rounded-xl border border-black/10" />
       ) : (
-        <p className="text-xs text-ink/60">QR tidak tersedia.</p>
+        <div className="flex size-56 items-center justify-center rounded-xl border border-black/10">
+          <Loader2 className="size-6 animate-spin text-ink/40" />
+        </div>
       )}
       <p className="text-sm font-bold text-ink">{formatRupiah(data.amount)}</p>
 
@@ -229,7 +245,7 @@ export function SupportBadge() {
                     className="flex items-center justify-center gap-2 rounded-full bg-[#f2a900] py-3 text-sm font-bold text-ink active:scale-[0.98]"
                   >
                     <Coffee className="size-4" />
-                    Traktir Kopi & Request Fitur
+                    Traktir Kopi & Kirim Masukan
                   </button>
                   <a
                     href={WEBSITE_URL}
@@ -258,7 +274,7 @@ export function SupportBadge() {
                 <Coffee className="size-10 text-[#f2a900]" />
                 <Dialog.Title className="mt-2 text-base font-bold text-ink">Traktir Kopi ☕</Dialog.Title>
                 <Dialog.Description className="mt-1 text-sm text-ink/60">
-                  Scan QRIS untuk traktir kopi developer, sekalian titip request fitur kalau ada.
+                  Scan QRIS untuk traktir kopi developer, sekalian kirim masukan kalau ada.
                 </Dialog.Description>
 
                 {qrData ? (

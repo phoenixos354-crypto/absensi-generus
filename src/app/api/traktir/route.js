@@ -66,6 +66,7 @@ export async function POST(req) {
     return NextResponse.json({
       order_id: data.order_id,
       qr_url: qrAction?.url || null,
+      qr_string: data.qr_string || null,
       expiry_time: data.expiry_time || null,
       transaction_status: data.transaction_status,
     });
