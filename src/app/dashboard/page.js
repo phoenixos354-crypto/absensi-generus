@@ -1,12 +1,12 @@
 'use client';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo, useRef, Suspense } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { DalilWidget } from '@/components/DalilWidget';
 import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
-import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert, ChevronRight, Target as TargetIcon } from 'lucide-react';
+import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert, ChevronRight, Target as TargetIcon, LogOut } from 'lucide-react';
 import userAvatar from '@/assets/user-avatar.jpg';
 
 const FORM_KOSONG = { nama_kelompok:'', tingkatan:'caberawit', desa:'', daerah:'' };
@@ -107,6 +107,13 @@ function DashboardContent() {
   const [onboardStep, setOnboardStep] = useState(0);
   const [filterTingkatan, setFilterTingkatan] = useState('semua');
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  function keluarAkun() {
+    setSigningOut(true);
+    signOut({ callbackUrl: '/login' });
+  }
   const izinkanKeluarRef = useRef(false);
 
   useEffect(() => {
@@ -261,7 +268,11 @@ function DashboardContent() {
     <>
       <AppScreen>
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 pt-6">
-          <div className="flex min-w-0 items-center gap-3">
+          <button
+            aria-label="Profil & Akun"
+            onClick={() => setShowProfileMenu(true)}
+            className="flex min-w-0 items-center gap-3 text-left active:opacity-80"
+          >
             {session?.user?.image ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
@@ -278,7 +289,7 @@ function DashboardContent() {
               <p className="text-xs text-muted-foreground">{hariIni}</p>
               <p className="truncate text-base font-bold text-ink">{session?.user?.name?.split(' ')[0]}</p>
             </div>
-          </div>
+          </button>
           <button
             aria-label="Panduan"
             onClick={() => { setShowOnboarding(true); setOnboardStep(0); }}
@@ -550,6 +561,45 @@ function DashboardContent() {
               }
             </div>
             <button onClick={selesaiOnboarding} className="mt-3 text-xs font-semibold text-muted-foreground">Lewati</button>
+          </div>
+        </div>
+      )}
+
+      {showProfileMenu && (
+        <div className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-[2px]" onClick={() => setShowProfileMenu(false)}>
+          <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[26rem] rounded-t-[2rem] bg-surface p-5 pb-8 shadow-[var(--shadow-float)]" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
+            <div className="flex items-center gap-3 rounded-2xl bg-secondary p-3.5">
+              {session?.user?.image ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={session.user.image}
+                  alt={session.user.name}
+                  className="size-12 shrink-0 rounded-full object-cover"
+                  onError={e => { e.currentTarget.src = userAvatar.src; }}
+                />
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={userAvatar.src} alt={session?.user?.name || 'User'} className="size-12 shrink-0 rounded-full object-cover" />
+              )}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-ink">{session?.user?.name}</p>
+                {session?.user?.email && (
+                  <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={keluarAkun}
+              disabled={signingOut}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-destructive py-3.5 text-sm font-bold text-destructive-foreground active:scale-[0.99] disabled:opacity-60"
+            >
+              <LogOut className="size-4" /> {signingOut ? 'Sedang keluar...' : 'Keluar Akun'}
+            </button>
+            <button onClick={() => setShowProfileMenu(false)} className="mt-2.5 w-full rounded-full bg-secondary py-3.5 text-sm font-bold text-ink">
+              Batal
+            </button>
           </div>
         </div>
       )}
