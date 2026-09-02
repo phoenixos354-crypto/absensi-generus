@@ -127,16 +127,16 @@ export default function PengaturanTargetPage() {
   }
 
   function ubahNamaItem(idx, value) {
-    setDraftItems(prev => prev.map((it, i) => i === idx ? { ...it, nama_item: value } : it));
+    setDraftItems(prev => (prev || []).map((it, i) => i === idx ? { ...it, nama_item: value } : it));
   }
   function ubahKelasItem(idx, value) {
-    setDraftItems(prev => prev.map((it, i) => i === idx ? { ...it, kelas: value } : it));
+    setDraftItems(prev => (prev || []).map((it, i) => i === idx ? { ...it, kelas: value } : it));
   }
   function hapusItem(idx) {
-    setDraftItems(prev => prev.filter((_, i) => i !== idx));
+    setDraftItems(prev => (prev || []).filter((_, i) => i !== idx));
   }
   function tambahItem() {
-    setDraftItems(prev => [...prev, { nama_item: '', kelas: '' }]);
+    setDraftItems(prev => [...(prev || []), { nama_item: '', kelas: '' }]);
   }
 
   async function simpanItem() {
