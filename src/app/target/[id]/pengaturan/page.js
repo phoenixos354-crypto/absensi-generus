@@ -25,7 +25,7 @@ export default function PengaturanTargetPage() {
   // yang benar (bukan cache default global yang gak kebaca siapa-siapa).
   const { mutate } = useSWRConfig();
 
-  const [tingkatanEdit, setTingkatanEdit] = useState(null);
+  const [tingkatanEdit, setTingkatanEdit] = useState('caberawit');
   const [kategoriEdit, setKategoriEdit] = useState(KATEGORI[0].key);
   const [draftItems, setDraftItems] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -43,9 +43,7 @@ export default function PengaturanTargetPage() {
     if (status === 'unauthenticated') router.replace('/login');
   }, [status]);
 
-  const { data: kelompok } = useSWR(session && kelompokId ? `/api/kelompok/${kelompokId}` : null, {
-    onSuccess: (d) => { if (!tingkatanEdit && d?.tingkatan) setTingkatanEdit(d.tingkatan); },
-  });
+  const { data: kelompok } = useSWR(session && kelompokId ? `/api/kelompok/${kelompokId}` : null);
   const { data: presetInfo, isLoading: presetLoading } = useSWR(session && kelompokId ? `/api/target-preset?kelompok_id=${kelompokId}` : null);
   const { data: itemData } = useSWR(
     session && kelompokId && tingkatanEdit ? `/api/target-item?kelompok_id=${kelompokId}&tingkatan=${tingkatanEdit}&kategori=${kategoriEdit}` : null,
