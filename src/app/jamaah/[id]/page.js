@@ -7,11 +7,11 @@ import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
 import {
   KATEGORI_USIA_JAMAAH, JENIS_KELAMIN_JAMAAH, STATUS_PERNIKAHAN_JAMAAH, STATUS_KELUARGA_JAMAAH,
-  getKategoriUsiaJamaah, getStatusKeluargaLabel,
+  STAT_CARDS_JAMAAH, getKategoriUsiaJamaah, getStatusKeluargaLabel,
 } from '@/lib/jamaah-constants';
 import {
-  Share2, X, Plus, MapPin, Map, Users, Home, Heart, HeartCrack, Venus, Mars,
-  Pencil, Trash2, TriangleAlert, ChevronDown, UserRound,
+  Share2, X, Plus, MapPin, Map, Users,
+  Pencil, Trash2, TriangleAlert, ChevronDown,
 } from 'lucide-react';
 
 const FORM_KOSONG = {
@@ -144,19 +144,6 @@ export default function KelompokJamaahDetailPage() {
   const stats = kelompok.stats || {};
   const daftarKK = daftarJamaah.filter(j => j.status_keluarga === 'kepala_keluarga' && j.id !== editTarget?.id);
 
-  const STAT_CARDS = [
-    { key: 'jumlah_kk', label: 'Kepala Keluarga', Icon: Home },
-    { key: 'total', label: 'Total Jamaah', Icon: Users },
-    { key: 'laki_laki', label: 'Laki-laki', Icon: Mars },
-    { key: 'perempuan', label: 'Perempuan', Icon: Venus },
-    { key: 'lansia', label: 'Lansia', Icon: UserRound },
-    { key: 'janda', label: 'Janda', Icon: HeartCrack },
-    { key: 'duda', label: 'Duda', Icon: HeartCrack },
-    { key: 'muda_mudi', label: 'Muda-Mudi', Icon: Users },
-    { key: 'usia_nikah', label: 'Usia Nikah', Icon: Heart },
-    { key: 'caberawit', label: 'Caberawit', Icon: UserRound },
-  ];
-
   return (
     <>
       <AppScreen>
@@ -197,7 +184,7 @@ export default function KelompokJamaahDetailPage() {
           <div className="card-soft p-4">
             <h2 className="text-sm font-extrabold text-ink">Rekap Data Jamaah</h2>
             <div className="mt-3 grid grid-cols-2 gap-2.5">
-              {STAT_CARDS.map(({ key, label, Icon }) => (
+              {STAT_CARDS_JAMAAH.map(({ key, label, Icon }) => (
                 <div key={key} className="flex items-center gap-2.5 rounded-2xl bg-secondary p-3">
                   <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-primary">
                     <Icon className="size-4.5" />

@@ -1,22 +1,10 @@
 'use client';
 import { useParams } from 'next/navigation';
 import useSWR from 'swr';
-import { IdCard, MapPin, Map, Users, Home, Heart, HeartCrack, Venus, Mars, UserRound } from 'lucide-react';
+import { IdCard, MapPin, Map } from 'lucide-react';
+import { STAT_CARDS_JAMAAH } from '@/lib/jamaah-constants';
 
 const fetcher = (url) => fetch(url).then(r => r.json());
-
-const STAT_CARDS = [
-  { key: 'jumlah_kk', label: 'Kepala Keluarga', Icon: Home },
-  { key: 'total', label: 'Total Jamaah', Icon: Users },
-  { key: 'laki_laki', label: 'Laki-laki', Icon: Mars },
-  { key: 'perempuan', label: 'Perempuan', Icon: Venus },
-  { key: 'lansia', label: 'Lansia', Icon: UserRound },
-  { key: 'janda', label: 'Janda', Icon: HeartCrack },
-  { key: 'duda', label: 'Duda', Icon: HeartCrack },
-  { key: 'muda_mudi', label: 'Muda-Mudi', Icon: Users },
-  { key: 'usia_nikah', label: 'Usia Nikah', Icon: Heart },
-  { key: 'caberawit', label: 'Caberawit', Icon: UserRound },
-];
 
 export default function KartuJamaahPublikPage() {
   const params = useParams();
@@ -71,7 +59,7 @@ export default function KartuJamaahPublikPage() {
         <div className="card-soft p-4">
           <h2 className="text-sm font-extrabold text-ink">Rekap Data Jamaah</h2>
           <div className="mt-3 grid grid-cols-2 gap-2.5">
-            {STAT_CARDS.map(({ key, label, Icon }) => (
+            {STAT_CARDS_JAMAAH.map(({ key, label, Icon }) => (
               <div key={key} className="flex items-center gap-2.5 rounded-2xl bg-secondary p-3">
                 <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-primary">
                   <Icon className="size-4.5" />

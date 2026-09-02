@@ -1,18 +1,40 @@
-import { Sprout, Flower2, Users2, Heart } from 'lucide-react';
+import {
+  Baby, Sprout, BookOpen, GraduationCap, Users2, Heart, Briefcase, Flower2,
+  Home, Users, Mars, Venus, HeartCrack,
+} from 'lucide-react';
 
 // Kategori usia jamaah — dipilih MANUAL saat input (bukan otomatis dari
 // umur), karena batas usia tiap kategori bisa beda-beda kebijakannya per
 // kelompok/daerah.
 export const KATEGORI_USIA_JAMAAH = [
-  { key: 'caberawit',  label: 'Caberawit',  Icon: Sprout },
-  { key: 'muda_mudi',  label: 'Muda-Mudi',  Icon: Users2 },
-  { key: 'usia_nikah', label: 'Usia Nikah', Icon: Heart },
-  { key: 'lansia',     label: 'Lansia',     Icon: Flower2 },
+  { key: 'paud',        label: 'Paud',        Icon: Baby },
+  { key: 'caberawit',   label: 'Caberawit',   Icon: Sprout },
+  { key: 'pra_remaja',  label: 'Pra Remaja',  Icon: BookOpen },
+  { key: 'remaja',      label: 'Remaja',      Icon: GraduationCap },
+  { key: 'muda_mudi',   label: 'Muda-Mudi',   Icon: Users2 },
+  { key: 'usia_nikah',  label: 'Usia Nikah',  Icon: Heart },
+  { key: 'dewasa',      label: 'Dewasa',      Icon: Briefcase },
+  { key: 'lansia',      label: 'Lansia',      Icon: Flower2 },
 ];
 
 export function getKategoriUsiaJamaah(key) {
   return KATEGORI_USIA_JAMAAH.find(k => k.key === key) || null;
 }
+
+// Kartu-kartu rekap statistik jamaah, dipakai di halaman kelola jamaah
+// (login) dan kartu publik (tanpa login). Digabung dari data dasar
+// (KK/gender/status pernikahan) + kategori usia, supaya kalau kategori usia
+// nambah/berubah, kartu rekap di kedua halaman otomatis ikut berubah tanpa
+// perlu edit daftar duplikat di masing-masing halaman.
+export const STAT_CARDS_JAMAAH = [
+  { key: 'jumlah_kk', label: 'Kepala Keluarga', Icon: Home },
+  { key: 'total',     label: 'Total Jamaah',    Icon: Users },
+  { key: 'laki_laki', label: 'Laki-laki',       Icon: Mars },
+  { key: 'perempuan', label: 'Perempuan',       Icon: Venus },
+  ...KATEGORI_USIA_JAMAAH.map(({ key, label, Icon }) => ({ key, label, Icon })),
+  { key: 'janda', label: 'Janda', Icon: HeartCrack },
+  { key: 'duda',  label: 'Duda',  Icon: HeartCrack },
+];
 
 export const JENIS_KELAMIN_JAMAAH = [
   { key: 'L', label: 'Laki-laki' },
