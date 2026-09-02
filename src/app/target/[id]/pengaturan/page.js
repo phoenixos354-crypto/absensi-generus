@@ -49,7 +49,7 @@ export default function PengaturanTargetPage() {
   const { data: presetInfo, isLoading: presetLoading } = useSWR(session && kelompokId ? `/api/target-preset?kelompok_id=${kelompokId}` : null);
   const { data: itemData } = useSWR(
     session && kelompokId && tingkatanEdit ? `/api/target-item?kelompok_id=${kelompokId}&tingkatan=${tingkatanEdit}&kategori=${kategoriEdit}` : null,
-    { onSuccess: (d) => setDraftItems((d?.items || []).map(i => ({ id: i.id, nama_item: i.nama_item, kelas: i.kelas || '' }))) }
+    { onSuccess: (d) => setDraftItems((d?.items || []).map(i => ({ id: i.id, nama_item: i.nama_item || '', kelas: i.kelas || '' }))) }
   );
 
   if (kelompok && kelompok.permission !== 'owner') {
@@ -143,7 +143,7 @@ export default function PengaturanTargetPage() {
     setSaving(true);
     setErrorSimpan('');
     const items = (draftItems || [])
-      .filter(i => i.nama_item.trim() !== '')
+      .filter(i => (i.nama_item || '').trim() !== '')
       .map(i => ({ id: i.id, nama_item: i.nama_item, kelas: i.kelas || '' }));
     const res = await fetch('/api/target-item', {
       method: 'POST',
@@ -324,7 +324,7 @@ export default function PengaturanTargetPage() {
               <div key={it.id || `baru-${idx}`} className="rounded-xl bg-secondary p-2">
                 <div className="flex items-center gap-2">
                   <input
-                    value={it.nama_item}
+                    value={it.nama_item || ''}
                     onChange={e => ubahNamaItem(idx, e.target.value)}
                     placeholder={`Item ${idx + 1}`}
                     disabled={!bisaEdit}
