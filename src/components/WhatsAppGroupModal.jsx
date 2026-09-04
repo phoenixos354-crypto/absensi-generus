@@ -14,7 +14,10 @@ export function WhatsAppGroupModal() {
 
   useEffect(() => {
     if (!localStorage.getItem(JOINED_KEY)) {
-      setVisible(true);
+      // Delay acak antara 5–10 detik sebelum modal muncul
+      const delay = Math.floor(Math.random() * 5000) + 5000; // 5000–10000 ms
+      const timer = setTimeout(() => setVisible(true), delay);
+      return () => clearTimeout(timer);
     }
   }, []);
 
