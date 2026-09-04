@@ -43,14 +43,16 @@ export async function PUT(req) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { id, nama_murid, kelompok_id } = await req.json();
-
-  const perm = await getPermission(session.user.email, kelompok_id);
-  if (perm !== 'owner') return NextResponse.json({ error: 'Hanya owner yang bisa edit murid' }, { status: 403 });
+  const { id, nama_murid } = await req.json();
 
   const allMurid = await readSheet(SHEETS.MURID);
   const target = allMurid.find(m => m.id === id);
   if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // Ambil kelompok_id dari data murid yang tersimpan (bukan dari body request),
+  // supaya cek izin tetap akurat walau client tidak mengirim kelompok_id.
+  const perm = await getPermission(session.user.email, target.kelompok_id);
+  if (perm !== 'owner') return NextResponse.json({ error: 'Hanya owner yang bisa edit murid' }, { status: 403 });
 
   await updateRow(SHEETS.MURID, { ...target, nama_murid }, MURID_HEADERS);
   return NextResponse.json({ success: true });
