@@ -180,6 +180,24 @@ create index if not exists idx_jamaah_wilayah_id on jamaah (wilayah_id);
 create index if not exists idx_jamaah_kepala_keluarga_id on jamaah (kepala_keluarga_id);
 
 -- =============================================================
+-- Tabel: pengeluaran_infaq
+-- Mencatat pengeluaran infaq per kelompok (mis. beli buku, snack,
+-- hadiah murid). Dipakai di halaman rekap per kelompok untuk
+-- menghitung sisa infaq dan menampilkan rincian pengeluaran.
+-- =============================================================
+create table if not exists pengeluaran_infaq (
+  id text primary key,
+  kelompok_id text,
+  tanggal text,
+  keterangan text,
+  jumlah text,
+  dicatat_oleh text,
+  created_at text,
+  _seq bigint generated always as identity
+);
+create index if not exists idx_pengeluaran_infaq_kelompok_id on pengeluaran_infaq (kelompok_id);
+
+-- =============================================================
 -- Row Level Security: dimatikan (RLS off) karena semua akses ke
 -- tabel ini SELALU lewat API routes Next.js pakai service role key
 -- di server (sama seperti sebelumnya lewat Google service account),

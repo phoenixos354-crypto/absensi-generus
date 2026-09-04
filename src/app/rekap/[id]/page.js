@@ -6,8 +6,9 @@ import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList, CheckCircle2, NotebookPen, Wallet } from 'lucide-react';
+import { ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList, CheckCircle2, NotebookPen, Wallet, Plus, Trash2, TrendingDown, TrendingUp, MinusCircle } from 'lucide-react';
 import { ExportPDF } from '@/components/ExportPDF';
+import * as Dialog from '@radix-ui/react-dialog';
 
 // Generate daftar bulan (12 bulan terakhir)
 function getBulanList() {
@@ -67,10 +68,72 @@ export default function RekapPage() {
     return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   });
 
-  const { data: rekap, isLoading: loadingRekap } = useSWR(
+  const { data: rekap, isLoading: loadingRekap, mutate: mutateRekap } = useSWR(
     kelompok ? `/api/rekap?kelompok_id=${kelompokId}&mode=${mode}&nilai=${nilai}` : null,
     { keepPreviousData: true }
   );
+
+  // State modal pengeluaran infaq
+  const [showModal, setShowModal] = useState(false);
+  const [formTanggal, setFormTanggal] = useState(() => new Date().toISOString().split('T')[0]);
+  const [formKeterangan, setFormKeterangan] = useState('');
+  const [formJumlah, setFormJumlah] = useState('');
+  const [savingPengeluaran, setSavingPengeluaran] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
+  function openModal() {
+    setFormTanggal(new Date().toISOString().split('T')[0]);
+    setFormKeterangan('');
+    setFormJumlah('');
+    setShowModal(true);
+  }
+
+  async function handleSavePengeluaran() {
+    if (!formKeterangan.trim() || !formJumlah || Number(formJumlah) <= 0) return;
+    setSavingPengeluaran(true);
+    try {
+      const res = await fetch('/api/pengeluaran-infaq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kelompok_id: kelompokId,
+          tanggal: formTanggal,
+          keterangan: formKeterangan.trim(),
+          jumlah: Number(formJumlah),
+        }),
+      });
+      if (res.ok) {
+        setShowModal(false);
+        await mutateRekap();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Gagal menyimpan pengeluaran');
+      }
+    } catch {
+      alert('Gagal menyimpan pengeluaran');
+    }
+    setSavingPengeluaran(false);
+  }
+
+  async function handleDeletePengeluaran(id) {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/pengeluaran-infaq?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        await mutateRekap();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Gagal menghapus pengeluaran');
+      }
+    } catch {
+      alert('Gagal menghapus pengeluaran');
+    }
+    setDeletingId(null);
+  }
+
+  function formatRupiah(n) {
+    return Number(n || 0).toLocaleString('id-ID');
+  }
 
   const bulanList  = getBulanList();
   const mingguList = getMingguList();
@@ -199,6 +262,100 @@ export default function RekapPage() {
               </div>
             </div>
           </section>
+
+          {/* Card detail infaq: masuk, keluar, sisa + tombol catat pengeluaran */}
+          <section className="px-5 pt-4">
+            <div className="card-soft p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-extrabold text-ink">Ringkasan Infaq</h2>
+                <button
+                  onClick={openModal}
+                  className="flex items-center gap-1 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-bold text-primary transition-colors active:scale-95"
+                >
+                  <Plus className="size-3.5" />
+                  Catat Pengeluaran
+                </button>
+              </div>
+
+              <div className="mt-3 space-y-2.5">
+                {/* Masuk */}
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <TrendingUp className="size-4 text-green-600" />
+                    Infaq Masuk
+                  </span>
+                  <span className="text-sm font-extrabold text-green-600">
+                    Rp{formatRupiah(rekap.total_infaq)}
+                  </span>
+                </div>
+                {/* Keluar */}
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <TrendingDown className="size-4 text-red-600" />
+                    Pengeluaran
+                  </span>
+                  <span className="text-sm font-extrabold text-red-600">
+                    Rp{formatRupiah(rekap.total_pengeluaran)}
+                  </span>
+                </div>
+                {/* Divider */}
+                <div className="border-t border-border" />
+                {/* Sisa */}
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-xs font-bold text-ink">
+                    <Wallet className="size-4 text-primary" />
+                    Sisa Infaq
+                  </span>
+                  <span className={`text-base font-extrabold ${(rekap.sisa_infaq || 0) < 0 ? 'text-red-600' : 'text-primary'}`}>
+                    Rp{formatRupiah(rekap.sisa_infaq)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Rincian pengeluaran infaq */}
+          {rekap.daftar_pengeluaran?.length > 0 && (
+            <section className="px-5 pt-4">
+              <div className="card-soft p-4">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="grid size-8 place-items-center rounded-full bg-red-50 text-red-600">
+                      <MinusCircle className="size-4" />
+                    </span>
+                    <h2 className="text-sm font-extrabold text-ink">Rincian Pengeluaran</h2>
+                  </span>
+                  <span className="text-sm font-extrabold text-red-600">
+                    Rp{formatRupiah(rekap.total_pengeluaran)}
+                  </span>
+                </div>
+
+                <div className="mt-3.5 space-y-2.5">
+                  {rekap.daftar_pengeluaran.map(p => (
+                    <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-secondary p-3.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-ink">{p.keterangan || '(tanpa keterangan)'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(p.tanggal).toLocaleDateString('id-ID', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-extrabold text-red-600">
+                        -Rp{formatRupiah(p.jumlah)}
+                      </span>
+                      <button
+                        onClick={() => handleDeletePengeluaran(p.id)}
+                        disabled={deletingId === p.id}
+                        className="shrink-0 rounded-full p-2 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 active:scale-90 disabled:opacity-40"
+                        title="Hapus pengeluaran"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Progress semua status */}
           {(() => {
@@ -383,6 +540,85 @@ export default function RekapPage() {
           </button>
         </div>
       </div>
+
+      {/* Modal: Catat Pengeluaran Infaq */}
+      <Dialog.Root open={showModal} onOpenChange={setShowModal}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-surface p-6 shadow-2xl">
+            <Dialog.Title className="text-lg font-extrabold text-ink">
+              Catat Pengeluaran Infaq
+            </Dialog.Title>
+            <Dialog.Description className="mt-1 text-xs text-muted-foreground">
+              Tambahkan pengeluaran infaq untuk kelompok ini.
+            </Dialog.Description>
+
+            <div className="mt-5 space-y-4">
+              {/* Tanggal */}
+              <div>
+                <label className="text-xs font-bold text-muted-foreground">Tanggal</label>
+                <input
+                  type="date"
+                  value={formTanggal}
+                  onChange={e => setFormTanggal(e.target.value)}
+                  className="mt-1.5 w-full rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+
+              {/* Keterangan */}
+              <div>
+                <label className="text-xs font-bold text-muted-foreground">Keterangan</label>
+                <input
+                  type="text"
+                  value={formKeterangan}
+                  onChange={e => setFormKeterangan(e.target.value)}
+                  placeholder="Misal: Beli buku Iqra, Snack murid"
+                  className="mt-1.5 w-full rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+
+              {/* Jumlah */}
+              <div>
+                <label className="text-xs font-bold text-muted-foreground">Jumlah Pengeluaran</label>
+                <div className="mt-1.5 flex items-center rounded-2xl bg-secondary px-4 py-3 focus-within:ring-2 focus-within:ring-primary/40">
+                  <span className="mr-1 text-sm font-bold text-muted-foreground">Rp</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={formJumlah}
+                    onChange={e => setFormJumlah(e.target.value)}
+                    placeholder="0"
+                    className="w-full bg-transparent text-sm font-semibold outline-none"
+                  />
+                </div>
+                {formJumlah && Number(formJumlah) > 0 && (
+                  <p className="mt-1.5 text-xs font-bold text-primary">
+                    = Rp{formatRupiah(Number(formJumlah))}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Tombol aksi */}
+            <div className="mt-6 flex gap-3">
+              <Dialog.Close asChild>
+                <button
+                  className="flex-1 rounded-full bg-secondary py-3.5 text-sm font-bold text-muted-foreground transition-colors active:scale-[0.99]"
+                >
+                  Batal
+                </button>
+              </Dialog.Close>
+              <button
+                onClick={handleSavePengeluaran}
+                disabled={savingPengeluaran || !formKeterangan.trim() || !formJumlah || Number(formJumlah) <= 0}
+                className="flex-1 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] transition-transform active:scale-[0.99] disabled:opacity-50"
+              >
+                {savingPengeluaran ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </AppScreen>
   );
 }

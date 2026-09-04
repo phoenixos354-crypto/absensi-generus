@@ -68,6 +68,7 @@ export const SHEETS = {
   TARGET_PROGRESS:'target_progress',
   KELOMPOK_JAMAAH: 'kelompok_jamaah',
   JAMAAH:         'jamaah',
+  PENGELUARAN_INFAQ: 'pengeluaran_infaq',
 };
 
 // Urutan kolom per tabel — dipakai untuk memetakan array `values`
@@ -87,6 +88,7 @@ const HEADERS = {
   [SHEETS.TARGET_PROGRESS]: ['id', 'murid_id', 'item_id', 'nilai', 'tanggal', 'dicatat_oleh', 'created_at'],
   [SHEETS.KELOMPOK_JAMAAH]: ['id', 'user_id', 'nama_kelompok', 'desa', 'daerah', 'kode_publik', 'created_at'],
   [SHEETS.JAMAAH]:         ['id', 'kelompok_id', 'nama', 'umur', 'jenis_kelamin', 'status_pernikahan', 'kategori_usia', 'status_keluarga', 'kepala_keluarga_id', 'created_at'],
+  [SHEETS.PENGELUARAN_INFAQ]: ['id', 'kelompok_id', 'tanggal', 'keterangan', 'jumlah', 'dicatat_oleh', 'created_at'],
 };
 
 // =============================================

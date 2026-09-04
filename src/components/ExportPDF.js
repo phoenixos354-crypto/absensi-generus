@@ -59,6 +59,35 @@ export function ExportPDF({ kelompok, rekap, periode }) {
       y += 28;
       doc.setTextColor(0, 0, 0);
 
+      // ===== RINGKASAN INFAQ =====
+      const totalInfaq = rekap.total_infaq || 0;
+      const totalPengeluaran = rekap.total_pengeluaran || 0;
+      const sisaInfaq = rekap.sisa_infaq || 0;
+
+      if (totalInfaq > 0 || totalPengeluaran > 0) {
+        doc.setFillColor(254, 249, 195);
+        doc.rect(margin, y, contentW, 24, 'F');
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text('Ringkasan Infaq', margin + 3, y + 6);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.text('Infaq Masuk:', margin + 3, y + 12);
+        doc.text(`Rp${totalInfaq.toLocaleString('id-ID')}`, margin + 45, y + 12);
+        doc.setTextColor(220, 38, 38);
+        doc.text('Pengeluaran:', margin + 3, y + 17);
+        doc.text(`Rp${totalPengeluaran.toLocaleString('id-ID')}`, margin + 45, y + 17);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Sisa Infaq:', margin + 3, y + 22);
+        doc.setTextColor(sisaInfaq < 0 ? [220,38,38] : [22,163,74]);
+        doc.text(`Rp${sisaInfaq.toLocaleString('id-ID')}`, margin + 45, y + 22);
+        doc.setTextColor(0, 0, 0);
+        y += 28;
+      }
+
       // ===== TABEL REKAP PER MURID =====
       const sorted = [...(rekap.rekap_murid || [])].sort((a, b) => b.persen_hadir - a.persen_hadir);
 
@@ -122,6 +151,60 @@ export function ExportPDF({ kelompok, rekap, periode }) {
         doc.line(margin, y + rowH, margin + contentW, y + rowH);
         y += rowH;
       });
+
+      // ===== RINCIAN PENGELUARAN INFAQ =====
+      if (rekap.daftar_pengeluaran?.length > 0) {
+        if (y > 240) { doc.addPage(); y = margin; }
+        y += 4;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Rincian Pengeluaran Infaq', margin, y + 5);
+        y += 8;
+
+        const cols2 = [
+          { label: 'No', w: 10, align: 'center' },
+          { label: 'Tanggal', w: 35, align: 'left' },
+          { label: 'Keterangan', w: 75, align: 'left' },
+          { label: 'Jumlah', w: 30, align: 'right' },
+        ];
+
+        // Header row
+        doc.setFillColor(220, 38, 38);
+        doc.rect(margin, y, contentW, 7, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        let x2 = margin;
+        cols2.forEach(col => {
+          const tx = col.align === 'center' ? x2 + col.w/2 : col.align === 'right' ? x2 + col.w - 2 : x2 + 2;
+          doc.text(col.label, tx, y + 4.8, { align: col.align === 'center' ? 'center' : col.align === 'right' ? 'right' : 'left' });
+          x2 += col.w;
+        });
+        y += 7;
+
+        // Data rows
+        doc.setFont('helvetica', 'normal');
+        rekap.daftar_pengeluaran.forEach((p, i) => {
+          if (y > 270) { doc.addPage(); y = margin; }
+          const rowH = 6;
+          const bg = i % 2 === 0 ? [254,249,195] : [255,255,255];
+          doc.setFillColor(...bg);
+          doc.rect(margin, y, contentW, rowH, 'F');
+          doc.setTextColor(0, 0, 0);
+          const tgl = new Date(p.tanggal).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
+          const rowData = [i+1, tgl, p.keterangan || '-', `Rp${(p.jumlah||0).toLocaleString('id-ID')}`];
+          x2 = margin;
+          cols2.forEach((col, ci) => {
+            const tx = col.align === 'center' ? x2 + col.w/2 : col.align === 'right' ? x2 + col.w - 2 : x2 + 2;
+            doc.text(String(rowData[ci]), tx, y + 4.3, { align: col.align === 'center' ? 'center' : col.align === 'right' ? 'right' : 'left' });
+            x2 += col.w;
+          });
+          doc.setDrawColor(212, 232, 219);
+          doc.line(margin, y + rowH, margin + contentW, y + rowH);
+          y += rowH;
+        });
+        y += 6;
+      }
 
       // ===== FOOTER =====
       y += 8;
