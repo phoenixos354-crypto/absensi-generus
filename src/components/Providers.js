@@ -3,6 +3,7 @@ import { SessionProvider } from 'next-auth/react';
 import { SWRConfig } from 'swr';
 import { InstallPrompt } from './InstallPrompt';
 import { SupportBadge } from './SupportBadge';
+import { WhatsAppGroupModal } from './WhatsAppGroupModal';
 import { useEffect } from 'react';
 
 export const fetcher = (url) =>
@@ -89,6 +90,7 @@ export function Providers({ children }) {
         {children}
         <InstallPrompt />
         <SupportBadge />
+        <WhatsAppGroupModal />
       </SWRConfig>
     </SessionProvider>
   );
