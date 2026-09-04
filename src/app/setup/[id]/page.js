@@ -34,6 +34,7 @@ export default function SetupPage() {
   const [editId, setEditId] = useState(null);
   const [editNama, setEditNama] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+  const [errorEdit, setErrorEdit] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
@@ -130,15 +131,19 @@ export default function SetupPage() {
   async function handleSimpanEdit(id) {
     if (!editNama.trim()) return;
     setSavingEdit(true);
+    setErrorEdit('');
     const res = await fetch('/api/murid', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, nama_murid: editNama.trim() }),
+      body: JSON.stringify({ id, nama_murid: editNama.trim(), kelompok_id: kelompokId }),
     });
     if (res.ok) {
       setMurid(prev => prev.map(m => m.id === id ? { ...m, nama_murid: editNama.trim() } : m));
       setEditId(null);
       setEditNama('');
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setErrorEdit(data.error || 'Gagal menyimpan nama murid.');
     }
     setSavingEdit(false);
   }
@@ -308,7 +313,8 @@ export default function SetupPage() {
               </div>
             ) : (
               murid.map((m, i) => (
-                <div key={m.id} className="flex items-center gap-2.5 rounded-2xl bg-secondary/60 p-2.5">
+                <div key={m.id} className="rounded-2xl bg-secondary/60 p-2.5">
+                <div className="flex items-center gap-2.5">
                   <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary text-[11px] font-extrabold text-primary-foreground">{i+1}</span>
 
                   {editId === m.id ? (
@@ -329,7 +335,7 @@ export default function SetupPage() {
                         <Check className="size-3.5" />
                       </button>
                       <button
-                        onClick={() => { setEditId(null); setEditNama(''); }}
+                        onClick={() => { setEditId(null); setEditNama(''); setErrorEdit(''); }}
                         aria-label="Batal"
                         className="grid size-7 shrink-0 place-items-center rounded-full bg-border text-muted-foreground"
                       >
@@ -340,7 +346,7 @@ export default function SetupPage() {
                     <>
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{m.nama_murid}</span>
                       <button
-                        onClick={() => { setEditId(m.id); setEditNama(m.nama_murid); }}
+                        onClick={() => { setEditId(m.id); setEditNama(m.nama_murid); setErrorEdit(''); }}
                         title="Edit"
                         aria-label={`Edit ${m.nama_murid}`}
                         className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-primary"
@@ -357,6 +363,10 @@ export default function SetupPage() {
                       </button>
                     </>
                   )}
+                </div>
+                {editId === m.id && errorEdit && (
+                  <p className="mt-1.5 pl-9 text-xs font-semibold text-destructive">{errorEdit}</p>
+                )}
                 </div>
               ))
             )}
