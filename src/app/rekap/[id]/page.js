@@ -81,6 +81,9 @@ export default function RekapPage() {
   const [savingPengeluaran, setSavingPengeluaran] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
+  // State urut murid di rekap: 'persen' atau 'abjad'
+  const [sortMurid, setSortMurid] = useState('persen');
+
   function openModal() {
     setFormTanggal(new Date().toISOString().split('T')[0]);
     setFormKeterangan('');
@@ -476,12 +479,39 @@ export default function RekapPage() {
             </div>
           ) : (
             <section className="px-5 pt-4">
-              <p className="mb-3 text-xs font-semibold text-muted-foreground">
-                Detail Per Murid — diurutkan dari kehadiran tertinggi
-              </p>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  Detail Per Murid
+                </p>
+                <div className="flex shrink-0 gap-1">
+                  <button
+                    onClick={() => setSortMurid('persen')}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
+                      sortMurid === 'persen'
+                        ? 'bg-ink text-primary-foreground'
+                        : 'bg-secondary text-muted-foreground'
+                    }`}
+                  >
+                    % Hadir
+                  </button>
+                  <button
+                    onClick={() => setSortMurid('abjad')}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
+                      sortMurid === 'abjad'
+                        ? 'bg-ink text-primary-foreground'
+                        : 'bg-secondary text-muted-foreground'
+                    }`}
+                  >
+                    Abjad
+                  </button>
+                </div>
+              </div>
               <div className="space-y-3">
                 {[...rekap.rekap_murid]
-                  .sort((a,b) => b.persen_hadir - a.persen_hadir)
+                  .sort((a,b) => sortMurid === 'abjad'
+                    ? a.nama.localeCompare(b.nama, 'id')
+                    : b.persen_hadir - a.persen_hadir
+                  )
                   .map((m, i) => (
                   <div key={m.murid_id} className="card-soft p-4">
                     <div className="flex items-center gap-3">

@@ -74,7 +74,7 @@ export default function SetupPage() {
       return;
     }
     setKelompok(data);
-    setMurid(data.murid || []);
+    setMurid((data.murid || []).sort((a,b) => (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')));
     setJadwal(data.jadwal || []);
     setHariPilih((data.jadwal || []).map(j => j.hari));
     setLoading(false);
@@ -92,7 +92,7 @@ export default function SetupPage() {
     });
     if (res.ok) {
       const baru = await res.json();
-      setMurid(prev => [...prev, baru]);
+      setMurid(prev => [...prev, baru].sort((a,b) => (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')));
       setNamaMurid('');
     }
     setSavingMurid(false);
@@ -112,7 +112,7 @@ export default function SetupPage() {
       });
       if (res.ok) {
         const baru = await res.json();
-        setMurid(prev => [...prev, baru]);
+        setMurid(prev => [...prev, baru].sort((a,b) => (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')));
       }
     }
     setBulkNama('');
@@ -138,7 +138,8 @@ export default function SetupPage() {
       body: JSON.stringify({ id, nama_murid: editNama.trim(), kelompok_id: kelompokId }),
     });
     if (res.ok) {
-      setMurid(prev => prev.map(m => m.id === id ? { ...m, nama_murid: editNama.trim() } : m));
+      setMurid(prev => prev.map(m => m.id === id ? { ...m, nama_murid: editNama.trim() } : m)
+        .sort((a,b) => (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')));
       setEditId(null);
       setEditNama('');
     } else {
