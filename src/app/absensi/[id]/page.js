@@ -34,6 +34,11 @@ export default function AbsensiPage() {
   const [existingLoaded, setExistingLoaded] = useState(false);
   const [gagalMuat, setGagalMuat] = useState(false);
 
+  // State urut murid: 'abjad' atau 'persen'
+  const [sortMode, setSortMode] = useState('abjad');
+  // Map: murid_id -> persen_hadir (untuk sort by persen)
+  const [persenMap, setPersenMap] = useState({});
+
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
   }, [status]);
@@ -87,8 +92,22 @@ export default function AbsensiPage() {
       return;
     }
     setKelompok(data);
-    setMurid(data.murid || []);
+    setMurid((data.murid || []).sort((a,b) => (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')));
     setLoading(false);
+
+    // Fetch rekap untuk dapat persentase kehadiran per murid (mode bulan, bulan ini)
+    // Dipakai untuk sort "Persen" di daftar absensi.
+    try {
+      const now = new Date();
+      const bulan = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const rRes = await fetch(`/api/rekap?kelompok_id=${kelompokId}&mode=bulan&nilai=${bulan}`);
+      if (rRes.ok) {
+        const rData = await rRes.json();
+        const pMap = {};
+        (rData.rekap_murid || []).forEach(m => { pMap[m.murid_id] = m.persen_hadir ?? 0; });
+        setPersenMap(pMap);
+      }
+    } catch {}
   }
 
   async function loadAbsensiTanggal() {
@@ -274,8 +293,39 @@ export default function AbsensiPage() {
               </button>
             </div>
           ) : (
+            <>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-muted-foreground">Daftar Murid</p>
+              <div className="flex shrink-0 gap-1">
+                <button
+                  onClick={() => setSortMode('abjad')}
+                  className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
+                    sortMode === 'abjad'
+                      ? 'bg-ink text-primary-foreground'
+                      : 'bg-secondary text-muted-foreground'
+                  }`}
+                >
+                  Abjad
+                </button>
+                <button
+                  onClick={() => setSortMode('persen')}
+                  className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
+                    sortMode === 'persen'
+                      ? 'bg-ink text-primary-foreground'
+                      : 'bg-secondary text-muted-foreground'
+                  }`}
+                >
+                  % Hadir
+                </button>
+              </div>
+            </div>
             <ul className="space-y-3">
-              {murid.map((m, i) => {
+              {[...murid]
+                .sort((a,b) => sortMode === 'persen'
+                  ? (persenMap[b.id] ?? 0) - (persenMap[a.id] ?? 0) || (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')
+                  : 0
+                )
+                .map((m, i) => {
                 const currentStatus = absensiMap[m.id] || 'Hadir';
                 return (
                   <li key={m.id} className="card-soft flex items-center gap-3 p-3">
@@ -303,6 +353,7 @@ export default function AbsensiPage() {
                 );
               })}
             </ul>
+            </>
           )}
         </section>
 
