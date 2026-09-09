@@ -10,9 +10,9 @@ import { ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList,
 import { ExportPDF } from '@/components/ExportPDF';
 import * as Dialog from '@radix-ui/react-dialog';
 
-// Sensor nama untuk tampilan publik — semua nama diganti "****"
-function sensorNama(nama) {
-  return '****';
+// Sensor nama: ganti dengan placeholder berdasarkan urutan
+function sensorNama(nama, index) {
+  return `Murid ${index + 1}`;
 }
 
 // Generate daftar bulan (12 bulan terakhir)
@@ -86,8 +86,8 @@ export default function RekapPage() {
   const [savingPengeluaran, setSavingPengeluaran] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
-  // State urut murid di rekap: 'persen' atau 'abjad'
-  const [sortMurid, setSortMurid] = useState('persen');
+  // State tampilan murid: 'persen' (sort by persen, nama asli), 'abjad' (sort by abjad, nama asli), 'sensor' (sort by persen, nama placeholder)
+  const [displayMode, setDisplayMode] = useState('persen');
 
   function openModal() {
     setFormTanggal(new Date().toISOString().split('T')[0]);
@@ -490,9 +490,9 @@ export default function RekapPage() {
                 </p>
                 <div className="flex shrink-0 gap-1">
                   <button
-                    onClick={() => setSortMurid('persen')}
+                    onClick={() => setDisplayMode('persen')}
                     className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
-                      sortMurid === 'persen'
+                      displayMode === 'persen'
                         ? 'bg-ink text-primary-foreground'
                         : 'bg-secondary text-muted-foreground'
                     }`}
@@ -500,30 +500,42 @@ export default function RekapPage() {
                     % Hadir
                   </button>
                   <button
-                    onClick={() => setSortMurid('abjad')}
+                    onClick={() => setDisplayMode('abjad')}
                     className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
-                      sortMurid === 'abjad'
+                      displayMode === 'abjad'
                         ? 'bg-ink text-primary-foreground'
                         : 'bg-secondary text-muted-foreground'
                     }`}
                   >
                     Abjad
                   </button>
+                  <button
+                    onClick={() => setDisplayMode('sensor')}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
+                      displayMode === 'sensor'
+                        ? 'bg-ink text-primary-foreground'
+                        : 'bg-secondary text-muted-foreground'
+                    }`}
+                  >
+                    Sensor
+                  </button>
                 </div>
               </div>
               <div className="space-y-3">
                 {[...rekap.rekap_murid]
-                  .sort((a,b) => sortMurid === 'abjad'
+                  .sort((a,b) => displayMode === 'abjad'
                     ? a.nama.localeCompare(b.nama, 'id')
                     : b.persen_hadir - a.persen_hadir
                   )
-                  .map((m, i) => (
+                  .map((m, i) => {
+                    const displayName = displayMode === 'sensor' ? sensorNama(m.nama, i) : m.nama;
+                    return (
                   <div key={m.murid_id} className="card-soft p-4">
                     <div className="flex items-center gap-3">
                       <span className={`grid size-8 shrink-0 place-items-center rounded-full text-xs font-extrabold ${
                         i < 3 ? 'bg-amber-400 text-ink' : 'bg-brand-soft text-primary'
                       }`}>{i+1}</span>
-                      <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{sensorNama(m.nama)}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{displayName}</span>
                       <span className="shrink-0 text-lg font-extrabold" style={{ color: getPersenColor(m.persen_hadir) }}>
                         {m.persen_hadir}%
                       </span>
@@ -548,7 +560,8 @@ export default function RekapPage() {
                       <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold text-muted-foreground">Total: {m.total}</span>
                     </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             </section>
           )}
