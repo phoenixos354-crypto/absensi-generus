@@ -10,6 +10,11 @@ import { ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList,
 import { ExportPDF } from '@/components/ExportPDF';
 import * as Dialog from '@radix-ui/react-dialog';
 
+// Sensor nama untuk tampilan publik — semua nama diganti "****"
+function sensorNama(nama) {
+  return '****';
+}
+
 // Generate daftar bulan (12 bulan terakhir)
 function getBulanList() {
   const result = [];
@@ -518,7 +523,7 @@ export default function RekapPage() {
                       <span className={`grid size-8 shrink-0 place-items-center rounded-full text-xs font-extrabold ${
                         i < 3 ? 'bg-amber-400 text-ink' : 'bg-brand-soft text-primary'
                       }`}>{i+1}</span>
-                      <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{m.nama}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{sensorNama(m.nama)}</span>
                       <span className="shrink-0 text-lg font-extrabold" style={{ color: getPersenColor(m.persen_hadir) }}>
                         {m.persen_hadir}%
                       </span>

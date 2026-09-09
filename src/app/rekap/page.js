@@ -11,6 +11,11 @@ import {
   Trophy, MapPin, ChevronRight, ClipboardList,
 } from 'lucide-react';
 
+// Sensor nama untuk tampilan publik — semua nama diganti "****"
+function sensorNama(nama) {
+  return '****';
+}
+
 function getBulanList() {
   const result = [];
   const now = new Date();
@@ -238,7 +243,7 @@ export default function RekapGlobalPage() {
                           {i < 3 ? <Trophy className="size-4" /> : i + 1}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold text-ink">{m.nama}</p>
+                          <p className="truncate text-sm font-bold text-ink">{sensorNama(m.nama)}</p>
                           <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                             <MapPin className="size-3 shrink-0" /> {m.nama_kelompok}
                           </p>
