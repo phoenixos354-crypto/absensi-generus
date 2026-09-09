@@ -79,6 +79,13 @@ export default function RekapGlobalPage() {
     if (!tersedia) setTabTingkatan(tabTersedia[0].key);
   }, [tabTersedia, tabTingkatan]);
 
+  // Kumpulkan ID kelompok yang bisa diakses user (untuk dikirim ke public page)
+  const kelompokIdsParam = useMemo(() => {
+    const list = rekap?.kelompok_list || [];
+    if (!list.length) return '';
+    return list.map(k => k.id).join(',');
+  }, [rekap]);
+
   // Info wilayah: kalau semua kelompok yang tampil berasal dari daerah yang sama, tampilkan itu
   const infoWilayah = useMemo(() => {
     const list = rekap?.kelompok_list || [];
@@ -114,7 +121,7 @@ export default function RekapGlobalPage() {
             </span>
           </div>
           <a
-            href={`/public/rekap/global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}`}
+            href={`/public/rekap/global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}${kelompokIdsParam ? `&kelompok_ids=${kelompokIdsParam}` : ''}`}
             target="_blank"
             rel="noopener noreferrer"
             className="shrink-0 rounded-full bg-white/20 px-4 py-2 text-xs font-bold text-white backdrop-blur-sm hover:bg-white/30 transition-colors"
@@ -265,7 +272,7 @@ export default function RekapGlobalPage() {
                   </div>
                   <div className="mt-2 flex justify-end">
                     <a
-                      href={`/public/rekap/global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}`}
+                      href={`/public/rekap/global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}${kelompokIdsParam ? `&kelompok_ids=${kelompokIdsParam}` : ''}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 transition-colors"
