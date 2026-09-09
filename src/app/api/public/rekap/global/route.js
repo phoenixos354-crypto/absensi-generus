@@ -11,9 +11,13 @@ export async function GET(req) {
   const mode = searchParams.get('mode') || 'bulan';
   const nilai = searchParams.get('nilai');
   const tingkatanFilter = searchParams.get('tingkatan') || 'semua';
+  const kelompokIdsParam = searchParams.get('kelompok_ids');
 
-  // Get ALL groups from database (public view — all groups visible)
-  const allGroups = await readSheet(SHEETS.KELOMPOK);
+  let allGroups = await readSheet(SHEETS.KELOMPOK);
+  if (kelompokIdsParam) {
+    const ids = kelompokIdsParam.split(',').filter(Boolean);
+    allGroups = allGroups.filter(k => ids.includes(k.id));
+  }
   if (!allGroups.length) {
     return NextResponse.json({
       stats: { total_murid: 0, hadir_100: 0, avg_persen: 0, kelompok_aktif: 0, total_hadir: 0 },
