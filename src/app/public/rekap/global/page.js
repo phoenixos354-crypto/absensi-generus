@@ -42,7 +42,10 @@ export default function PublicRekapGlobalPage() {
     async function fetchData() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/public/rekap/global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}`);
+        const params = new URLSearchParams(window.location.search);
+        const kelompokIds = params.get('kelompok_ids') || '';
+        const url = `/api/public/rekap/global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}${kelompokIds ? `&kelompok_ids=${kelompokIds}` : ''}`;
+        const res = await fetch(url);
         const json = await res.json();
         setData(json);
       } catch {
