@@ -183,7 +183,7 @@ export default function RekapPage() {
   return (
     <AppScreen>
       {/* Header */}
-      <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-5 pt-6">
+      <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-5 pt-6">
         <BackButton
           fallbackHref="/dashboard"
           className="grid size-10 shrink-0 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
@@ -195,6 +195,14 @@ export default function RekapPage() {
             {tk.label} · {kelompok?.desa}
           </p>
         </div>
+        <a
+          href={`/public/rekap/${kelompokId}?mode=${mode}&nilai=${nilai}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 transition-colors"
+        >
+          Tampilkan di Layar
+        </a>
       </header>
 
       {/* Filter periode */}

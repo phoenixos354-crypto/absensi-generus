@@ -113,7 +113,14 @@ export default function RekapGlobalPage() {
               Rekap {namaAwal}
             </span>
           </div>
-          <div className="size-10" />
+          <a
+            href={`/public/rekap/global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-full bg-white/20 px-4 py-2 text-xs font-bold text-white backdrop-blur-sm hover:bg-white/30 transition-colors"
+          >
+            Tampilkan di Layar
+          </a>
         </div>
 
         <div className="relative z-10 mt-4 text-center text-white">
