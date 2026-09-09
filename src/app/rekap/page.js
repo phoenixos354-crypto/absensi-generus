@@ -53,6 +53,7 @@ export default function RekapGlobalPage() {
   // kelompok (tidak terpengaruh filter tingkatan), jadi begitu respons pertama
   // datang kita sudah tahu tab-tab yang tersedia tanpa perlu fetch tambahan.
   const [tabTingkatan, setTabTingkatan] = useState('caberawit');
+  const [displayMode, setDisplayMode] = useState('nama');
 
   const { data: kelompokAkses } = useSWR(session ? '/api/kelompok' : null);
 
@@ -232,25 +233,49 @@ export default function RekapGlobalPage() {
                 <section className="px-5 pt-5">
                   <div className="mb-3 flex items-center justify-between">
                     <h2 className="text-base font-extrabold text-ink">Murid Terbaik</h2>
-                    <span className="text-[11px] font-semibold text-muted-foreground">Kehadiran 100%</span>
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        onClick={() => setDisplayMode('nama')}
+                        className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
+                          displayMode === 'nama'
+                            ? 'bg-ink text-primary-foreground'
+                            : 'bg-secondary text-muted-foreground'
+                        }`}
+                      >
+                        Nama
+                      </button>
+                      <button
+                        onClick={() => setDisplayMode('sensor')}
+                        className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
+                          displayMode === 'sensor'
+                            ? 'bg-ink text-primary-foreground'
+                            : 'bg-secondary text-muted-foreground'
+                        }`}
+                      >
+                        Sensor
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    {rekap.top_murid.map((m, i) => (
-                      <div key={m.murid_id} className="card-soft flex items-center gap-3 p-3.5">
-                        <span className={`grid size-8 shrink-0 place-items-center rounded-full text-xs font-extrabold ${
-                          i < 3 ? 'bg-amber-400 text-ink' : 'bg-brand-soft text-primary'
-                        }`}>
-                          {i < 3 ? <Trophy className="size-4" /> : i + 1}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold text-ink">{sensorNama(m.nama)}</p>
-                          <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-                            <MapPin className="size-3 shrink-0" /> {m.nama_kelompok}
-                          </p>
+                    {rekap.top_murid.map((m, i) => {
+                      const displayName = displayMode === 'sensor' ? sensorNama(m.nama) : m.nama;
+                      return (
+                        <div key={m.murid_id} className="card-soft flex items-center gap-3 p-3.5">
+                          <span className={`grid size-8 shrink-0 place-items-center rounded-full text-xs font-extrabold ${
+                            i < 3 ? 'bg-amber-400 text-ink' : 'bg-brand-soft text-primary'
+                          }`}>
+                            {i < 3 ? <Trophy className="size-4" /> : i + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold text-ink">{displayName}</p>
+                            <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                              <MapPin className="size-3 shrink-0" /> {m.nama_kelompok}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-sm font-extrabold text-primary">100%</span>
                         </div>
-                        <span className="shrink-0 text-sm font-extrabold text-primary">100%</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               )}
