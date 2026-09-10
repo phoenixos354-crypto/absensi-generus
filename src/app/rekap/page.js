@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
+import ShareLinkButton from '@/components/ShareLinkButton';
 import {
   Users, Star, Percent, Layers, CheckCircle2,
   Trophy, MapPin, ChevronRight, ClipboardList,
@@ -120,14 +121,9 @@ export default function RekapGlobalPage() {
               Rekap {namaAwal}
             </span>
           </div>
-          <a
+          <ShareLinkButton
             href={`/public/rekap/global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}${kelompokIdsParam ? `&kelompok_ids=${kelompokIdsParam}` : ''}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 rounded-full bg-white/20 px-4 py-2 text-xs font-bold text-white backdrop-blur-sm hover:bg-white/30 transition-colors"
-          >
-            Tampilkan di Layar
-          </a>
+          />
         </div>
 
         <div className="relative z-10 mt-4 text-center text-white">
@@ -271,14 +267,10 @@ export default function RekapGlobalPage() {
                     </div>
                   </div>
                   <div className="mt-2 flex justify-end">
-                    <a
+                    <ShareLinkButton
                       href={`/public/rekap/global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}${kelompokIdsParam ? `&kelompok_ids=${kelompokIdsParam}` : ''}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 transition-colors"
-                    >
-                      Tampilkan di Layar
-                    </a>
+                      className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 transition-colors"
+                    />
                   </div>
                   <div className="space-y-2">
                     {rekap.top_murid.map((m, i) => {

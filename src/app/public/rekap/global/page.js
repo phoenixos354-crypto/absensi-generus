@@ -30,10 +30,21 @@ export default function PublicRekapGlobalPage() {
   const router = useRouter();
   const bulanList = getBulanList();
   const [nilai, setNilai] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('nilai')) return p.get('nilai');
+      if (p.get('mode') === 'bulan' && p.get('nilai')) return p.get('nilai');
+    }
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
-  const [tabTingkatan, setTabTingkatan] = useState('caberawit');
+  const [tabTingkatan, setTabTingkatan] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      return p.get('tingkatan') || 'caberawit';
+    }
+    return 'caberawit';
+  });
   const [displayMode, setDisplayMode] = useState('nama');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

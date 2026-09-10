@@ -8,6 +8,7 @@ import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
 import { ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList, CheckCircle2, NotebookPen, Wallet, Plus, Trash2, TrendingDown, TrendingUp, MinusCircle } from 'lucide-react';
 import { ExportPDF } from '@/components/ExportPDF';
+import ShareLinkButton from '@/components/ShareLinkButton';
 import * as Dialog from '@radix-ui/react-dialog';
 
 // Sensor nama: ganti dengan placeholder berdasarkan urutan
@@ -195,14 +196,10 @@ export default function RekapPage() {
             {tk.label} · {kelompok?.desa}
           </p>
         </div>
-        <a
+        <ShareLinkButton
           href={`/public/rekap/${kelompokId}?mode=${mode}&nilai=${nilai}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 transition-colors"
-        >
-          Tampilkan di Layar
-        </a>
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 transition-colors"
+        />
       </header>
 
       {/* Filter periode */}
