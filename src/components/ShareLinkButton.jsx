@@ -3,22 +3,17 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link2, Copy, ExternalLink, Check } from 'lucide-react';
 
-/**
- * ShareLinkButton
- * Popup di-render via React Portal langsung ke document.body,
- * sehingga tidak terpengaruh overflow/stacking context parent manapun.
- */
 export default function ShareLinkButton({ href, label = 'Tampilkan di Layar', className }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [popupStyle, setPopupStyle] = useState({});
   const [mounted, setMounted] = useState(false);
   const btnRef = useRef(null);
+  const popupRef = useRef(null);
 
-  // Pastikan portal hanya dirender di client
   useEffect(() => { setMounted(true); }, []);
 
-  // Hitung posisi popup berdasarkan posisi tombol
+  // Hitung posisi popup
   useEffect(() => {
     if (!open || !btnRef.current) return;
     const rect = btnRef.current.getBoundingClientRect();
@@ -35,19 +30,17 @@ export default function ShareLinkButton({ href, label = 'Tampilkan di Layar', cl
     });
   }, [open]);
 
-  // Tutup popup kalau klik di luar
+  // Tutup hanya kalau klik di luar KEDUA elemen (tombol + popup)
   useEffect(() => {
     if (!open) return;
     function handleClick(e) {
-      if (btnRef.current && btnRef.current.contains(e.target)) return;
-      setOpen(false);
+      const inBtn = btnRef.current?.contains(e.target);
+      const inPopup = popupRef.current?.contains(e.target);
+      if (!inBtn && !inPopup) setOpen(false);
     }
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('touchstart', handleClick);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('touchstart', handleClick);
-    };
+    // pakai click (bukan mousedown) supaya tidak nutup sebelum onClick popup jalan
+    document.addEventListener('click', handleClick, { capture: true });
+    return () => document.removeEventListener('click', handleClick, { capture: true });
   }, [open]);
 
   function getFullUrl() {
@@ -55,17 +48,16 @@ export default function ShareLinkButton({ href, label = 'Tampilkan di Layar', cl
     return href.startsWith('http') ? href : `${window.location.origin}${href}`;
   }
 
-  async function handleCopy() {
+  async function handleCopy(e) {
+    e.stopPropagation();
     try {
       await navigator.clipboard.writeText(getFullUrl());
     } catch {
       const ta = document.createElement('textarea');
       ta.value = getFullUrl();
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
+      ta.style.cssText = 'position:fixed;opacity:0';
       document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
+      ta.focus(); ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
     }
@@ -77,18 +69,13 @@ export default function ShareLinkButton({ href, label = 'Tampilkan di Layar', cl
     'shrink-0 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-xs font-bold text-white backdrop-blur-sm hover:bg-white/30 transition-colors';
 
   const popup = (
-    <div
-      style={popupStyle}
-      className="overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10"
-    >
-      {/* URL preview */}
+    <div ref={popupRef} style={popupStyle} className="overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10">
       <div className="border-b border-gray-100 px-4 py-3">
         <p className="truncate text-[11px] text-gray-400">{getFullUrl()}</p>
       </div>
-
-      {/* Salin link */}
       <button
         type="button"
+        onPointerDown={e => e.stopPropagation()}
         onClick={handleCopy}
         className="flex w-full items-center gap-3 px-4 py-3.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition-colors"
       >
@@ -97,12 +84,11 @@ export default function ShareLinkButton({ href, label = 'Tampilkan di Layar', cl
           : <Copy className="size-4 shrink-0 text-gray-400" />}
         {copied ? 'Tersalin!' : 'Salin Link'}
       </button>
-
-      {/* Kunjungi */}
       <a
         href={href}
         target="_blank"
         rel="noopener noreferrer"
+        onPointerDown={e => e.stopPropagation()}
         onClick={() => setOpen(false)}
         className="flex w-full items-center gap-3 border-t border-gray-100 px-4 py-3.5 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
       >
@@ -123,8 +109,6 @@ export default function ShareLinkButton({ href, label = 'Tampilkan di Layar', cl
         <Link2 className="size-3.5" />
         {label}
       </button>
-
-      {/* Portal ke body agar bebas dari overflow/stacking context parent */}
       {mounted && open && createPortal(popup, document.body)}
     </div>
   );
