@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { MapPin, Users, ClipboardList, ArrowLeft, Save, Check, NotebookPen, Wallet } from 'lucide-react';
+import { MapPin, Users, ClipboardList, ArrowLeft, Save, Check, NotebookPen, Wallet, CalendarClock, AlertTriangle } from 'lucide-react';
 
 const STATUS_LIST = ['Hadir','Izin','Sakit','Alfa'];
 
@@ -142,6 +142,45 @@ export default function AbsensiPage() {
 
   const [showKonfirmasi, setShowKonfirmasi] = useState(false);
 
+  // State koreksi tanggal
+  const [showKoreksi, setShowKoreksi] = useState(false);
+  const [tanggalKoreksiTujuan, setTanggalKoreksiTujuan] = useState('');
+  const [koreksiLoading, setKoreksiLoading] = useState(false);
+  const [koreksiPesan, setKoreksiPesan] = useState(null); // { tipe: 'sukses'|'error', teks }
+
+  async function handleKoreksiTanggal() {
+    if (!tanggalKoreksiTujuan) return;
+    setKoreksiLoading(true);
+    setKoreksiPesan(null);
+    try {
+      const res = await fetch('/api/absensi-koreksi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kelompok_id: kelompokId,
+          tanggal_asal: tanggal,
+          tanggal_tujuan: tanggalKoreksiTujuan,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setKoreksiPesan({ tipe: 'sukses', teks: `Absensi berhasil dipindah ke ${new Date(tanggalKoreksiTujuan).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}` });
+        // Pindah tampilan ke tanggal tujuan
+        setTimeout(() => {
+          setTanggal(tanggalKoreksiTujuan);
+          setShowKoreksi(false);
+          setTanggalKoreksiTujuan('');
+          setKoreksiPesan(null);
+        }, 2000);
+      } else {
+        setKoreksiPesan({ tipe: 'error', teks: data.error || 'Gagal memindahkan absensi' });
+      }
+    } catch {
+      setKoreksiPesan({ tipe: 'error', teks: 'Terjadi kesalahan jaringan' });
+    }
+    setKoreksiLoading(false);
+  }
+
   async function handleSimpan() {
     setSaving(true);
     const absensiArr = murid.map(m => ({
@@ -232,7 +271,17 @@ export default function AbsensiPage() {
         {/* Tanggal + set semua + ringkasan */}
         <section className="px-5 pt-5">
           <div className="card-soft p-4">
-            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Tanggal Absensi</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-muted-foreground">Tanggal Absensi</label>
+              {existingLoaded && Object.keys(absensiMap).length > 0 && (
+                <button
+                  onClick={() => { setShowKoreksi(true); setTanggalKoreksiTujuan(''); setKoreksiPesan(null); }}
+                  className="flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 border border-amber-200"
+                >
+                  <CalendarClock className="size-3" /> Koreksi Tanggal
+                </button>
+              )}
+            </div>
             <input
               type="date"
               value={tanggal}
@@ -466,6 +515,71 @@ export default function AbsensiPage() {
           </div>
         )}
       </div>
+
+        {/* Modal koreksi tanggal */}
+        {showKoreksi && (
+          <div className="fixed inset-0 z-50 bg-ink/40" onClick={() => setShowKoreksi(false)}>
+            <div
+              className="absolute inset-x-0 bottom-0 mx-auto max-w-[26rem] rounded-t-[2rem] bg-surface p-5 pb-8 shadow-[var(--shadow-float)]"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
+              <div className="mx-auto grid size-14 place-items-center rounded-full bg-amber-50 text-amber-600">
+                <CalendarClock className="size-7" />
+              </div>
+              <h3 className="mt-3 text-center text-lg font-extrabold text-ink">Koreksi Tanggal Absensi</h3>
+              <p className="mt-1 text-center text-sm text-muted-foreground">
+                Pindahkan data absensi dari{' '}
+                <strong className="text-ink">
+                  {new Date(tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </strong>{' '}
+                ke tanggal yang benar.
+              </p>
+
+              <div className="mt-4 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 flex gap-2">
+                <AlertTriangle className="size-4 shrink-0 text-amber-600 mt-0.5" />
+                <p className="text-xs text-amber-800 font-medium">
+                  Absensi di tanggal asal akan dihapus. Pastikan tanggal tujuan sudah benar.
+                </p>
+              </div>
+
+              <label className="mt-4 mb-1.5 block text-xs font-semibold text-muted-foreground">Tanggal yang Benar</label>
+              <input
+                type="date"
+                value={tanggalKoreksiTujuan}
+                onChange={e => setTanggalKoreksiTujuan(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="w-full rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold text-ink outline-none focus:ring-2 focus:ring-primary/40"
+              />
+
+              {koreksiPesan && (
+                <div className={`mt-3 rounded-2xl px-4 py-3 text-sm font-semibold ${
+                  koreksiPesan.tipe === 'sukses'
+                    ? 'bg-green-50 text-green-800 border border-green-200'
+                    : 'bg-red-50 text-red-800 border border-red-200'
+                }`}>
+                  {koreksiPesan.teks}
+                </div>
+              )}
+
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={() => setShowKoreksi(false)}
+                  className="flex-1 rounded-full bg-secondary py-3.5 text-sm font-bold text-ink"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleKoreksiTanggal}
+                  disabled={!tanggalKoreksiTujuan || koreksiLoading || tanggalKoreksiTujuan === tanggal}
+                  className="flex-1 rounded-full bg-amber-500 py-3.5 text-sm font-bold text-white shadow-[var(--shadow-float)] active:scale-[0.99] disabled:opacity-50"
+                >
+                  {koreksiLoading ? 'Memindahkan...' : 'Pindahkan'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </AppScreen>
   );
 }
