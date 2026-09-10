@@ -13,7 +13,26 @@ import { Link2, Copy, ExternalLink, Check } from 'lucide-react';
 export default function ShareLinkButton({ href, label = 'Tampilkan di Layar', className }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [popupStyle, setPopupStyle] = useState({});
+  const btnRef = useRef(null);
   const ref = useRef(null);
+
+  // Hitung posisi popup berdasarkan posisi tombol
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const popupW = 224;
+    let left = rect.right - popupW;
+    if (left < 8) left = rect.left;
+    if (left + popupW > window.innerWidth - 8) left = window.innerWidth - popupW - 8;
+    setPopupStyle({
+      position: 'fixed',
+      top: rect.bottom + 8,
+      left: Math.max(8, left),
+      width: popupW,
+      zIndex: 9999,
+    });
+  }, [open]);
 
   // Tutup popup kalau klik di luar
   useEffect(() => {
@@ -67,6 +86,7 @@ export default function ShareLinkButton({ href, label = 'Tampilkan di Layar', cl
   return (
     <div ref={ref} className="relative shrink-0">
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen(v => !v)}
         className={className || defaultClass}
@@ -76,7 +96,7 @@ export default function ShareLinkButton({ href, label = 'Tampilkan di Layar', cl
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/8 animate-fade-in">
+        <div style={popupStyle} className="overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/8">
           {/* URL preview */}
           <div className="border-b border-gray-100 px-4 py-3">
             <p className="truncate text-[11px] text-gray-400">{getFullUrl()}</p>
