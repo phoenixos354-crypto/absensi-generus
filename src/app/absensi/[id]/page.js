@@ -404,10 +404,12 @@ async function loadAbsensiTanggal() {
                 .map((m, i) => {
                 const currentStatus = absensiMap[m.id] || 'Hadir';
                 return (
-        <li key={m.id} className="card-soft flex items-center gap-3 p-3">
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-extrabold text-primary">{i+1}</span>
-          <p className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{m.nama_murid}</p>
-          <div className="flex shrink-0 gap-1">
+        <li key={m.id} className="card-soft space-y-2 p-3">
+          <div className="flex items-center gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-extrabold text-primary">{i+1}</span>
+            <p className="min-w-0 flex-1 text-sm font-bold break-words text-ink">{m.nama_murid}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
             {STATUS_LIST.map(s => {
               const c = STATUS_COLOR[s];
               const aktif = currentStatus === s;
@@ -425,18 +427,20 @@ async function loadAbsensiTanggal() {
               );
             })}
             {/* Kas input */}
-            <div className="flex items-center gap-1 rounded-2xl bg-secondary px-2 py-1">
-              <span className="text-xs font-bold text-muted-foreground">Rp</span>
+            <div className="flex items-center gap-1 rounded-2xl bg-secondary px-2 py-1.5">
+              <span className="text-[11px] font-bold text-muted-foreground">Kas Rp</span>
               <input
                 type="number"
+                inputMode="numeric"
                 min="0"
                 value={kasMap[m.id] ?? ''}
+                placeholder="0"
                 onChange={e => {
                   const val = Number(e.target.value) || 0;
                   setKasMap(prev => ({ ...prev, [m.id]: val }));
                   setSaved(false);
                 }}
-                className="w-16 bg-transparent text-sm font-semibold text-ink outline-none"
+                className="w-20 bg-transparent text-sm font-semibold text-ink outline-none"
               />
             </div>
           </div>
