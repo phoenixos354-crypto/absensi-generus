@@ -1,4 +1,4 @@
-import { readSheet, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
+import { readSheet, readWhereIn, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
 import { NextResponse } from 'next/server';
 
 /**
@@ -27,7 +27,7 @@ export async function GET(req) {
     });
   }
 
-  const muridAll = await readSheet(SHEETS.MURID);
+  const muridAll = await readWhereIn(SHEETS.MURID, 'kelompok_id', allGroups.map(k => k.id));
 
   // Count per tingkatan (independent of filter)
   const tingkatanCounts = {};

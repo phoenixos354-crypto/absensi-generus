@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, readLatestByKeyWhere, readWhere, SHEETS } from '@/lib/sheets';
+import { readLatestByKeyWhere, readWhere, SHEETS } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -25,13 +25,13 @@ export async function GET(req) {
   // (bukan tarik semua baris punya kelompok lain juga).
   const settled = await Promise.allSettled([
     readLatestByKeyWhere(SHEETS.ABSENSI, { kelompok_id }, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`),
-    readSheet(SHEETS.MURID),
+    readWhere(SHEETS.MURID, { kelompok_id }),
     readLatestByKeyWhere(SHEETS.SESI, { kelompok_id }, s => `${s.kelompok_id}|${s.tanggal}`),
     readWhere(SHEETS.PENGELUARAN_INFAQ, { kelompok_id }),
     readLatestByKeyWhere(SHEETS.KAS, { kelompok_id }, k => `${k.kelompok_id}|${k.murid_id}|${k.tanggal}`),
   ]);
   const absensiAll = settled[0].status === 'fulfilled' ? settled[0].value : [];
-  const muridAll = settled[1].status === 'fulfilled' ? settled[1].value : [];
+  const murid = settled[1].status === 'fulfilled' ? settled[1].value : [];
   const sesiAll = settled[2].status === 'fulfilled' ? settled[2].value : [];
   const pengeluaranAll = settled[3].status === 'fulfilled' ? settled[3].value : [];
   const kasAll = settled[4].status === 'fulfilled' ? settled[4].value : [];
@@ -58,8 +58,6 @@ export async function GET(req) {
     absensi = absensi.filter(a => a.tanggal.startsWith(nilai));
     sesi = sesi.filter(s => s.tanggal.startsWith(nilai));
   }
-
-  const murid = muridAll.filter(m => m.kelompok_id === kelompok_id);
 
   const rekapMurid = murid.map(m => {
     const absMurid = absensi.filter(a => a.murid_id === m.id);

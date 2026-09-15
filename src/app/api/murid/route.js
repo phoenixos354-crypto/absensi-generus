@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, appendRow, updateRow, deleteRows, SHEETS, generateId, generateKodePublik } from '@/lib/sheets';
+import { readWhere, appendRow, updateRow, deleteRows, getSupabaseClient, SHEETS, generateId, generateKodePublik } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -18,9 +18,8 @@ export async function GET(req) {
     if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
   }
 
-  const murid = await readSheet(SHEETS.MURID);
-  const filtered = kelompok_id ? murid.filter(m => m.kelompok_id === kelompok_id) : murid;
-  return NextResponse.json(filtered);
+  const murid = kelompok_id ? await readWhere(SHEETS.MURID, { kelompok_id }) : await readWhere(SHEETS.MURID, {});
+  return NextResponse.json(murid);
 }
 
 export async function POST(req) {
@@ -45,8 +44,8 @@ export async function PUT(req) {
 
   const { id, nama_murid } = await req.json();
 
-  const allMurid = await readSheet(SHEETS.MURID);
-  const target = allMurid.find(m => m.id === id);
+  const found = await readWhere(SHEETS.MURID, { id });
+  const target = found[0];
   if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   // Ambil kelompok_id dari data murid yang tersimpan (bukan dari body request),
@@ -65,8 +64,8 @@ export async function DELETE(req) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
 
-  const allMurid = await readSheet(SHEETS.MURID);
-  const target = allMurid.find(m => m.id === id);
+  const foundDel = await readWhere(SHEETS.MURID, { id });
+  const target = foundDel[0];
   if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const perm = await getPermission(session.user.email, target.kelompok_id);

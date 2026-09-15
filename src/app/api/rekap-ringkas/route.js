@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
+import { readWhereIn, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
 import { getKelompokAkses } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -42,7 +42,7 @@ export async function GET(req) {
   const kelompokIds = kelompokList.map(k => k.id);
   const [absensiDeduped, muridAll] = await Promise.all([
     readLatestByKeyWhereIn(SHEETS.ABSENSI, 'kelompok_id', kelompokIds, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`),
-    readSheet(SHEETS.MURID),
+    readWhereIn(SHEETS.MURID, 'kelompok_id', kelompokIds),
   ]);
   const absensiAll = absensiDeduped.filter(a => a.tanggal?.startsWith(bulan));
 

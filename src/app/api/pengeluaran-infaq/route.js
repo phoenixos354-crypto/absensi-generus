@@ -72,10 +72,9 @@ export async function DELETE(req) {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'id wajib' }, { status: 400 });
 
-  // Cari baris untuk dapat kelompok_id, lalu cek permission
-  // Kita perlu baca semua lalu filter by id — tabel kecil, tidak masalah.
-  const rows = await readWhere(SHEETS.PENGELUARAN_INFAQ, {});
-  const target = rows.find(r => r.id === id);
+  // Cari 1 baris by id (filter di DB, bukan tarik semua)
+  const rows = await readWhere(SHEETS.PENGELUARAN_INFAQ, { id });
+  const target = rows[0];
   if (!target) return NextResponse.json({ error: 'Pengeluaran tidak ditemukan' }, { status: 404 });
 
   const perm = await getPermission(session.user.email, target.kelompok_id);

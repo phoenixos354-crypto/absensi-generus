@@ -19,9 +19,9 @@ export async function GET(req, { params }) {
     return NextResponse.json({ error: 'Kelompok tidak ditemukan' }, { status: 404 });
   }
 
-  const [absensiAll, muridAll, sesiAll, pengeluaranAll] = await Promise.all([
+  const [absensiAll, murid, sesiAll, pengeluaranAll] = await Promise.all([
     readLatestByKeyWhere(SHEETS.ABSENSI, { kelompok_id: kelompokId }, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`),
-    readSheet(SHEETS.MURID),
+    readWhere(SHEETS.MURID, { kelompok_id: kelompokId }),
     readLatestByKeyWhere(SHEETS.SESI, { kelompok_id: kelompokId }, s => `${s.kelompok_id}|${s.tanggal}`),
     readWhere(SHEETS.PENGELUARAN_INFAQ, { kelompok_id: kelompokId }),
   ]);
@@ -47,8 +47,6 @@ export async function GET(req, { params }) {
     absensi = absensi.filter(a => a.tanggal.startsWith(nilai));
     sesi = sesi.filter(s => s.tanggal.startsWith(nilai));
   }
-
-  const murid = muridAll.filter(m => m.kelompok_id === kelompokId);
 
   const rekapMurid = murid.map(m => {
     const absMurid = absensi.filter(a => a.murid_id === m.id);

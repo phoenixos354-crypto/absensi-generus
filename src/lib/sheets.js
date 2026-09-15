@@ -303,6 +303,30 @@ export async function readLatestByKeyWhere(sheetName, filters, keyFn) {
   return [...map.values()];
 }
 
+// readWhereIn: readWhere tapi filter pakai .in() — buat tabel kecil
+// (murid) lintas beberapa kelompok, tetap filter di DB.
+export async function readWhereIn(sheetName, column, values) {
+  const headers = HEADERS[sheetName];
+  if (!headers) throw new Error(`readWhereIn: tabel tidak dikenal: ${sheetName}`);
+  if (!values || values.length === 0) return [];
+  const supabase = getSupabaseClient();
+
+  const PAGE_SIZE = 1000;
+  let allRows = [];
+  let from = 0;
+  while (true) {
+    const to = from + PAGE_SIZE - 1;
+    const result = await withRetry(() =>
+      supabase.from(sheetName).select('*').order('_seq', { ascending: true }).in(column, values).range(from, to)
+    );
+    const page = throwIfError(result) || [];
+    allRows = allRows.concat(page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return allRows;
+}
+
 // =============================================
 // HELPER: sama seperti readLatestByKeyWhere, tapi filter kolomnya pakai
 // daftar nilai (.in()) — dipakai kalau butuh data BEBERAPA kelompok

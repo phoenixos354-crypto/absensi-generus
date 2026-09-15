@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
+import { readWhereIn, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
 import { getKelompokAkses } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -39,7 +39,8 @@ export async function GET(req) {
     });
   }
 
-  const muridAll = await readSheet(SHEETS.MURID);
+  const semuaIds = semuaKelompok.map(k => k.id);
+  const muridAll = await readWhereIn(SHEETS.MURID, 'kelompok_id', semuaIds);
 
   // Hitung total murid per tingkatan (independen dari filter tingkatan, untuk badge tab)
   const tingkatanCounts = {};
