@@ -29,6 +29,7 @@ export default function AbsensiPage() {
   const [kasMap, setKasMap] = useState({}); // murid_id -> jumlah
 
   const [jurnal, setJurnal] = useState('');
+  const [infaq, setInfaq] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

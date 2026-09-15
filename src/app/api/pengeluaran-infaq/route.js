@@ -34,13 +34,13 @@ export async function GET(req) {
   return NextResponse.json(result);
 }
 
-// POST { kelompok_id, tanggal, keterangan, jumlah }
-// Menambah satu catatan pengeluaran infaq.
+// POST { kelompok_id, tanggal, keterangan, jumlah, sumber_dana }
+// Menambah satu catatan pengeluaran infaq/kas.
 export async function POST(req) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { kelompok_id, tanggal, keterangan, jumlah } = await req.json();
+  const { kelompok_id, tanggal, keterangan, jumlah, sumber_dana } = await req.json();
 
   if (!kelompok_id || !tanggal) {
     return NextResponse.json({ error: 'kelompok_id dan tanggal wajib' }, { status: 400 });

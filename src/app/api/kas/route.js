@@ -18,13 +18,17 @@ export async function GET(req) {
   const perm = await getPermission(session.user.email, kelompok_id);
   if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
 
-  const rows = await readLatestByKeyWhere(
-    SHEETS.KAS,
-    { kelompok_id },
-    k => `${k.kelompok_id}|${k.murid_id}|${k.tanggal}`
-  );
-  const filtered = tanggal ? rows.filter(k => k.tanggal === tanggal) : rows;
-  return NextResponse.json(filtered);
+  try {
+    const rows = await readLatestByKeyWhere(
+      SHEETS.KAS,
+      { kelompok_id },
+      k => `${k.kelompok_id}|${k.murid_id}|${k.tanggal}`
+    );
+    const filtered = tanggal ? rows.filter(k => k.tanggal === tanggal) : rows;
+    return NextResponse.json(filtered);
+  } catch (e) {
+    return NextResponse.json([]);
+  }
 }
 
 // POST { kelompok_id, tanggal, kas: [{ murid_id, jumlah }] }

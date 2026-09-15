@@ -68,6 +68,7 @@ export const SHEETS = {
   TARGET_PROGRESS:'target_progress',
   KELOMPOK_JAMAAH: 'kelompok_jamaah',
   JAMAAH:         'jamaah',
+  PENGELUARAN_INFAQ: 'pengeluaran_infaq',
   KAS:            'kas',
 };
 
@@ -146,13 +147,15 @@ export async function readSheet(sheetName, { skipCache = false } = {}) {
     //
     // Solusi: ambil per halaman (page) pakai .range() sampai halaman
     // yang balik lebih sedikit dari PAGE_SIZE (tandanya sudah habis).
+    // Pakai select('*') supaya tahan kalau DB live belum punya kolom
+    // baru (mis. sumber_dana) — akses kode pakai fallback || default.
     const PAGE_SIZE = 1000;
     let allRows = [];
     let from = 0;
     while (true) {
       const to = from + PAGE_SIZE - 1;
       const result = await withRetry(() =>
-        supabase.from(sheetName).select(headers.join(',')).order('_seq', { ascending: true }).range(from, to)
+        supabase.from(sheetName).select('*').order('_seq', { ascending: true }).range(from, to)
       );
       const page = throwIfError(result) || [];
       allRows = allRows.concat(page);
@@ -265,7 +268,7 @@ export async function readWhere(sheetName, filters) {
   let from = 0;
   while (true) {
     const to = from + PAGE_SIZE - 1;
-    let query = supabase.from(sheetName).select(headers.join(',')).order('_seq', { ascending: true }).range(from, to);
+    let query = supabase.from(sheetName).select('*').order('_seq', { ascending: true }).range(from, to);
     for (const [col, val] of Object.entries(filters)) query = query.eq(col, val);
     const result = await withRetry(() => query);
     const page = throwIfError(result) || [];
@@ -286,7 +289,7 @@ export async function readLatestByKeyWhere(sheetName, filters, keyFn) {
   let from = 0;
   while (true) {
     const to = from + PAGE_SIZE - 1;
-    let query = supabase.from(sheetName).select(headers.join(',')).order('_seq', { ascending: true }).range(from, to);
+    let query = supabase.from(sheetName).select('*').order('_seq', { ascending: true }).range(from, to);
     for (const [col, val] of Object.entries(filters)) query = query.eq(col, val);
     const result = await withRetry(() => query);
     const page = throwIfError(result) || [];
@@ -318,7 +321,7 @@ export async function readLatestByKeyWhereIn(sheetName, column, values, keyFn) {
   while (true) {
     const to = from + PAGE_SIZE - 1;
     const result = await withRetry(() =>
-      supabase.from(sheetName).select(headers.join(',')).order('_seq', { ascending: true }).in(column, values).range(from, to)
+      supabase.from(sheetName).select('*').order('_seq', { ascending: true }).in(column, values).range(from, to)
     );
     const page = throwIfError(result) || [];
     allRows = allRows.concat(page);
