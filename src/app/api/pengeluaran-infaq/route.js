@@ -25,6 +25,7 @@ export async function GET(req) {
       tanggal: r.tanggal,
       keterangan: r.keterangan || '',
       jumlah: Number(r.jumlah) || 0,
+      sumber_dana: r.sumber_dana || 'infaq',
       dicatat_oleh: r.dicatat_oleh,
       created_at: r.created_at,
     }))
@@ -55,7 +56,7 @@ export async function POST(req) {
   }
 
   await appendRow(SHEETS.PENGELUARAN_INFAQ, [
-    generateId(), kelompok_id, tanggal, keterangan || '', jumlahNum, session.user.email, new Date().toISOString(),
+    generateId(), kelompok_id, tanggal, keterangan || '', jumlahNum, sumber_dana || 'infaq', session.user.email, new Date().toISOString(),
   ]);
 
   return NextResponse.json({ success: true });

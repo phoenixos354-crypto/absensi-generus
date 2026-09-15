@@ -23,15 +23,17 @@ export async function GET(req) {
   // total infaq jadi salah). readLatestByKeyWhere ambil baris TERBARU saja
   // per (murid,tanggal) / (kelompok,tanggal), sekaligus filter di database
   // (bukan tarik semua baris punya kelompok lain juga).
-  const [absensiAll, muridAll, sesiAll, pengeluaranAll] = await Promise.all([
+  const [absensiAll, muridAll, sesiAll, pengeluaranAll, kasAll] = await Promise.all([
     readLatestByKeyWhere(SHEETS.ABSENSI, { kelompok_id }, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`),
     readSheet(SHEETS.MURID),
     readLatestByKeyWhere(SHEETS.SESI, { kelompok_id }, s => `${s.kelompok_id}|${s.tanggal}`),
     readWhere(SHEETS.PENGELUARAN_INFAQ, { kelompok_id }),
+    readLatestByKeyWhere(SHEETS.KAS, { kelompok_id }, k => `${k.kelompok_id}|${k.murid_id}|${k.tanggal}`),
   ]);
 
   let absensi = absensiAll;
   let sesi = sesiAll;
+  let kas = kasAll;
 
   if (mode === 'hari' && nilai) {
     absensi = absensi.filter(a => a.tanggal === nilai);
@@ -74,32 +76,40 @@ export async function GET(req) {
     .filter(s => s.jurnal || Number(s.infaq) > 0)
     .map(s => ({ tanggal: s.tanggal, jurnal: s.jurnal, infaq: Number(s.infaq) || 0 }))
     .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+  const totalKas = kas.reduce((s, k) => s + (Number(k.jumlah) || 0), 0);
   const totalInfaq = sesi.reduce((s, x) => s + (Number(x.infaq) || 0), 0);
 
-  // Filter pengeluaran sesuai periode yang sama
-  let pengeluaran = pengeluaranAll.map(r => ({
-    id: r.id,
-    tanggal: r.tanggal,
-    keterangan: r.keterangan || '',
-    jumlah: Number(r.jumlah) || 0,
-  }));
+  // Filter pengeluaran sesuai periode yang sama, pisahkan sumber dana
+  let pengeluaranInfaq = [];
+  let pengeluaranKas = [];
+  pengeluaranAll.forEach(p => {
+    if (p.sumber_dana === 'kas') {
+      pengeluaranKas.push(p);
+    } else {
+      pengeluaranInfaq.push(p);
+    }
+  });
 
   if (mode === 'hari' && nilai) {
-    pengeluaran = pengeluaran.filter(p => p.tanggal === nilai);
+    pengeluaranInfaq = pengeluaranInfaq.filter(p => p.tanggal === nilai);
+    pengeluaranKas = pengeluaranKas.filter(p => p.tanggal === nilai);
   } else if (mode === 'minggu' && nilai) {
-    pengeluaran = pengeluaran.filter(p => {
+    const filterFn = p => {
       const d = new Date(p.tanggal);
       const week = getWeekNumber(d);
       return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
-    });
+    };
+    pengeluaranInfaq = pengeluaranInfaq.filter(filterFn);
+    pengeluaranKas = pengeluaranKas.filter(filterFn);
   } else if (mode === 'bulan' && nilai) {
-    pengeluaran = pengeluaran.filter(p => p.tanggal.startsWith(nilai));
+    pengeluaranInfaq = pengeluaranInfaq.filter(p => p.tanggal.startsWith(nilai));
+    pengeluaranKas = pengeluaranKas.filter(p => p.tanggal.startsWith(nilai));
   }
 
-  pengeluaran.sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
-  const totalPengeluaran = pengeluaran.reduce((s, p) => s + p.jumlah, 0);
-  const sisaInfaq = totalInfaq - totalPengeluaran;
-
+  const totalPengeluaranInfaq = pengeluaranInfaq.reduce((s, p) => s + p.jumlah, 0);
+  const totalPengeluaranKas = pengeluaranKas.reduce((s, p) => s + p.jumlah, 0);
+  const sisaInfaq = totalInfaq - totalPengeluaranInfaq;
+  const sisaKas = totalKas - totalPengeluaranKas;
   return NextResponse.json({
     kelompok_id, mode, nilai,
     total_sesi: tanggalSet.length,
@@ -107,10 +117,14 @@ export async function GET(req) {
     persen_global: persenGlobal,
     rekap_murid: rekapMurid,
     total_infaq: totalInfaq,
+    total_kas: totalKas,
     daftar_sesi: daftarSesi,
-    total_pengeluaran: totalPengeluaran,
+    total_pengeluaran_infaq: totalPengeluaranInfaq,
+    total_pengeluaran_kas: totalPengeluaranKas,
     sisa_infaq: sisaInfaq,
-    daftar_pengeluaran: pengeluaran,
+    sisa_kas: sisaKas,
+    daftar_pengeluaran_infaq: pengeluaranInfaq,
+    daftar_pengeluaran_kas: pengeluaranKas,
   });
 }
 

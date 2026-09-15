@@ -26,7 +26,8 @@ export default function AbsensiPage() {
   const [murid, setMurid] = useState([]);
   const [absensiMap, setAbsensiMap] = useState({}); // murid_id -> status
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
-  const [jurnal, setJurnal] = useState('');
+  const [kasMap, setKasMap] = useState({}); // murid_id -> jumlah
+
   const [infaq, setInfaq] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,8 +49,12 @@ export default function AbsensiPage() {
   }, [session, kelompokId]);
 
   useEffect(() => {
-    if (murid.length > 0) loadAbsensiTanggal();
+    if (murid.length > 0) {
+      loadAbsensiTanggal();
+      loadKasTanggal();
+    }
   }, [tanggal, murid]);
+
 
   useEffect(() => {
     if (kelompokId) loadSesiTanggal();
@@ -110,7 +115,18 @@ export default function AbsensiPage() {
     } catch {}
   }
 
-  async function loadAbsensiTanggal() {
+  async function loadKasTanggal() {
+    const res = await fetch(`/api/kas?kelompok_id=${kelompokId}&tanggal=${tanggal}`);
+    const data = await res.json();
+    const map = {};
+    if (Array.isArray(data)) {
+      data.forEach(k => { map[k.murid_id] = Number(k.jumlah) || 0; });
+    }
+    // Default 0 jika belum ada data
+    murid.forEach(m => { if (!(m.id in map)) map[m.id] = 0; });
+    setKasMap(map);
+  }
+
     setExistingLoaded(false);
     const res = await fetch(`/api/absensi?kelompok_id=${kelompokId}&tanggal=${tanggal}`);
     const data = await res.json();
@@ -187,7 +203,11 @@ export default function AbsensiPage() {
       murid_id: m.id,
       status: absensiMap[m.id] || 'Alfa',
     }));
-    const [resAbsensi, resSesi] = await Promise.all([
+    const kasArr = murid.map(m => ({
+      murid_id: m.id,
+      jumlah: Number(kasMap[m.id]) || 0,
+    }));
+    const [resAbsensi, resSesi, resKas] = await Promise.all([
       fetch('/api/absensi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -198,8 +218,13 @@ export default function AbsensiPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kelompok_id: kelompokId, tanggal, jurnal, infaq }),
       }),
+      fetch('/api/kas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kelompok_id: kelompokId, tanggal, kas: kasArr }),
+      }),
     ]);
-    if (resAbsensi.ok && resSesi.ok) {
+    if (resAbsensi.ok && resSesi.ok && resKas.ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     }
@@ -377,28 +402,44 @@ export default function AbsensiPage() {
                 .map((m, i) => {
                 const currentStatus = absensiMap[m.id] || 'Hadir';
                 return (
-                  <li key={m.id} className="card-soft flex items-center gap-3 p-3">
-                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-extrabold text-primary">{i+1}</span>
-                    <p className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{m.nama_murid}</p>
-                    <div className="flex shrink-0 gap-1">
-                      {STATUS_LIST.map(s => {
-                        const c = STATUS_COLOR[s];
-                        const aktif = currentStatus === s;
-                        return (
-                          <button
-                            key={s}
-                            onClick={() => setStatus(m.id, s)}
-                            className="rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-all active:scale-[0.95]"
-                            style={aktif
-                              ? { background: c.bg, color: c.text }
-                              : { background: 'var(--muted)', color: 'var(--muted-foreground)' }}
-                          >
-                            {s}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </li>
+        <li key={m.id} className="card-soft flex items-center gap-3 p-3">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-extrabold text-primary">{i+1}</span>
+          <p className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{m.nama_murid}</p>
+          <div className="flex shrink-0 gap-1">
+            {STATUS_LIST.map(s => {
+              const c = STATUS_COLOR[s];
+              const aktif = currentStatus === s;
+              return (
+                <button
+                  key={s}
+                  onClick => setStatus(m.id, s)
+                  className="rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-all active:scale-[0.95]"
+                  style => aktif
+                    ? { background: c.bg, color: c.text }
+                    : { background: 'var(--muted)', color: 'var(--muted-foreground)' }
+                >
+                  {s}
+                </button>
+              );
+            })}
+            {/* Kas input */}
+            <div className="flex items-center gap-1 rounded-2xl bg-secondary px-2 py-1">
+              <span className="text-xs font-bold text-muted-foreground">Rp</span>
+              <input
+                type="number"
+                min="0"
+                value={kasMap[m.id] ?? ''}
+                onChange={e => {
+                  const val = Number(e.target.value) || 0;
+                  setKasMap(prev => ({ ...prev, [m.id]: val }));
+                  setSaved(false);
+                }}
+                className="w-16 bg-transparent text-sm font-semibold text-ink outline-none"
+              />
+            </div>
+          </div>
+        </li>
+
                 );
               })}
             </ul>

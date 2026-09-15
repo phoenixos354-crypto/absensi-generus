@@ -191,11 +191,27 @@ create table if not exists pengeluaran_infaq (
   tanggal text,
   keterangan text,
   jumlah text,
+  sumber_dana text,
   dicatat_oleh text,
   created_at text,
   _seq bigint generated always as identity
 );
 create index if not exists idx_pengeluaran_infaq_kelompok_id on pengeluaran_infaq (kelompok_id);
+
+-- Tabel Kas: iuran wajib per anak per pertemuan
+create table if not exists kas (
+  id text primary key,
+  kelompok_id text,
+  murid_id text,
+  tanggal text,
+  jumlah text,
+  dicatat_oleh text,
+  created_at text,
+  _seq bigint generated always as identity
+);
+create index if not exists idx_kas_kelompok_id on kas (kelompok_id);
+create index if not exists idx_kas_murid_id on kas (murid_id);
+create index if not exists idx_kas_tanggal on kas (tanggal);
 
 -- =============================================================
 -- Row Level Security: dimatikan (RLS off) karena semua akses ke

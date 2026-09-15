@@ -79,12 +79,14 @@ export default function RekapPage() {
     { keepPreviousData: true }
   );
 
-  // State modal pengeluaran infaq
+  // State modal pengeluaran: tambah sumber dana
   const [showModal, setShowModal] = useState(false);
   const [formTanggal, setFormTanggal] = useState(() => new Date().toISOString().split('T')[0]);
   const [formKeterangan, setFormKeterangan] = useState('');
   const [formJumlah, setFormJumlah] = useState('');
+  const [formSumber, setFormSumber] = useState('infaq'); // 'infaq' or 'kas'
   const [savingPengeluaran, setSavingPengeluaran] = useState(false);
+
   const [deletingId, setDeletingId] = useState(null);
 
   // State tampilan murid: 'persen' (sort by persen, nama asli), 'abjad' (sort by abjad, nama asli), 'sensor' (sort by persen, nama placeholder)
@@ -109,6 +111,7 @@ export default function RekapPage() {
           tanggal: formTanggal,
           keterangan: formKeterangan.trim(),
           jumlah: Number(formJumlah),
+          sumber_dana: formSumber,
         }),
       });
       if (res.ok) {
@@ -123,6 +126,7 @@ export default function RekapPage() {
     }
     setSavingPengeluaran(false);
   }
+
 
   async function handleDeletePengeluaran(id) {
     setDeletingId(id);
@@ -599,12 +603,13 @@ export default function RekapPage() {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-surface p-6 shadow-2xl">
-            <Dialog.Title className="text-lg font-extrabold text-ink">
-              Catat Pengeluaran Infaq
-            </Dialog.Title>
-            <Dialog.Description className="mt-1 text-xs text-muted-foreground">
-              Tambahkan pengeluaran infaq untuk kelompok ini.
-            </Dialog.Description>
+                <Dialog.Title className="text-lg font-extrabold text-ink">
+                  Catat Pengeluaran
+                </Dialog.Title>
+                <Dialog.Description className="mt-1 text-xs text-muted-foreground">
+                  Tambahkan pengeluaran (Infaq atau Kas) untuk kelompok ini.
+                </Dialog.Description>
+
 
             <div className="mt-5 space-y-4">
               {/* Tanggal */}
@@ -630,26 +635,42 @@ export default function RekapPage() {
                 />
               </div>
 
-              {/* Jumlah */}
-              <div>
-                <label className="text-xs font-bold text-muted-foreground">Jumlah Pengeluaran</label>
-                <div className="mt-1.5 flex items-center rounded-2xl bg-secondary px-4 py-3 focus-within:ring-2 focus-within:ring-primary/40">
-                  <span className="mr-1 text-sm font-bold text-muted-foreground">Rp</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={formJumlah}
-                    onChange={e => setFormJumlah(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-transparent text-sm font-semibold outline-none"
-                  />
+                {/* Sumber dana toggle */}
+                <div className="flex gap-2 mb-2">
+                  <button
+                    onClick={() => setFormSumber('infaq')}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${formSumber === 'infaq' ? 'bg-green-600 text-white' : 'bg-secondary text-muted-foreground'}`}
+                  >
+                    Infaq
+                  </button>
+                  <button
+                    onClick={() => setFormSumber('kas')}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${formSumber === 'kas' ? 'bg-blue-600 text-white' : 'bg-secondary text-muted-foreground'}`}
+                  >
+                    Kas
+                  </button>
                 </div>
-                {formJumlah && Number(formJumlah) > 0 && (
-                  <p className="mt-1.5 text-xs font-bold text-primary">
-                    = Rp{formatRupiah(Number(formJumlah))}
-                  </p>
-                )}
-              </div>
+                {/* Jumlah */}
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground">Jumlah Pengeluaran</label>
+                  <div className="mt-1.5 flex items-center rounded-2xl bg-secondary px-4 py-3 focus-within:ring-2 focus-within:ring-primary/40">
+                    <span className="mr-1 text-sm font-bold text-muted-foreground">Rp</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={formJumlah}
+                      onChange={e => setFormJumlah(e.target.value)}
+                      placeholder="0"
+                      className="w-full bg-transparent text-sm font-semibold outline-none"
+                    />
+                  </div>
+                  {formJumlah && Number(formJumlah) > 0 && (
+                    <p className="mt-1.5 text-xs font-bold text-primary">
+                      = Rp{formatRupiah(Number(formJumlah))}
+                    </p>
+                  )}
+                </div>
+
             </div>
 
             {/* Tombol aksi */}
