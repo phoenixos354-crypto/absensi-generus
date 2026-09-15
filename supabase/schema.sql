@@ -213,6 +213,10 @@ create index if not exists idx_kas_kelompok_id on kas (kelompok_id);
 create index if not exists idx_kas_murid_id on kas (murid_id);
 create index if not exists idx_kas_tanggal on kas (tanggal);
 
+-- Menambahkan kolom sumber_dana yang hilang ke tabel pengeluaran_infaq
+-- Dibutuhkan untuk rekap endpoint setelah perubahan terbaru
+alter table pengeluaran_infaq add column if not exists sumber_dana text default 'infaq';
+
 -- =============================================================
 -- Row Level Security: dimatikan (RLS off) karena semua akses ke
 -- tabel ini SELALU lewat API routes Next.js pakai service role key

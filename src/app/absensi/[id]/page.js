@@ -28,7 +28,7 @@ export default function AbsensiPage() {
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [kasMap, setKasMap] = useState({}); // murid_id -> jumlah
 
-  const [infaq, setInfaq] = useState('');
+  const [jurnal, setJurnal] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
