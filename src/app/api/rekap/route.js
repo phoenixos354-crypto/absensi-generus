@@ -111,8 +111,8 @@ export async function GET(req) {
     pengeluaranKas = pengeluaranKas.filter(p => p.tanggal.startsWith(nilai));
   }
 
-  const totalPengeluaranInfaq = pengeluaranInfaq.reduce((s, p) => s + p.jumlah, 0);
-  const totalPengeluaranKas = pengeluaranKas.reduce((s, p) => s + p.jumlah, 0);
+  const totalPengeluaranInfaq = pengeluaranInfaq.reduce((s, p) => s + (Number(p.jumlah) || 0), 0);
+  const totalPengeluaranKas = pengeluaranKas.reduce((s, p) => s + (Number(p.jumlah) || 0), 0);
   const sisaInfaq = totalInfaq - totalPengeluaranInfaq;
   const sisaKas = totalKas - totalPengeluaranKas;
   return NextResponse.json({
@@ -124,10 +124,12 @@ export async function GET(req) {
     total_infaq: totalInfaq,
     total_kas: totalKas,
     daftar_sesi: daftarSesi,
+    total_pengeluaran: totalPengeluaranInfaq,
     total_pengeluaran_infaq: totalPengeluaranInfaq,
     total_pengeluaran_kas: totalPengeluaranKas,
     sisa_infaq: sisaInfaq,
     sisa_kas: sisaKas,
+    daftar_pengeluaran: pengeluaranInfaq,
     daftar_pengeluaran_infaq: pengeluaranInfaq,
     daftar_pengeluaran_kas: pengeluaranKas,
   });

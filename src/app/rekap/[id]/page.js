@@ -312,7 +312,7 @@ export default function RekapPage() {
                     Pengeluaran
                   </span>
                   <span className="text-sm font-extrabold text-red-600">
-                    Rp{formatRupiah(rekap.total_pengeluaran)}
+                    Rp{formatRupiah(rekap.total_pengeluaran_infaq ?? rekap.total_pengeluaran)}
                   </span>
                 </div>
                 {/* Divider */}
@@ -332,7 +332,7 @@ export default function RekapPage() {
           </section>
 
           {/* Rincian pengeluaran infaq */}
-          {rekap.daftar_pengeluaran?.length > 0 && (
+          {(rekap.daftar_pengeluaran_infaq ?? rekap.daftar_pengeluaran)?.length > 0 && (
             <section className="px-5 pt-4">
               <div className="card-soft p-4">
                 <div className="flex items-center justify-between">
@@ -343,12 +343,12 @@ export default function RekapPage() {
                     <h2 className="text-sm font-extrabold text-ink">Rincian Pengeluaran</h2>
                   </span>
                   <span className="text-sm font-extrabold text-red-600">
-                    Rp{formatRupiah(rekap.total_pengeluaran)}
+                    Rp{formatRupiah(rekap.total_pengeluaran_infaq ?? rekap.total_pengeluaran)}
                   </span>
                 </div>
 
                 <div className="mt-3.5 space-y-2.5">
-                  {rekap.daftar_pengeluaran.map(p => (
+                  {(rekap.daftar_pengeluaran_infaq ?? rekap.daftar_pengeluaran).map(p => (
                     <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-secondary p-3.5">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold text-ink">{p.keterangan || '(tanpa keterangan)'}</p>
