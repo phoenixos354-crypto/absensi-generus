@@ -127,21 +127,22 @@ export default function AbsensiPage() {
     setKasMap(map);
   }
 
-    setExistingLoaded(false);
-    const res = await fetch(`/api/absensi?kelompok_id=${kelompokId}&tanggal=${tanggal}`);
-    const data = await res.json();
-    const map = {};
-    if (Array.isArray(data)) {
-      data.forEach(a => { map[a.murid_id] = a.status; });
-    }
-    // Default semua ke Hadir jika belum ada data
-    if (Object.keys(map).length === 0) {
-      murid.forEach(m => { map[m.id] = 'Hadir'; });
-    }
-    setAbsensiMap(map);
-    setExistingLoaded(true);
-    setSaved(false);
+async function loadAbsensiTanggal() {
+  setExistingLoaded(false);
+  const res = await fetch(`/api/absensi?kelompok_id=${kelompokId}&tanggal=${tanggal}`);
+  const data = await res.json();
+  const map = {};
+  if (Array.isArray(data)) {
+    data.forEach(a => { map[a.murid_id] = a.status; });
   }
+  // Default semua ke Hadir jika belum ada data
+  if (Object.keys(map).length === 0) {
+    murid.forEach(m => { map[m.id] = 'Hadir'; });
+  }
+  setAbsensiMap(map);
+  setExistingLoaded(true);
+  setSaved(false);
+}
 
   function setStatus(muridId, status) {
     setAbsensiMap(prev => ({ ...prev, [muridId]: status }));
@@ -410,16 +411,16 @@ export default function AbsensiPage() {
               const c = STATUS_COLOR[s];
               const aktif = currentStatus === s;
               return (
-                <button
-                  key={s}
-                  onClick => setStatus(m.id, s)
-                  className="rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-all active:scale-[0.95]"
-                  style => aktif
-                    ? { background: c.bg, color: c.text }
-                    : { background: 'var(--muted)', color: 'var(--muted-foreground)' }
-                >
-                  {s}
-                </button>
+<button
+  key={s}
+  onClick={() => setStatus(m.id, s)}
+  className="rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-all active:scale-[0.95]"
+  style={aktif
+    ? { background: c.bg, color: c.text }
+    : { background: 'var(--muted)', color: 'var(--muted-foreground)' }}
+>
+  {s}
+</button>
               );
             })}
             {/* Kas input */}
