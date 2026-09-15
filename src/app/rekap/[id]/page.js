@@ -280,22 +280,22 @@ export default function RekapPage() {
             </div>
           </section>
 
-          {/* Card detail infaq: masuk, keluar, sisa + tombol catat pengeluaran */}
+          {/* Tombol catat pengeluaran */}
           <section className="px-5 pt-4">
-            <div className="card-soft p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-extrabold text-ink">Ringkasan Infaq</h2>
-                <button
-                  onClick={openModal}
-                  className="flex items-center gap-1 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-bold text-primary transition-colors active:scale-95"
-                >
-                  <Plus className="size-3.5" />
-                  Catat Pengeluaran
-                </button>
-              </div>
+            <button
+              onClick={openModal}
+              className="flex w-full items-center justify-center gap-1.5 rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]"
+            >
+              <Plus className="size-4" />
+              Catat Pengeluaran
+            </button>
+          </section>
 
+          {/* Card ringkasan infaq */}
+          <section className="px-5 pt-4">
+            <div className="card-soft border-l-4 border-l-green-600 p-4">
+              <h2 className="text-sm font-extrabold text-ink">Ringkasan Infaq</h2>
               <div className="mt-3 space-y-2.5">
-                {/* Masuk */}
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                     <TrendingUp className="size-4 text-green-600" />
@@ -305,26 +305,60 @@ export default function RekapPage() {
                     Rp{formatRupiah(rekap.total_infaq)}
                   </span>
                 </div>
-                {/* Keluar */}
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                     <TrendingDown className="size-4 text-red-600" />
-                    Pengeluaran
+                    Pengeluaran Infaq
                   </span>
                   <span className="text-sm font-extrabold text-red-600">
                     Rp{formatRupiah(rekap.total_pengeluaran_infaq ?? rekap.total_pengeluaran)}
                   </span>
                 </div>
-                {/* Divider */}
                 <div className="border-t border-border" />
-                {/* Sisa */}
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-xs font-bold text-ink">
-                    <Wallet className="size-4 text-primary" />
+                    <Wallet className="size-4 text-green-700" />
                     Sisa Infaq
                   </span>
-                  <span className={`text-base font-extrabold ${(rekap.sisa_infaq || 0) < 0 ? 'text-red-600' : 'text-primary'}`}>
+                  <span className={`text-base font-extrabold ${(rekap.sisa_infaq || 0) < 0 ? 'text-red-600' : 'text-green-700'}`}>
                     Rp{formatRupiah(rekap.sisa_infaq)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Card ringkasan kas */}
+          <section className="px-5 pt-3">
+            <div className="card-soft border-l-4 border-l-blue-600 p-4">
+              <h2 className="text-sm font-extrabold text-ink">Ringkasan Kas</h2>
+              <div className="mt-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <TrendingUp className="size-4 text-green-600" />
+                    Kas Masuk
+                  </span>
+                  <span className="text-sm font-extrabold text-green-600">
+                    Rp{formatRupiah(rekap.total_kas)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <TrendingDown className="size-4 text-red-600" />
+                    Pengeluaran Kas
+                  </span>
+                  <span className="text-sm font-extrabold text-red-600">
+                    Rp{formatRupiah(rekap.total_pengeluaran_kas)}
+                  </span>
+                </div>
+                <div className="border-t border-border" />
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-xs font-bold text-ink">
+                    <Wallet className="size-4 text-blue-700" />
+                    Sisa Kas
+                  </span>
+                  <span className={`text-base font-extrabold ${(rekap.sisa_kas || 0) < 0 ? 'text-red-600' : 'text-blue-700'}`}>
+                    Rp{formatRupiah(rekap.sisa_kas)}
                   </span>
                 </div>
               </div>
@@ -340,7 +374,7 @@ export default function RekapPage() {
                     <span className="grid size-8 place-items-center rounded-full bg-red-50 text-red-600">
                       <MinusCircle className="size-4" />
                     </span>
-                    <h2 className="text-sm font-extrabold text-ink">Rincian Pengeluaran</h2>
+                    <h2 className="text-sm font-extrabold text-ink">Keluar dari Infaq</h2>
                   </span>
                   <span className="text-sm font-extrabold text-red-600">
                     Rp{formatRupiah(rekap.total_pengeluaran_infaq ?? rekap.total_pengeluaran)}
@@ -349,6 +383,49 @@ export default function RekapPage() {
 
                 <div className="mt-3.5 space-y-2.5">
                   {(rekap.daftar_pengeluaran_infaq ?? rekap.daftar_pengeluaran).map(p => (
+                    <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-secondary p-3.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-ink">{p.keterangan || '(tanpa keterangan)'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(p.tanggal).toLocaleDateString('id-ID', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-extrabold text-red-600">
+                        -Rp{formatRupiah(p.jumlah)}
+                      </span>
+                      <button
+                        onClick={() => handleDeletePengeluaran(p.id)}
+                        disabled={deletingId === p.id}
+                        className="shrink-0 rounded-full p-2 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 active:scale-90 disabled:opacity-40"
+                        title="Hapus pengeluaran"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Rincian pengeluaran kas */}
+          {rekap.daftar_pengeluaran_kas?.length > 0 && (
+            <section className="px-5 pt-3">
+              <div className="card-soft p-4">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="grid size-8 place-items-center rounded-full bg-blue-50 text-blue-600">
+                      <MinusCircle className="size-4" />
+                    </span>
+                    <h2 className="text-sm font-extrabold text-ink">Keluar dari Kas</h2>
+                  </span>
+                  <span className="text-sm font-extrabold text-red-600">
+                    Rp{formatRupiah(rekap.total_pengeluaran_kas)}
+                  </span>
+                </div>
+
+                <div className="mt-3.5 space-y-2.5">
+                  {rekap.daftar_pengeluaran_kas.map(p => (
                     <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-secondary p-3.5">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold text-ink">{p.keterangan || '(tanpa keterangan)'}</p>
