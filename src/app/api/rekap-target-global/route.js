@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, readLatestByKey, SHEETS } from '@/lib/sheets';
+import { readSheet, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
 import { getKelompokAkses } from '@/lib/permission';
 import { resolvePresetId } from '@/lib/target';
 import { NextResponse } from 'next/server';
@@ -29,11 +29,16 @@ export async function GET(req) {
     });
   }
 
-  const [muridAll, itemAll, progressAll] = await Promise.all([
+  const [muridAll, itemAll] = await Promise.all([
     readSheet(SHEETS.MURID),
     readSheet(SHEETS.TARGET_ITEM),
-    readLatestByKey(SHEETS.TARGET_PROGRESS, p => `${p.murid_id}|${p.item_id}`),
   ]);
+
+  const kelompokIds = new Set(semuaKelompok.map(k => k.id));
+  const muridIds = muridAll.filter(m => kelompokIds.has(m.kelompok_id)).map(m => m.id);
+  const progressAll = muridIds.length > 0
+    ? await readLatestByKeyWhereIn(SHEETS.TARGET_PROGRESS, 'murid_id', muridIds, p => `${p.murid_id}|${p.item_id}`)
+    : [];
 
   const progressByMurid = new Map();
   for (const p of progressAll) {

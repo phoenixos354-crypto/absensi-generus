@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readSheet, readLatestByKey, SHEETS } from '@/lib/sheets';
+import { readSheet, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { resolvePresetId, KATEGORI } from '@/lib/target';
 import { NextResponse } from 'next/server';
@@ -24,11 +24,10 @@ export async function GET(req) {
   const perm = await getPermission(session.user.email, kelompok_id);
   if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
 
-  const [kelompokList, muridAll, itemAll, progressAll] = await Promise.all([
+  const [kelompokList, muridAll, itemAll] = await Promise.all([
     readSheet(SHEETS.KELOMPOK),
     readSheet(SHEETS.MURID),
     readSheet(SHEETS.TARGET_ITEM),
-    readLatestByKey(SHEETS.TARGET_PROGRESS, p => `${p.murid_id}|${p.item_id}`),
   ]);
 
   const kelompok = kelompokList.find(k => k.id === kelompok_id);
@@ -37,6 +36,11 @@ export async function GET(req) {
   const presetId = resolvePresetId(kelompok);
   const items = itemAll.filter(i => i.preset_id === presetId && i.tingkatan === kelompok.tingkatan);
   const murid = muridAll.filter(m => m.kelompok_id === kelompok_id);
+
+  const muridIds = murid.map(m => m.id);
+  const progressAll = muridIds.length > 0
+    ? await readLatestByKeyWhereIn(SHEETS.TARGET_PROGRESS, 'murid_id', muridIds, p => `${p.murid_id}|${p.item_id}`)
+    : [];
 
   const progressByMurid = new Map();
   for (const p of progressAll) {
