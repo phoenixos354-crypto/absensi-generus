@@ -121,10 +121,9 @@ export default function AbsensiPage() {
     const data = await res.json();
     const map = {};
     if (Array.isArray(data)) {
-      data.forEach(k => { map[k.murid_id] = Number(k.jumlah) || 0; });
+      data.forEach(k => { map[k.murid_id] = String(Number(k.jumlah) || 0); });
     }
-    // Default 0 jika belum ada data
-    murid.forEach(m => { if (!(m.id in map)) map[m.id] = 0; });
+    murid.forEach(m => { if (!(m.id in map)) map[m.id] = ''; });
     setKasMap(map);
   }
 
@@ -404,12 +403,12 @@ async function loadAbsensiTanggal() {
                 .map((m, i) => {
                 const currentStatus = absensiMap[m.id] || 'Hadir';
                 return (
-        <li key={m.id} className="card-soft space-y-2 p-3">
-          <div className="flex items-center gap-3">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-extrabold text-primary">{i+1}</span>
-            <p className="min-w-0 flex-1 text-sm font-bold break-words text-ink">{m.nama_murid}</p>
+        <li key={m.id} className="card-soft p-3">
+          <div className="flex items-center gap-2.5">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-extrabold text-primary">{i+1}</span>
+            <p className="min-w-0 flex-1 truncate text-base font-bold text-ink">{m.nama_murid}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-1">
+          <div className="mt-2.5 grid grid-cols-4 gap-1.5">
             {STATUS_LIST.map(s => {
               const c = STATUS_COLOR[s];
               const aktif = currentStatus === s;
@@ -417,7 +416,7 @@ async function loadAbsensiTanggal() {
 <button
   key={s}
   onClick={() => setStatus(m.id, s)}
-  className="rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-all active:scale-[0.95]"
+  className="rounded-xl px-1 py-2 text-xs font-bold transition-all active:scale-[0.95]"
   style={aktif
     ? { background: c.bg, color: c.text }
     : { background: 'var(--muted)', color: 'var(--muted-foreground)' }}
@@ -426,23 +425,21 @@ async function loadAbsensiTanggal() {
 </button>
               );
             })}
-            {/* Kas input */}
-            <div className="flex items-center gap-1 rounded-2xl bg-secondary px-2 py-1.5">
-              <span className="text-[11px] font-bold text-muted-foreground">Kas Rp</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min="0"
-                value={kasMap[m.id] ?? ''}
-                placeholder="0"
-                onChange={e => {
-                  const val = Number(e.target.value) || 0;
-                  setKasMap(prev => ({ ...prev, [m.id]: val }));
-                  setSaved(false);
-                }}
-                className="w-20 bg-transparent text-sm font-semibold text-ink outline-none"
-              />
-            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-2 rounded-xl bg-secondary px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary/40">
+            <span className="shrink-0 text-xs font-bold text-muted-foreground">Kas Rp</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={kasMap[m.id] ?? ''}
+              placeholder="0"
+              onChange={e => {
+                setKasMap(prev => ({ ...prev, [m.id]: e.target.value }));
+                setSaved(false);
+              }}
+              className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted-foreground/50"
+            />
           </div>
         </li>
 
