@@ -266,12 +266,6 @@ export default function RekapGlobalPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="mt-2 flex justify-end">
-                    <ShareLinkButton
-                      href={`/public/rekap/global?mode=bulan&nilai=${nilai}&tingkatan=${tabTingkatan}${kelompokIdsParam ? `&kelompok_ids=${kelompokIdsParam}` : ''}`}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 transition-colors"
-                    />
-                  </div>
                   <div className="space-y-2">
                     {rekap.top_murid.map((m, i) => {
                       const displayName = displayMode === 'sensor' ? sensorNama(m.nama) : m.nama;
