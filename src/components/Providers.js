@@ -4,6 +4,7 @@ import { SWRConfig } from 'swr';
 import { InstallPrompt } from './InstallPrompt';
 import { SupportBadge } from './SupportBadge';
 import { WhatsAppGroupModal } from './WhatsAppGroupModal';
+import { DailyPromoModal } from './DailyPromoModal';
 import { useEffect } from 'react';
 
 export const fetcher = (url) =>
@@ -91,6 +92,7 @@ export function Providers({ children }) {
         <InstallPrompt />
         <SupportBadge />
         <WhatsAppGroupModal />
+        <DailyPromoModal />
       </SWRConfig>
     </SessionProvider>
   );
