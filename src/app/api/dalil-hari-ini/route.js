@@ -1,7 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { readSheet, appendRow, SHEETS, generateId } from '@/lib/sheets';
-import { generateDalilDariAI } from '@/lib/groq';
 import { NextResponse } from 'next/server';
 
 const JUMLAH_MASCOT = 5;
@@ -101,26 +100,11 @@ export async function GET() {
     });
   }
 
-  // Kumpulkan sumber-sumber yang sudah pernah ditampilkan (paling baru dulu), supaya
-  // AI diminta menghindarinya dan fallback juga tidak mengulang dalil yang sama.
-  const riwayatSumber = semuaDalil
-    .slice()
-    .sort((a, b) => (a.tanggal < b.tanggal ? 1 : -1))
-    .map(d => d.sumber)
-    .filter(Boolean);
-  const sumberBaruBaruIni = [...new Set(riwayatSumber)].slice(0, 15);
-
-  // Belum ada cache untuk hari ini -> coba generate via AI (maksimal sekali per hari)
-  const hasilAI = await generateDalilDariAI(sumberBaruBaruIni);
-
-  // Fallback: pilih dalil cadangan yang sumbernya BELUM pernah dipakai baru-baru ini.
-  // Kalau semua cadangan sudah pernah dipakai, baru boleh mengulang (pakai rotasi tanggal).
-  const kandidatFallback = FALLBACK_DALIL.filter(d => !sumberBaruBaruIni.includes(d.sumber));
-  const daftarFallback = kandidatFallback.length ? kandidatFallback : FALLBACK_DALIL;
-  const fallback = daftarFallback[new Date(tanggal).getDate() % daftarFallback.length];
-
-  const dipakai = hasilAI || fallback;
-  const mascotIndex = (new Date(tanggal).getDate() % JUMLAH_MASCOT) + 1;
+  // Tidak ada AI/API eksternal. Dalil diputar berurutan berdasarkan tanggal.
+  // Daftar berisi teks Arab, terjemahan, dan rujukan yang sudah ditinjau.
+  const nomorHari = Math.floor(new Date(`${tanggal}T00:00:00`).getTime() / 86400000);
+  const dipakai = FALLBACK_DALIL[((nomorHari % FALLBACK_DALIL.length) + FALLBACK_DALIL.length) % FALLBACK_DALIL.length];
+  const mascotIndex = (nomorHari % JUMLAH_MASCOT + JUMLAH_MASCOT) % JUMLAH_MASCOT + 1;
 
   try {
     await appendRow(SHEETS.DALIL, [
