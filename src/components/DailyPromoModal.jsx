@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 
 const PROMO_KEY = 'ag_promo_last_shown';
 const PROMO_IMAGE = 'https://app.visbiz.co.id/imgserver/img/20260916_201829_74e0f8.png';
-const PROMO_URL = PROMO_IMAGE;
+const PROMO_URL = 'https://galipatmedia.id';
 
 function tanggalLokal() {
   const d = new Date();
@@ -17,7 +17,7 @@ export function DailyPromoModal() {
   const pathname = usePathname();
   const { status } = useSession();
   const [visible, setVisible] = useState(false);
-  const [sisa, setSisa] = useState(5);
+  const [sisa, setSisa] = useState(10);
   const [siapTutup, setSiapTutup] = useState(false);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export function DailyPromoModal() {
     const timer = setTimeout(() => {
       localStorage.setItem(PROMO_KEY, tanggalLokal());
       setVisible(true);
-      setSisa(5);
+      setSisa(10);
       setSiapTutup(false);
     }, 15000);
     return () => clearTimeout(timer);
