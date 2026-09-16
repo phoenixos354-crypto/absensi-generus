@@ -146,6 +146,14 @@ export default function AbsensiPage() {
   const map = {};
   const jmap = {};
   if (Array.isArray(data)) {
+    // Tanggal bekas koreksi dianggap belum ada sesi (kosong total)
+    if (data.length > 0 && data.every(a => a.status === 'Koreksi')) {
+      setAbsensiMap({});
+      setJamMap({});
+      setExistingLoaded(true);
+      setSaved(false);
+      return;
+    }
     data.forEach(a => {
       map[a.murid_id] = STATUS_LIST.includes(a.status) ? a.status : 'Alfa';
       if (a.jam_datang) jmap[a.murid_id] = a.jam_datang;

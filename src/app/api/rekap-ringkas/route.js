@@ -44,7 +44,8 @@ export async function GET(req) {
     readLatestByKeyWhereIn(SHEETS.ABSENSI, 'kelompok_id', kelompokIds, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`),
     readWhereIn(SHEETS.MURID, 'kelompok_id', kelompokIds),
   ]);
-  const absensiAll = absensiDeduped.filter(a => a.tanggal?.startsWith(bulan));
+  const tglKoreksi = new Set(absensiDeduped.filter(a => a.status === 'Koreksi').map(a => a.tanggal));
+  const absensiAll = absensiDeduped.filter(a => a.tanggal?.startsWith(bulan) && !tglKoreksi.has(a.tanggal));
 
   const result = {};
 

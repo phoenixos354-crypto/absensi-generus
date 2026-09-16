@@ -26,7 +26,8 @@ export async function GET(req, { params }) {
     readWhere(SHEETS.PENGELUARAN_INFAQ, { kelompok_id: kelompokId }),
   ]);
 
-  let absensi = absensiAll;
+  const tglKoreksi = new Set(absensiAll.filter(a => a.status === 'Koreksi').map(a => a.tanggal));
+  let absensi = absensiAll.filter(a => !tglKoreksi.has(a.tanggal));
   let sesi = sesiAll;
 
   if (mode === 'hari' && nilai) {

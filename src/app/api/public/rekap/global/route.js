@@ -43,6 +43,8 @@ export async function GET(req) {
 
   const kelompokIds = kelompokList.map(k => k.id);
   let absensi = await readLatestByKeyWhereIn(SHEETS.ABSENSI, 'kelompok_id', kelompokIds, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`);
+  const tglKoreksi = new Set(absensi.filter(a => a.status === 'Koreksi').map(a => a.tanggal));
+  absensi = absensi.filter(a => !tglKoreksi.has(a.tanggal));
 
   // Filter periode
   if (mode === 'hari' && nilai) {

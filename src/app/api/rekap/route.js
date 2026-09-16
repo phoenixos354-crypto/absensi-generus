@@ -52,7 +52,10 @@ export async function GET(req) {
     return true;
   };
 
+  // Abaikan tanggal bekas koreksi (isinya cuma status 'Koreksi' semua)
   absensi = absensi.filter(a => cocokPeriode(a.tanggal));
+  const tglKoreksi = new Set(absensi.filter(a => a.status === 'Koreksi').map(a => a.tanggal));
+  absensi = absensi.filter(a => !tglKoreksi.has(a.tanggal));
   sesi = sesi.filter(s => cocokPeriode(s.tanggal));
   kas = kas.filter(k => cocokPeriode(k.tanggal));
 

@@ -61,6 +61,8 @@ export async function GET(req) {
   // per (kelompok,murid,tanggal), sekaligus filter di database via .in() —
   // cuma tarik baris punya kelompok yang relevan, bukan semua kelompok semua user.
   let absensi = await readLatestByKeyWhereIn(SHEETS.ABSENSI, 'kelompok_id', kelompokIds, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`);
+  const tglKoreksi = new Set(absensi.filter(a => a.status === 'Koreksi').map(a => a.tanggal));
+  absensi = absensi.filter(a => !tglKoreksi.has(a.tanggal));
 
   // Filter periode — sama seperti /api/rekap
   if (mode === 'hari' && nilai) {
