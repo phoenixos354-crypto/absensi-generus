@@ -5,7 +5,9 @@ import { useEffect, useState } from 'react';
 import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { MapPin, Users, ClipboardList, ArrowLeft, Save, Check, NotebookPen, Wallet, CalendarClock, AlertTriangle } from 'lucide-react';
+import { MapPin, Users, ClipboardList, ArrowLeft, Save, Check, NotebookPen, Wallet, CalendarClock, AlertTriangle, QrCode, Clock } from 'lucide-react';
+import { QRMuridModal } from '@/components/QRMuridModal';
+import { CetakSemuaQR } from '@/components/CetakSemuaQR';
 
 const STATUS_LIST = ['Hadir','Izin','Sakit','Alfa'];
 
@@ -30,6 +32,8 @@ export default function AbsensiPage() {
 
   const [jurnal, setJurnal] = useState('');
   const [infaq, setInfaq] = useState('');
+  const [jamMap, setJamMap] = useState({}); // murid_id -> HH:MM
+  const [qrMurid, setQrMurid] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -127,25 +131,44 @@ export default function AbsensiPage() {
     setKasMap(map);
   }
 
-async function loadAbsensiTanggal() {
+  function jamSekarang() {
+    const n = new Date();
+    return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+  }
+
+  async function loadAbsensiTanggal() {
   setExistingLoaded(false);
   const res = await fetch(`/api/absensi?kelompok_id=${kelompokId}&tanggal=${tanggal}`);
   const data = await res.json();
   const map = {};
+  const jmap = {};
   if (Array.isArray(data)) {
-    data.forEach(a => { map[a.murid_id] = a.status; });
+    data.forEach(a => {
+      map[a.murid_id] = a.status;
+      if (a.jam_datang) jmap[a.murid_id] = a.jam_datang;
+    });
   }
   // Default semua ke Hadir jika belum ada data
   if (Object.keys(map).length === 0) {
     murid.forEach(m => { map[m.id] = 'Hadir'; });
   }
   setAbsensiMap(map);
+  setJamMap(jmap);
   setExistingLoaded(true);
   setSaved(false);
 }
 
   function setStatus(muridId, status) {
     setAbsensiMap(prev => ({ ...prev, [muridId]: status }));
+    setJamMap(prev => {
+      if (status === 'Hadir' && !prev[muridId]) return { ...prev, [muridId]: jamSekarang() };
+      if (status !== 'Hadir') {
+        const next = { ...prev };
+        delete next[muridId];
+        return next;
+      }
+      return prev;
+    });
     setSaved(false);
   }
 
@@ -154,6 +177,16 @@ async function loadAbsensiTanggal() {
     const map = {};
     murid.forEach(m => { map[m.id] = status; });
     setAbsensiMap(map);
+    if (status === 'Hadir') {
+      const j = jamSekarang();
+      setJamMap(prev => {
+        const next = { ...prev };
+        murid.forEach(m => { if (!next[m.id]) next[m.id] = j; });
+        return next;
+      });
+    } else {
+      setJamMap({});
+    }
     setSaved(false);
   }
 
@@ -200,10 +233,10 @@ async function loadAbsensiTanggal() {
 
   async function handleSimpan() {
     setSaving(true);
-    const absensiArr = murid.map(m => ({
-      murid_id: m.id,
-      status: absensiMap[m.id] || 'Alfa',
-    }));
+    const absensiArr = murid.map(m => {
+      const st = absensiMap[m.id] || 'Alfa';
+      return { murid_id: m.id, status: st, jam_datang: st === 'Hadir' ? (jamMap[m.id] || jamSekarang()) : '' };
+    });
     const kasArr = murid.map(m => ({
       murid_id: m.id,
       jumlah: Number(kasMap[m.id]) || 0,
@@ -407,6 +440,7 @@ async function loadAbsensiTanggal() {
           <div className="flex items-center gap-2.5">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-extrabold text-primary">{i+1}</span>
             <p className="min-w-0 flex-1 truncate text-base font-bold text-ink">{m.nama_murid}</p>
+            <button onClick={() => setQrMurid(m)} aria-label="Kartu QR" className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-primary active:scale-95"><QrCode className="size-4" /></button>
           </div>
           <div className="mt-2.5 grid grid-cols-4 gap-1.5">
             {STATUS_LIST.map(s => {
@@ -426,26 +460,45 @@ async function loadAbsensiTanggal() {
               );
             })}
           </div>
-          <div className="mt-2 flex items-center gap-2 rounded-xl bg-secondary px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary/40">
-            <span className="shrink-0 text-xs font-bold text-muted-foreground">Kas Rp</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min="0"
-              value={kasMap[m.id] ?? ''}
-              placeholder="0"
-              onChange={e => {
-                setKasMap(prev => ({ ...prev, [m.id]: e.target.value }));
-                setSaved(false);
-              }}
-              className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted-foreground/50"
-            />
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-2 rounded-xl bg-secondary px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary/40">
+              <Clock className="size-3.5 shrink-0 text-muted-foreground" />
+              <input
+                type="time"
+                value={jamMap[m.id] ?? ''}
+                onChange={e => {
+                  setJamMap(prev => ({ ...prev, [m.id]: e.target.value }));
+                  setSaved(false);
+                }}
+                className="w-full bg-transparent text-sm font-semibold text-ink outline-none"
+              />
+            </div>
+            <div className="flex items-center gap-2 rounded-xl bg-secondary px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary/40">
+              <span className="shrink-0 text-xs font-bold text-muted-foreground">Kas Rp</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min="0"
+                value={kasMap[m.id] ?? ''}
+                placeholder="0"
+                onChange={e => {
+                  setKasMap(prev => ({ ...prev, [m.id]: e.target.value }));
+                  setSaved(false);
+                }}
+                className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted-foreground/50"
+              />
+            </div>
           </div>
         </li>
 
                 );
               })}
             </ul>
+            {murid.length > 0 && (
+              <div className="mt-3">
+                <CetakSemuaQR muridList={murid} namaKelompok={kelompok?.nama_kelompok} />
+              </div>
+            )}
             </>
           )}
         </section>
@@ -558,6 +611,7 @@ async function loadAbsensiTanggal() {
             </div>
           </div>
         )}
+        {qrMurid && <QRMuridModal murid={qrMurid} namaKelompok={kelompok?.nama_kelompok} onClose={() => setQrMurid(null)} />}
       </div>
 
         {/* Modal koreksi tanggal */}

@@ -80,7 +80,7 @@ const HEADERS = {
   [SHEETS.KELOMPOK]:        ['id', 'user_id', 'nama_kelompok', 'tingkatan', 'desa', 'daerah', 'preset_id', 'created_at'],
   [SHEETS.MURID]:           ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'],
   [SHEETS.JADWAL]:          ['id', 'kelompok_id', 'hari', 'created_at'],
-  [SHEETS.ABSENSI]:         ['id', 'kelompok_id', 'murid_id', 'tanggal', 'status', 'dicatat_oleh', 'created_at'],
+  [SHEETS.ABSENSI]:         ['id', 'kelompok_id', 'murid_id', 'tanggal', 'status', 'dicatat_oleh', 'created_at', 'jam_datang'],
   [SHEETS.ADMIN_KELOMPOK]:  ['id', 'kelompok_id', 'email', 'permission', 'invited_by', 'created_at'],
   [SHEETS.DALIL]:           ['id', 'tanggal', 'tipe', 'teks_arab', 'teks_terjemah', 'sumber', 'mascot_index', 'created_at'],
   [SHEETS.SESI]:            ['id', 'kelompok_id', 'tanggal', 'jurnal', 'infaq', 'dicatat_oleh', 'created_at'],

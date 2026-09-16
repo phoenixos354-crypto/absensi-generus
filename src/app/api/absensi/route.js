@@ -43,8 +43,9 @@ export async function POST(req) {
   // Cukup tambah baris-baris baru di bawah — baris terbaru per murid+tanggal
   // otomatis jadi status yang "berlaku" (lihat GET di atas). Tidak perlu
   // baca-hapus-tulis ulang seluruh sheet absensi.
+  // jam_datang: string HH:MM per murid (kosong kalau tidak Hadir).
   const newEntries = absensi.map(a => [
-    generateId(), kelompok_id, a.murid_id, tanggal, a.status, session.user.email, new Date().toISOString(),
+    generateId(), kelompok_id, a.murid_id, tanggal, a.status, session.user.email, new Date().toISOString(), a.jam_datang || '',
   ]);
   await appendRows(SHEETS.ABSENSI, newEntries);
 

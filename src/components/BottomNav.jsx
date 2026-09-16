@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Home, BarChart3, Plus, Target, IdCard } from 'lucide-react';
+import { Home, BarChart3, ScanLine, Target, IdCard } from 'lucide-react';
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -15,7 +15,7 @@ export function BottomNav() {
   const items = [
     { href: '/dashboard', icon: Home, label: 'Dashboard', active: pathname === '/dashboard' },
     { href: '/rekap', icon: BarChart3, label: 'Rekap', active: pathname.startsWith('/rekap') && !pathname.startsWith('/rekap-target') },
-    { href: '/dashboard?baru=1', icon: Plus, label: 'Kelompok Baru', active: false },
+    { href: '/scan', icon: ScanLine, label: 'Scan QR', active: pathname.startsWith('/scan') },
     // Menu "?" (Panduan) dihapus dari sini karena sudah ada tombol yang sama
     // di header halaman Dashboard — diganti Rekap Target biar gak duplikat.
     { href: '/rekap-target', icon: Target, label: 'Rekap Target', active: pathname.startsWith('/rekap-target') },

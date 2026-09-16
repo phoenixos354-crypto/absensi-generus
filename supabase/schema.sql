@@ -217,6 +217,9 @@ create index if not exists idx_kas_tanggal on kas (tanggal);
 -- Dibutuhkan untuk rekap endpoint setelah perubahan terbaru
 alter table pengeluaran_infaq add column if not exists sumber_dana text default 'infaq';
 
+-- Jam kedatangan otomatis saat absen/scan QR (format HH:MM, mis. 07:35)
+alter table absensi add column if not exists jam_datang text default '';
+
 -- =============================================================
 -- Row Level Security: dimatikan (RLS off) karena semua akses ke
 -- tabel ini SELALU lewat API routes Next.js pakai service role key

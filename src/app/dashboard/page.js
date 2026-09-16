@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { DalilWidget } from '@/components/DalilWidget';
 import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
-import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert, ChevronRight, Target as TargetIcon, LogOut } from 'lucide-react';
+import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert, ChevronRight, Target as TargetIcon, LogOut, Plus } from 'lucide-react';
 import userAvatar from '@/assets/user-avatar.jpg';
 
 const FORM_KOSONG = { nama_kelompok:'', tingkatan:'caberawit', desa:'', daerah:'' };
@@ -290,13 +290,22 @@ function DashboardContent() {
               <p className="truncate text-base font-bold text-ink">{session?.user?.name?.split(' ')[0]}</p>
             </div>
           </button>
-          <button
-            aria-label="Panduan"
-            onClick={() => { setShowOnboarding(true); setOnboardStep(0); }}
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
-          >
-            <CircleHelp className="size-5 text-ink" />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              aria-label="Kelompok Baru"
+              onClick={bukaModalBaru}
+              className="grid size-11 place-items-center rounded-full brand-gradient text-primary-foreground shadow-[var(--shadow-float)] active:scale-95"
+            >
+              <Plus className="size-5" />
+            </button>
+            <button
+              aria-label="Panduan"
+              onClick={() => { setShowOnboarding(true); setOnboardStep(0); }}
+              className="grid size-11 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]"
+            >
+              <CircleHelp className="size-5 text-ink" />
+            </button>
+          </div>
         </header>
 
         <DalilWidget />
