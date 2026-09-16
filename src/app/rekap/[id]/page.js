@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList, CheckCircle2, NotebookPen, Wallet, Plus, Trash2, TrendingDown, TrendingUp, MinusCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, CalendarRange, CalendarDays, Users, ClipboardList, CheckCircle2, NotebookPen, Wallet, Plus, Trash2, TrendingDown, TrendingUp, MinusCircle, Printer } from 'lucide-react';
 import { ExportPDF } from '@/components/ExportPDF';
 import ShareLinkButton from '@/components/ShareLinkButton';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -27,6 +27,12 @@ function getBulanList() {
     result.push({ val, label });
   }
   return result;
+}
+
+// Generate daftar tahun (tahun ini + 4 tahun ke belakang)
+function getTahunList() {
+  const now = new Date().getFullYear();
+  return [0, 1, 2, 3, 4].map(i => ({ val: String(now - i), label: String(now - i) }));
 }
 
 // Generate daftar minggu (12 minggu terakhir)
@@ -154,6 +160,7 @@ export default function RekapPage() {
 
   const bulanList  = getBulanList();
   const mingguList = getMingguList();
+  const tahunList = getTahunList();
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
@@ -166,6 +173,8 @@ export default function RekapPage() {
       setNilai(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
     } else if (m === 'minggu') {
       setNilai(mingguList[0]?.val || '');
+    } else if (m === 'tahun') {
+      setNilai(String(new Date().getFullYear()));
     } else {
       setNilai(tanggalLokal());
     }
@@ -213,19 +222,19 @@ export default function RekapPage() {
       {/* Filter periode */}
       <section className="px-5 pt-5">
         <div className="card-soft p-4">
-          <div className="flex gap-2">
-            {['hari','minggu','bulan'].map(m => (
+          <div className="grid grid-cols-4 gap-2">
+            {['hari','minggu','bulan','tahun'].map(m => (
               <button
                 key={m}
                 onClick={() => handleModeChange(m)}
-                className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
+                className={`rounded-full px-2 py-2.5 text-sm font-semibold transition-colors ${
                   mode === m
                     ? 'bg-ink text-primary-foreground'
                     : 'bg-secondary text-muted-foreground'
                 }`}
               >
-                {m === 'hari' ? <Calendar className="mr-1 inline size-4" /> : m === 'minggu' ? <CalendarRange className="mr-1 inline size-4" /> : <CalendarDays className="mr-1 inline size-4" />}
-                {m === 'hari' ? 'Hari' : m === 'minggu' ? 'Minggu' : 'Bulan'}
+                {m === 'hari' ? <Calendar className="mr-1 inline size-4" /> : m === 'minggu' ? <CalendarRange className="mr-1 inline size-4" /> : m === 'bulan' ? <CalendarDays className="mr-1 inline size-4" /> : <CalendarDays className="mr-1 inline size-4" />}
+                {m === 'hari' ? 'Hari' : m === 'minggu' ? 'Minggu' : m === 'bulan' ? 'Bulan' : 'Tahun'}
               </button>
             ))}
           </div>
@@ -243,6 +252,12 @@ export default function RekapPage() {
             <select value={nilai} onChange={e => setNilai(e.target.value)}
               className="mt-3 w-full appearance-none rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40">
               {bulanList.map(b => <option key={b.val} value={b.val}>{b.label}</option>)}
+            </select>
+          )}
+          {mode === 'tahun' && (
+            <select value={nilai} onChange={e => setNilai(e.target.value)}
+              className="mt-3 w-full appearance-none rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40">
+              {tahunList.map(t => <option key={t.val} value={t.val}>{t.label}</option>)}
             </select>
           )}
         </div>
@@ -283,6 +298,59 @@ export default function RekapPage() {
               </div>
             </div>
           </section>
+
+          {/* Ringkasan tahunan + grafik per bulan */}
+          {mode === 'tahun' && (
+            <section className="px-5 pt-4">
+              <div className="card-soft p-4">
+                <p className="text-sm leading-relaxed text-ink">
+                  Sepanjang tahun <strong>{nilai}</strong>, kelompok ini mengadakan <strong>{rekap.total_sesi} pertemuan</strong> dengan rata-rata kehadiran <strong>{rekap.persen_global}%</strong>.
+                </p>
+                {(rekap.per_bulan?.length > 0) && (
+                  <div className="mt-4">
+                    <p className="mb-2 text-xs font-semibold text-muted-foreground">Kehadiran per bulan (%)</p>
+                    <div className="flex h-28 items-end gap-1.5">
+                      {(rekap.per_bulan || []).map(b => (
+                        <div key={b.bulan} className="flex flex-1 flex-col items-center gap-1">
+                          <div className="flex h-20 w-full items-end rounded-lg bg-secondary">
+                            <div className="w-full rounded-lg bg-primary transition-all" style={{ height: `${b.persen_hadir}%` }} />
+                          </div>
+                          <span className="text-[9px] font-bold text-muted-foreground">{b.bulan.slice(5)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mb-2 mt-4 text-xs font-semibold text-muted-foreground">Keuangan per bulan (Rp)</p>
+                    <div className="space-y-1.5">
+                      {(rekap.per_bulan || []).map(b => {
+                        const maks = Math.max(1, ...(rekap.per_bulan || []).map(x => Math.max(x.total_infaq, x.total_kas)));
+                        return (
+                          <div key={b.bulan} className="flex items-center gap-2 text-[11px]">
+                            <span className="w-8 shrink-0 font-bold text-muted-foreground">{b.bulan.slice(5)}</span>
+                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
+                              <div className="h-full rounded-full bg-green-600" style={{ width: `${Math.round((b.total_infaq / maks) * 100)}%` }} />
+                            </div>
+                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
+                              <div className="h-full rounded-full bg-blue-600" style={{ width: `${Math.round((b.total_kas / maks) * 100)}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 flex gap-3 text-[10px] text-muted-foreground">
+                      <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-green-600" /> Infaq</span>
+                      <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-blue-600" /> Kas</span>
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={() => window.print()}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-secondary py-3 text-sm font-bold text-ink active:scale-[0.99]"
+                >
+                  <Printer className="size-4" /> Cetak / Download PDF
+                </button>
+              </div>
+            </section>
+          )}
 
           {/* Tombol catat pengeluaran */}
           <section className="px-5 pt-4">

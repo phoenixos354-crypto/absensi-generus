@@ -44,6 +44,7 @@ export async function GET(req) {
     if (!nilai) return true;
     if (mode === 'hari') return tgl === nilai;
     if (mode === 'bulan') return tgl.startsWith(nilai);
+    if (mode === 'tahun') return tgl.startsWith(nilai);
     if (mode === 'minggu') {
       const d = new Date(tgl);
       const week = getWeekNumber(d);
@@ -107,7 +108,7 @@ export async function GET(req) {
     };
     pengeluaranInfaq = pengeluaranInfaq.filter(filterFn);
     pengeluaranKas = pengeluaranKas.filter(filterFn);
-  } else if (mode === 'bulan' && nilai) {
+  } else if ((mode === 'bulan' || mode === 'tahun') && nilai) {
     pengeluaranInfaq = pengeluaranInfaq.filter(p => p.tanggal.startsWith(nilai));
     pengeluaranKas = pengeluaranKas.filter(p => p.tanggal.startsWith(nilai));
   }
@@ -116,6 +117,28 @@ export async function GET(req) {
   const totalPengeluaranKas = pengeluaranKas.reduce((s, p) => s + (Number(p.jumlah) || 0), 0);
   const sisaInfaq = totalInfaq - totalPengeluaranInfaq;
   const sisaKas = totalKas - totalPengeluaranKas;
+
+  // Breakdown 12 bulan khusus mode tahun (buat grafik batang frontend)
+  let perBulan = null;
+  if (mode === 'tahun' && nilai) {
+    perBulan = [];
+    for (let b = 1; b <= 12; b++) {
+      const kunci = `${nilai}-${String(b).padStart(2, '0')}`;
+      const absB = absensi.filter(a => a.tanggal.startsWith(kunci));
+      const sesiB = sesi.filter(s => s.tanggal.startsWith(kunci));
+      const kasB = kas.filter(k => k.tanggal.startsWith(kunci));
+      const sesiUnikB = new Set(absB.map(a => a.tanggal)).size;
+      const hadirB = absB.filter(a => a.status === 'Hadir').length;
+      const totalSlotB = sesiUnikB * murid.length;
+      perBulan.push({
+        bulan: kunci,
+        jumlah_sesi: sesiUnikB,
+        persen_hadir: totalSlotB > 0 ? Math.round((hadirB / totalSlotB) * 100) : 0,
+        total_infaq: sesiB.reduce((s, x) => s + (Number(x.infaq) || 0), 0),
+        total_kas: kasB.reduce((s, x) => s + (Number(x.jumlah) || 0), 0),
+      });
+    }
+  }
   return NextResponse.json({
     kelompok_id, mode, nilai,
     total_sesi: tanggalSet.length,
@@ -133,6 +156,7 @@ export async function GET(req) {
     daftar_pengeluaran: pengeluaranInfaq,
     daftar_pengeluaran_infaq: pengeluaranInfaq,
     daftar_pengeluaran_kas: pengeluaranKas,
+    ...(perBulan ? { per_bulan: perBulan } : {}),
   });
 }
 
