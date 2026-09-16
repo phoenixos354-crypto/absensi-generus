@@ -147,13 +147,14 @@ export default function AbsensiPage() {
   const jmap = {};
   if (Array.isArray(data)) {
     data.forEach(a => {
-      map[a.murid_id] = a.status;
+      map[a.murid_id] = STATUS_LIST.includes(a.status) ? a.status : 'Alfa';
       if (a.jam_datang) jmap[a.murid_id] = a.jam_datang;
     });
   }
-  // Default semua ke Hadir jika belum ada data
   if (Object.keys(map).length === 0) {
     murid.forEach(m => { map[m.id] = 'Hadir'; });
+  } else {
+    murid.forEach(m => { if (!(m.id in map)) map[m.id] = 'Alfa'; });
   }
   setAbsensiMap(map);
   setJamMap(jmap);
