@@ -452,7 +452,18 @@ export default function AbsensiPage() {
           <div className="flex items-center gap-2.5">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-extrabold text-primary">{i+1}</span>
             <p className="min-w-0 flex-1 truncate text-base font-bold text-ink">{m.nama_murid}</p>
-            <button onClick={() => setQrMurid(m)} aria-label="Kartu QR" className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-primary active:scale-95"><QrCode className="size-4" /></button>
+            <button onClick={async () => {
+              if (!m.kode_publik) {
+                const res = await fetch(`/api/murid/kode-publik?murid_id=${m.id}`);
+                const data = await res.json();
+                if (res.ok && data.kode_publik) {
+                  setMurid(prev => prev.map(x => x.id === m.id ? { ...x, kode_publik: data.kode_publik } : x));
+                  setQrMurid({ ...m, kode_publik: data.kode_publik });
+                  return;
+                }
+              }
+              setQrMurid(m);
+            }} aria-label="Kartu QR" className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-primary active:scale-95"><QrCode className="size-4" /></button>
           </div>
           <div className="mt-2.5 grid grid-cols-4 gap-1.5">
             {STATUS_LIST.map(s => {

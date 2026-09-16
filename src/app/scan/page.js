@@ -125,7 +125,7 @@ export default function ScanPage() {
       scannerRef.current = scanner;
       await scanner.start(
         { facingMode: depan ? 'user' : 'environment' },
-        { fps: 10, qrbox: { width: 220, height: 220 } },
+        { fps: 5, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
         (teks) => kirimKode(teks),
         () => {}
       );

@@ -19,10 +19,24 @@ export async function POST(req) {
   if (!perm) return NextResponse.json({ error: 'Tidak punya akses' }, { status: 403 });
   if (perm === 'viewer') return NextResponse.json({ error: 'Anda hanya bisa melihat laporan' }, { status: 403 });
 
-  const kode = String(kode_publik).trim();
-  let murid = (await readWhere(SHEETS.MURID, { kode_publik: kode }))[0];
-  if (!murid) murid = (await readWhere(SHEETS.MURID, { id: kode }))[0];
-  if (!murid) return NextResponse.json({ error: 'Kode QR tidak dikenal' }, { status: 404 });
+  // Normalisasi: ambil token terakhir kalau QR berisi URL, huruf besar, buang spasi/simbol
+  const mentah = String(kode_publik).trim();
+  const token = mentah.split(/[\s/?#=&]+/).filter(Boolean).pop() || mentah;
+  const kode = token.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const kandidat = [...new Set([mentah, token, kode])];
+  let murid = null;
+  for (const k of kandidat) {
+    murid = (await readWhere(SHEETS.MURID, { kode_publik: k }))[0];
+    if (murid) break;
+  }
+  if (!murid) {
+    const atas = kode.toUpperCase();
+    const semua = await readWhere(SHEETS.MURID, {});
+    murid = semua.find(m => String(m.kode_publik || '').toUpperCase() === atas)
+      || semua.find(m => m.id === mentah || m.id === token);
+  }
+  if (!murid) murid = (await readWhere(SHEETS.MURID, { id: mentah }))[0];
+  if (!murid) return NextResponse.json({ error: `Kode QR tidak dikenal: ${String(mentah).slice(0, 24)}` }, { status: 404 });
   if (murid.kelompok_id !== kelompok_id) {
     return NextResponse.json({ error: 'Kartu ini milik kelompok lain' }, { status: 400 });
   }
