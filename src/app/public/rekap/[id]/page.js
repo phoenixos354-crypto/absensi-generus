@@ -93,7 +93,8 @@ export default function PublicRekapPage() {
     } else if (m === 'minggu') {
       setNilai(mingguList[0]?.val || '');
     } else {
-      setNilai(new Date().toISOString().split('T')[0]);
+      const d = new Date();
+      setNilai(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
     }
   }
 

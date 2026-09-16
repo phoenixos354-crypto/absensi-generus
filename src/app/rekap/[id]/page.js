@@ -79,9 +79,13 @@ export default function RekapPage() {
     { keepPreviousData: true }
   );
 
+  function tanggalLokal(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   // State modal pengeluaran: tambah sumber dana
   const [showModal, setShowModal] = useState(false);
-  const [formTanggal, setFormTanggal] = useState(() => new Date().toISOString().split('T')[0]);
+  const [formTanggal, setFormTanggal] = useState(() => tanggalLokal());
   const [formKeterangan, setFormKeterangan] = useState('');
   const [formJumlah, setFormJumlah] = useState('');
   const [formSumber, setFormSumber] = useState('infaq'); // 'infaq' or 'kas'
@@ -93,7 +97,7 @@ export default function RekapPage() {
   const [displayMode, setDisplayMode] = useState('persen');
 
   function openModal() {
-    setFormTanggal(new Date().toISOString().split('T')[0]);
+    setFormTanggal(tanggalLokal());
     setFormKeterangan('');
     setFormJumlah('');
     setShowModal(true);
@@ -163,7 +167,7 @@ export default function RekapPage() {
     } else if (m === 'minggu') {
       setNilai(mingguList[0]?.val || '');
     } else {
-      setNilai(new Date().toISOString().split('T')[0]);
+      setNilai(tanggalLokal());
     }
   }
 

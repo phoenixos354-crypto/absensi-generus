@@ -40,32 +40,32 @@ export async function GET(req) {
   let sesi = sesiAll;
   let kas = kasAll;
 
-  if (mode === 'hari' && nilai) {
-    absensi = absensi.filter(a => a.tanggal === nilai);
-    sesi = sesi.filter(s => s.tanggal === nilai);
-  } else if (mode === 'minggu' && nilai) {
-    absensi = absensi.filter(a => {
-      const d = new Date(a.tanggal);
+  const cocokPeriode = (tgl) => {
+    if (!nilai) return true;
+    if (mode === 'hari') return tgl === nilai;
+    if (mode === 'bulan') return tgl.startsWith(nilai);
+    if (mode === 'minggu') {
+      const d = new Date(tgl);
       const week = getWeekNumber(d);
       return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
-    });
-    sesi = sesi.filter(s => {
-      const d = new Date(s.tanggal);
-      const week = getWeekNumber(d);
-      return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
-    });
-  } else if (mode === 'bulan' && nilai) {
-    absensi = absensi.filter(a => a.tanggal.startsWith(nilai));
-    sesi = sesi.filter(s => s.tanggal.startsWith(nilai));
-  }
+    }
+    return true;
+  };
 
+  absensi = absensi.filter(a => cocokPeriode(a.tanggal));
+  sesi = sesi.filter(s => cocokPeriode(s.tanggal));
+  kas = kas.filter(k => cocokPeriode(k.tanggal));
+
+  // Penyebut persen = jumlah sesi di periode ini (bukan jumlah baris per murid),
+  // biar murid yang belum kebagian baris tetap kehitung Alfa.
+  const sesiUnik = [...new Set(absensi.map(a => a.tanggal))].sort();
   const rekapMurid = murid.map(m => {
     const absMurid = absensi.filter(a => a.murid_id === m.id);
     const hadir = absMurid.filter(a => a.status === 'Hadir').length;
-    const alfa  = absMurid.filter(a => a.status === 'Alfa').length;
     const izin  = absMurid.filter(a => a.status === 'Izin').length;
     const sakit = absMurid.filter(a => a.status === 'Sakit').length;
-    const total = hadir + alfa + izin + sakit;
+    const alfa = sesiUnik.length - hadir - izin - sakit;
+    const total = sesiUnik.length;
     const persen = total > 0 ? Math.round((hadir / total) * 100) : 0;
     return { murid_id: m.id, nama: m.nama_murid, hadir, alfa, izin, sakit, total, persen_hadir: persen };
   });

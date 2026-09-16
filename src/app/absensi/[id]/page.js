@@ -27,7 +27,10 @@ export default function AbsensiPage() {
   const [kelompok, setKelompok] = useState(null);
   const [murid, setMurid] = useState([]);
   const [absensiMap, setAbsensiMap] = useState({}); // murid_id -> status
-  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
+  const [tanggal, setTanggal] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [kasMap, setKasMap] = useState({}); // murid_id -> jumlah
 
   const [jurnal, setJurnal] = useState('');

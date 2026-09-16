@@ -48,11 +48,13 @@ export async function POST(req) {
   // "berlaku" untuk (murid_id, item_id) ini karena readLatestByKey ambil
   // baris paling bawah. Tidak perlu baca-hapus-tulis ulang seluruh sheet,
   // jadi kecepatannya tidak tergantung berapa banyak riwayat yang sudah ada.
+  const now = new Date();
+  const tanggalLokal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   await appendRow(SHEETS.TARGET_PROGRESS, [
     generateId(), murid_id, item_id, nilai,
-    new Date().toISOString().split('T')[0],
+    tanggalLokal,
     session.user.email,
-    new Date().toISOString(),
+    now.toISOString(),
   ]);
 
   return NextResponse.json({ success: true });
