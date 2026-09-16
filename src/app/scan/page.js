@@ -43,7 +43,13 @@ export default function ScanPage() {
 
   useEffect(() => {
     if (session) fetch('/api/kelompok').then(r => r.json()).then(d => {
-      const list = Array.isArray(d) ? d : [];
+      const seen = new Set();
+      const list = Array.isArray(d) ? d.filter(k => {
+        if (k.permission !== 'owner' && k.permission !== 'absen') return false;
+        if (seen.has(k.id)) return false;
+        seen.add(k.id);
+        return true;
+      }) : [];
       setKelompokList(list);
       if (list.length === 1) setKelompokId(list[0].id);
     }).catch(() => {});

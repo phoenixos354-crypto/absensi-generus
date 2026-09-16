@@ -29,7 +29,7 @@ export function CetakSemuaQR({ muridList, namaKelompok }) {
           const x = offX + col * kartuW;
           const y = 8 + row * kartuH;
           const canvas = document.createElement('canvas');
-          await gambarKartuQR(canvas, { kode: m.kode_publik || m.id, namaKelompok });
+          await gambarKartuQR(canvas, { kode: m.kode_publik || m.id, nama: m.nama_murid, namaKelompok });
           doc.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, kartuW, kartuH);
           doc.setDrawColor(150, 150, 150);
           doc.setLineDashPattern([1.5, 1.5], 0);

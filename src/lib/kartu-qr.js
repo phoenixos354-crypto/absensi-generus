@@ -14,8 +14,19 @@ function img(src) {
   });
 }
 
+// Kecilkan font otomatis biar nama panjang muat di kartu.
+function fitText(ctx, teks, x, y, maxW, baseSize) {
+  let size = baseSize;
+  ctx.font = `800 ${size}px system-ui, sans-serif`;
+  while (ctx.measureText(teks).width > maxW && size > 20) {
+    size -= 2;
+    ctx.font = `800 ${size}px system-ui, sans-serif`;
+  }
+  ctx.fillText(teks, x, y);
+}
+
 // Gambar 1 kartu QR ke canvas. Dipakai bareng modal single + cetak massal.
-export async function gambarKartuQR(canvas, { kode, namaKelompok }) {
+export async function gambarKartuQR(canvas, { kode, nama, namaKelompok }) {
   const ctx = canvas.getContext('2d');
   canvas.width = KARTU_W;
   canvas.height = KARTU_H;
@@ -51,10 +62,11 @@ export async function gambarKartuQR(canvas, { kode, namaKelompok }) {
   ctx.bezierCurveTo(130, 500, 230, 560, 400, 648);
   ctx.stroke();
 
-  // Logo galipat kiri atas
+  // Logo galipat kiri atas (jaga rasio asli, max 270x76)
   try {
     const logo = await img('/branding/galipatmedia-logo.png');
-    ctx.drawImage(logo, 48, 36, 260, 78);
+    const lr = Math.min(270 / logo.width, 76 / logo.height);
+    ctx.drawImage(logo, 48, 38, logo.width * lr, logo.height * lr);
   } catch {}
 
   // Tagline kanan atas + garis vertikal biru
@@ -82,14 +94,17 @@ export async function gambarKartuQR(canvas, { kode, namaKelompok }) {
   ctx.stroke();
   ctx.drawImage(qr, qrX, qrY, qrS, qrS);
 
-  // Teks bawah QR
+  // Teks bawah QR: nama murid besar, kelompok + KARTU ABSENSI kecil
   ctx.textAlign = 'center';
   ctx.fillStyle = '#12295e';
-  ctx.font = '800 44px system-ui, sans-serif';
-  ctx.fillText('KARTU ABSENSI', KARTU_W / 2, qrY + qrS + 34);
+  ctx.font = '800 40px system-ui, sans-serif';
+  fitText(ctx, String(nama || ''), KARTU_W / 2, qrY + qrS + 30, 560, 40);
   ctx.fillStyle = '#7b8aa0';
-  ctx.font = '500 30px system-ui, sans-serif';
-  ctx.fillText(String(namaKelompok || ''), KARTU_W / 2, qrY + qrS + 86);
+  ctx.font = '500 27px system-ui, sans-serif';
+  ctx.fillText(String(namaKelompok || ''), KARTU_W / 2, qrY + qrS + 76);
+  ctx.fillStyle = '#12295e';
+  ctx.font = '700 22px system-ui, sans-serif';
+  ctx.fillText('KARTU ABSENSI', KARTU_W / 2, qrY + qrS + 108);
 
   // Maskot kanan bawah
   try {

@@ -11,7 +11,7 @@ export function QRMuridModal({ murid, namaKelompok, onClose }) {
   useEffect(() => {
     if (!murid) return;
     setLoading(true);
-    gambarKartuQR(canvasRef.current, { kode: murid.kode_publik || murid.id, namaKelompok })
+    gambarKartuQR(canvasRef.current, { kode: murid.kode_publik || murid.id, nama: murid.nama_murid, namaKelompok })
       .finally(() => setLoading(false));
   }, [murid, namaKelompok]);
 
