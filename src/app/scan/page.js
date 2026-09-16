@@ -37,6 +37,8 @@ export default function ScanPage() {
   const [kameraDepan, setKameraDepan] = useState(false);
   const [sudahScan, setSudahScan] = useState(new Set());
   const scannerRef = useRef(null);
+  const kirimLock = useRef(false);
+  const jedaRef = useRef(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
@@ -60,9 +62,14 @@ export default function ScanPage() {
 
   async function kirimKode(kode) {
     const k = String(kode || '').trim();
-    if (!k || !kelompokId || loadingKirim) return;
+    if (!k || !kelompokId) return;
+    if (kirimLock.current) return;
     if (sudahScan.has(`${kelompokId}|${tanggal}|${k}`)) return;
+    kirimLock.current = true;
     setLoadingKirim(true);
+    // Jeda 2.5 detik biar 1 QR cuma kehitung sekali walau masih di depan kamera
+    clearTimeout(jedaRef.current);
+    jedaRef.current = setTimeout(() => { kirimLock.current = false; }, 2500);
     try {
       const res = await fetch('/api/absensi/scan', {
         method: 'POST',
@@ -71,6 +78,7 @@ export default function ScanPage() {
       });
       const data = await res.json();
       if (res.ok) {
+        const kunci = data.murid_id || data.nama;
         if (data.sudah) {
           setPesan({ tipe: 'error', teks: `${data.nama} sudah discan ${data.jam_datang}` });
         } else {
@@ -78,9 +86,11 @@ export default function ScanPage() {
           setSudahScan(prev => new Set(prev).add(`${kelompokId}|${tanggal}|${k}`));
           setPesan({ tipe: 'sukses', teks: `${data.nama} — Hadir ${data.jam_datang}` });
         }
-        setRiwayat(prev => [{ nama: data.nama, jam: data.jam_datang, ok: true, waktu: new Date().toLocaleTimeString('id-ID') }, ...prev].slice(0, 30));
+        // 1 murid = 1 baris riwayat (update, bukan numpuk)
+        setRiwayat(prev => [{ kunci, nama: data.nama, jam: data.jam_datang, ok: true, waktu: new Date().toLocaleTimeString('id-ID') }, ...prev.filter(r => r.kunci !== kunci)].slice(0, 30));
       } else {
-        setRiwayat(prev => [{ nama: k, jam: '', ok: false, waktu: new Date().toLocaleTimeString('id-ID') }, ...prev].slice(0, 30));
+        const kunci = `gagal|${k}`;
+        setRiwayat(prev => [{ kunci, nama: k, jam: '', ok: false, waktu: new Date().toLocaleTimeString('id-ID') }, ...prev.filter(r => r.kunci !== kunci)].slice(0, 30));
         setPesan({ tipe: 'error', teks: data.error || 'Gagal mencatat' });
       }
     } catch {
