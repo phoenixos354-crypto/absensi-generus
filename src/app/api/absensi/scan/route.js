@@ -10,7 +10,7 @@ export async function POST(req) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { kode_publik, kelompok_id, tanggal } = await req.json();
+  const { kode_publik, kelompok_id, tanggal, jam_datang } = await req.json();
   if (!kode_publik || !kelompok_id || !tanggal) {
     return NextResponse.json({ error: 'kode_publik, kelompok_id, dan tanggal wajib' }, { status: 400 });
   }
@@ -39,7 +39,8 @@ export async function POST(req) {
   }
 
   const now = new Date();
-  const jam = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  // Utamakan jam dari HP pencatat (zona lokal), fallback jam server
+  const jam = /^\d{2}:\d{2}$/.test(jam_datang || '') ? jam_datang : `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const rows = [[
     generateId(), kelompok_id, murid.id, tanggal, 'Hadir', session.user.email, now.toISOString(), jam,
   ]];

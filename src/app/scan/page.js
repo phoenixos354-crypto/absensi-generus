@@ -21,6 +21,7 @@ function bunyiTit() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
     osc.stop(ctx.currentTime + 0.2);
   } catch {}
+  try { navigator.vibrate?.(80); } catch {}
 }
 
 export default function ScanPage() {
@@ -28,7 +29,11 @@ export default function ScanPage() {
   const router = useRouter();
   const [kelompokList, setKelompokList] = useState([]);
   const [kelompokId, setKelompokId] = useState('');
-  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
+  const [tanggal, setTanggal] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [flash, setFlash] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [riwayat, setRiwayat] = useState([]);
   const [pesan, setPesan] = useState(null);
@@ -71,14 +76,19 @@ export default function ScanPage() {
     clearTimeout(jedaRef.current);
     jedaRef.current = setTimeout(() => { kirimLock.current = false; }, 2500);
     try {
+      const n = new Date();
+      const jamLokal = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
       const res = await fetch('/api/absensi/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kode_publik: k, kelompok_id: kelompokId, tanggal }),
+        body: JSON.stringify({ kode_publik: k, kelompok_id: kelompokId, tanggal, jam_datang: jamLokal }),
       });
       const data = await res.json();
       if (res.ok) {
         const kunci = data.murid_id || data.nama;
+        // Flash hijau overlay 600ms tiap sukses — kelihatan walau HP silau
+        setFlash({ nama: data.nama, jam: data.jam_datang, kunci: Date.now() });
+        setTimeout(() => setFlash(null), 900);
         if (data.sudah) {
           setPesan({ tipe: 'error', teks: `${data.nama} sudah discan ${data.jam_datang}` });
         } else {
@@ -139,6 +149,15 @@ export default function ScanPage() {
 
   return (
     <AppScreen>
+      {flash && (
+        <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center bg-green-600/25">
+          <div className="mx-6 rounded-3xl bg-white px-8 py-6 text-center shadow-2xl">
+            <CheckCircle2 className="mx-auto size-12 text-green-600" />
+            <p className="mt-2 text-xl font-extrabold text-ink">{flash.nama}</p>
+            <p className="text-sm font-bold text-green-700">Hadir {flash.jam}</p>
+          </div>
+        </div>
+      )}
       <div className="px-5 pt-6">
         <div className="flex items-center gap-3">
           <BackButton fallbackHref="/dashboard" className="grid size-10 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]" />
