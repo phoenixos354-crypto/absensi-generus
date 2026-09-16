@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readWhere, appendRow, SHEETS, generateId } from '@/lib/sheets';
+import { readWhere, readLatestByKeyWhere, appendRows, SHEETS, generateId } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
@@ -27,11 +27,33 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Kartu ini milik kelompok lain' }, { status: 400 });
   }
 
+  // Anti-double: kalau murid ini sudah Hadir hari ini, jangan tulis lagi
+  const sudah = await readLatestByKeyWhere(
+    SHEETS.ABSENSI,
+    { kelompok_id },
+    a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`
+  );
+  const barisIni = sudah.find(a => a.murid_id === murid.id && a.tanggal === tanggal);
+  if (barisIni?.status === 'Hadir') {
+    return NextResponse.json({ success: true, sudah: true, nama: murid.nama_murid, murid_id: murid.id, jam_datang: barisIni.jam_datang || '' });
+  }
+
   const now = new Date();
   const jam = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  await appendRow(SHEETS.ABSENSI, [
+  const rows = [[
     generateId(), kelompok_id, murid.id, tanggal, 'Hadir', session.user.email, now.toISOString(), jam,
-  ]);
+  ]];
+
+  // Sisa murid yang belum ada barisnya hari ini → Alfa (biar persen jujur)
+  const semuaMurid = await readWhere(SHEETS.MURID, { kelompok_id });
+  const adaId = new Set(sudah.filter(a => a.tanggal === tanggal).map(a => a.murid_id));
+  adaId.add(murid.id);
+  for (const m of semuaMurid) {
+    if (!adaId.has(m.id)) {
+      rows.push([generateId(), kelompok_id, m.id, tanggal, 'Alfa', session.user.email, now.toISOString(), '']);
+    }
+  }
+  await appendRows(SHEETS.ABSENSI, rows);
 
   return NextResponse.json({ success: true, nama: murid.nama_murid, murid_id: murid.id, jam_datang: jam });
 }

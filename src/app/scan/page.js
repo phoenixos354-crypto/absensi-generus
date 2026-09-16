@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
-import { ScanLine, CheckCircle2, AlertTriangle, Keyboard } from 'lucide-react';
+import { ScanLine, CheckCircle2, AlertTriangle, Keyboard, SwitchCamera } from 'lucide-react';
 
 function bunyiTit() {
   try {
@@ -34,8 +34,9 @@ export default function ScanPage() {
   const [pesan, setPesan] = useState(null);
   const [kodeManual, setKodeManual] = useState('');
   const [loadingKirim, setLoadingKirim] = useState(false);
+  const [kameraDepan, setKameraDepan] = useState(false);
+  const [sudahScan, setSudahScan] = useState(new Set());
   const scannerRef = useRef(null);
-  const terakhirRef = useRef({});
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
@@ -59,10 +60,8 @@ export default function ScanPage() {
 
   async function kirimKode(kode) {
     const k = String(kode || '').trim();
-    if (!k || !kelompokId) return;
-    const now = Date.now();
-    if (terakhirRef.current[k] && now - terakhirRef.current[k] < 3000) return;
-    terakhirRef.current[k] = now;
+    if (!k || !kelompokId || loadingKirim) return;
+    if (sudahScan.has(`${kelompokId}|${tanggal}|${k}`)) return;
     setLoadingKirim(true);
     try {
       const res = await fetch('/api/absensi/scan', {
@@ -72,9 +71,14 @@ export default function ScanPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        bunyiTit();
+        if (data.sudah) {
+          setPesan({ tipe: 'error', teks: `${data.nama} sudah discan ${data.jam_datang}` });
+        } else {
+          bunyiTit();
+          setSudahScan(prev => new Set(prev).add(`${kelompokId}|${tanggal}|${k}`));
+          setPesan({ tipe: 'sukses', teks: `${data.nama} — Hadir ${data.jam_datang}` });
+        }
         setRiwayat(prev => [{ nama: data.nama, jam: data.jam_datang, ok: true, waktu: new Date().toLocaleTimeString('id-ID') }, ...prev].slice(0, 30));
-        setPesan({ tipe: 'sukses', teks: `${data.nama} — Hadir ${data.jam_datang}` });
       } else {
         setRiwayat(prev => [{ nama: k, jam: '', ok: false, waktu: new Date().toLocaleTimeString('id-ID') }, ...prev].slice(0, 30));
         setPesan({ tipe: 'error', teks: data.error || 'Gagal mencatat' });
@@ -85,11 +89,14 @@ export default function ScanPage() {
     setLoadingKirim(false);
   }
 
-  async function mulai() {
+  async function mulai(depan = kameraDepan) {
     if (!kelompokId) {
       setPesan({ tipe: 'error', teks: 'Pilih kelompok dulu' });
       return;
     }
+    await hentikan();
+    // Reset anti-double tiap ganti kelompok/tanggal/sesi scan baru
+    setSudahScan(new Set());
     setPesan(null);
     setScanning(true);
     try {
@@ -97,7 +104,7 @@ export default function ScanPage() {
       const scanner = new Html5Qrcode('qr-reader');
       scannerRef.current = scanner;
       await scanner.start(
-        { facingMode: 'environment' },
+        { facingMode: depan ? 'user' : 'environment' },
         { fps: 10, qrbox: { width: 220, height: 220 } },
         (teks) => kirimKode(teks),
         () => {}
@@ -106,6 +113,12 @@ export default function ScanPage() {
       setScanning(false);
       setPesan({ tipe: 'error', teks: 'Kamera ditolak / tidak tersedia. Pakai input kode manual di bawah.' });
     }
+  }
+
+  async function balikKamera() {
+    const next = !kameraDepan;
+    setKameraDepan(next);
+    if (scanning) await mulai(next);
   }
 
   async function hentikan() {
@@ -135,9 +148,12 @@ export default function ScanPage() {
             <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} className="w-full rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
           {!scanning ? (
-            <button onClick={mulai} className="w-full rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">Mulai Scan</button>
+            <button onClick={() => mulai()} className="w-full rounded-full brand-gradient py-3.5 text-sm font-bold text-primary-foreground shadow-[var(--shadow-float)] active:scale-[0.99]">Mulai Scan</button>
           ) : (
-            <button onClick={hentikan} className="w-full rounded-full bg-secondary py-3.5 text-sm font-bold text-ink active:scale-[0.99]">Hentikan</button>
+            <div className="flex gap-2">
+              <button onClick={balikKamera} className="flex shrink-0 items-center gap-1.5 rounded-full bg-secondary px-4 py-3.5 text-sm font-bold text-ink active:scale-[0.99]"><SwitchCamera className="size-4" /> {kameraDepan ? 'Belakang' : 'Depan'}</button>
+              <button onClick={hentikan} className="w-full rounded-full bg-secondary py-3.5 text-sm font-bold text-ink active:scale-[0.99]">Hentikan</button>
+            </div>
           )}
           {pesan && (
             <div className={`flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold ${pesan.tipe === 'sukses' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
