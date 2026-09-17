@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
+import { KELAS_CABERAWIT, KELAS_CABERAWIT_LABEL } from '@/lib/target-constants';
 import { CalendarDays, Users, Pencil, Trash2, Check, X, Plus, ListChecks, BarChart3, UserCog, MapPin, Map } from 'lucide-react';
 
 const HARI_LIST = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Ahad'];
@@ -22,6 +23,8 @@ export default function SetupPage() {
   const [gagalMuat, setGagalMuat] = useState(false);
 
   const [namaMurid, setNamaMurid] = useState('');
+  // Sub-kelas (kelas/jenjang sekolah) — opsional, khusus tingkatan caberawit
+  const [subKelas, setSubKelas] = useState('');
   const [bulkNama, setBulkNama] = useState('');
   const [modeBulk, setModeBulk] = useState(false);
   const [savingMurid, setSavingMurid] = useState(false);
@@ -33,6 +36,7 @@ export default function SetupPage() {
   // State untuk edit murid
   const [editId, setEditId] = useState(null);
   const [editNama, setEditNama] = useState('');
+  const [editSubKelas, setEditSubKelas] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const [errorEdit, setErrorEdit] = useState('');
 
@@ -88,12 +92,13 @@ export default function SetupPage() {
     const res = await fetch('/api/murid', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kelompok_id: kelompokId, nama_murid: namaMurid.trim() }),
+      body: JSON.stringify({ kelompok_id: kelompokId, nama_murid: namaMurid.trim(), sub_kelas: subKelas }),
     });
     if (res.ok) {
       const baru = await res.json();
-      setMurid(prev => [...prev, baru].sort((a,b) => (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')));
+      setMurid(prev => [...prev, { ...baru, sub_kelas: baru.sub_kelas ?? subKelas }].sort((a,b) => (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')));
       setNamaMurid('');
+      setSubKelas('');
     }
     setSavingMurid(false);
   }
@@ -112,7 +117,8 @@ export default function SetupPage() {
       });
       if (res.ok) {
         const baru = await res.json();
-        setMurid(prev => [...prev, baru].sort((a,b) => (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')));
+        // Input massal tidak mengisi sub_kelas — biarkan kosong, bisa diisi lewat edit
+        setMurid(prev => [...prev, { ...baru, sub_kelas: '' }].sort((a,b) => (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')));
       }
     }
     setBulkNama('');
@@ -135,13 +141,14 @@ export default function SetupPage() {
     const res = await fetch('/api/murid', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, nama_murid: editNama.trim(), kelompok_id: kelompokId }),
+      body: JSON.stringify({ id, nama_murid: editNama.trim(), sub_kelas: editSubKelas, kelompok_id: kelompokId }),
     });
     if (res.ok) {
-      setMurid(prev => prev.map(m => m.id === id ? { ...m, nama_murid: editNama.trim() } : m)
+      setMurid(prev => prev.map(m => m.id === id ? { ...m, nama_murid: editNama.trim(), sub_kelas: editSubKelas } : m)
         .sort((a,b) => (a.nama_murid || '').localeCompare(b.nama_murid || '', 'id')));
       setEditId(null);
       setEditNama('');
+      setEditSubKelas('');
     } else {
       const data = await res.json().catch(() => ({}));
       setErrorEdit(data.error || 'Gagal menyimpan nama murid.');
@@ -278,17 +285,38 @@ export default function SetupPage() {
 
           {/* Form tambah murid */}
           {!modeBulk ? (
-            <form onSubmit={handleTambahMurid} className="mt-3 flex gap-2">
-              <input
-                placeholder="Nama murid..."
-                value={namaMurid}
-                onChange={e => setNamaMurid(e.target.value)}
-                className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40"
-              />
-              <button type="submit" disabled={savingMurid} aria-label="Tambah murid"
-                className="grid size-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground disabled:opacity-60">
-                <Plus className="size-4" />
-              </button>
+            <form onSubmit={handleTambahMurid} className="mt-3">
+              <div className="flex gap-2">
+                <input
+                  placeholder="Nama murid..."
+                  value={namaMurid}
+                  onChange={e => setNamaMurid(e.target.value)}
+                  className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40"
+                />
+                <button type="submit" disabled={savingMurid} aria-label="Tambah murid"
+                  className="grid size-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground disabled:opacity-60">
+                  <Plus className="size-4" />
+                </button>
+              </div>
+              {/* Kelas/Jenjang — HANYA untuk tingkatan caberawit, WAJIB opsional:
+                  form tetap bisa disimpan tanpa mengisi ini */}
+              {kelompok.tingkatan === 'caberawit' && (
+                <div className="mt-2">
+                  <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+                    Kelas/Jenjang (opsional)
+                  </label>
+                  <select
+                    value={subKelas}
+                    onChange={e => setSubKelas(e.target.value)}
+                    className="w-full appearance-none rounded-2xl bg-secondary px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    <option value="">— Pilih kelas (boleh dikosongkan) —</option>
+                    {KELAS_CABERAWIT.filter(k => k.key !== '').map(k => (
+                      <option key={k.key} value={k.key}>{k.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </form>
           ) : (
             <form onSubmit={handleBulkMurid} className="mt-3">
@@ -336,7 +364,7 @@ export default function SetupPage() {
                         <Check className="size-3.5" />
                       </button>
                       <button
-                        onClick={() => { setEditId(null); setEditNama(''); setErrorEdit(''); }}
+                        onClick={() => { setEditId(null); setEditNama(''); setEditSubKelas(''); setErrorEdit(''); }}
                         aria-label="Batal"
                         className="grid size-7 shrink-0 place-items-center rounded-full bg-border text-muted-foreground"
                       >
@@ -346,8 +374,14 @@ export default function SetupPage() {
                   ) : (
                     <>
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{m.nama_murid}</span>
+                      {/* Badge sub-kelas — hanya kalau terisi */}
+                      {m.sub_kelas ? (
+                        <span className="shrink-0 rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-bold text-primary">
+                          {KELAS_CABERAWIT_LABEL[m.sub_kelas] || m.sub_kelas}
+                        </span>
+                      ) : null}
                       <button
-                        onClick={() => { setEditId(m.id); setEditNama(m.nama_murid); setErrorEdit(''); }}
+                        onClick={() => { setEditId(m.id); setEditNama(m.nama_murid); setEditSubKelas(m.sub_kelas || ''); setErrorEdit(''); }}
                         title="Edit"
                         aria-label={`Edit ${m.nama_murid}`}
                         className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-primary"
@@ -365,6 +399,21 @@ export default function SetupPage() {
                     </>
                   )}
                 </div>
+                {/* Edit sub-kelas — hanya muncul kalau sedang edit & tingkatan caberawit */}
+                {editId === m.id && kelompok.tingkatan === 'caberawit' && (
+                  <div className="mt-2 pl-9">
+                    <select
+                      value={editSubKelas}
+                      onChange={e => setEditSubKelas(e.target.value)}
+                      className="w-full appearance-none rounded-2xl bg-surface px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/40"
+                    >
+                      <option value="">Tanpa kelas</option>
+                      {KELAS_CABERAWIT.filter(k => k.key !== '').map(k => (
+                        <option key={k.key} value={k.key}>{k.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {editId === m.id && errorEdit && (
                   <p className="mt-1.5 pl-9 text-xs font-semibold text-destructive">{errorEdit}</p>
                 )}

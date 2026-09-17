@@ -21,6 +21,55 @@ export const KELAS_CABERAWIT = [
   { key: 'sd_6',    label: 'SD Kelas 6' },
 ];
 
+// Urutan kenaikan sub-kelas dalam satu kelompok Caberawit
+// (dipakai fitur "Naik Kelas" — naik sub-kelas, kelompok tetap).
+// Nilai '' (murid belum diisi kelasnya) sengaja tidak masuk daftar ini;
+// murid tanpa sub_kelas tidak disarankan naik sub-kelas oleh sistem,
+// keputusan tetap di tangan guru lewat checkbox manual.
+export const URUTAN_SUB_KELAS = ['paud_tk', 'sd_1', 'sd_2', 'sd_3', 'sd_4', 'sd_5', 'sd_6'];
+
+// Label sub-kelas TANPA opsi "Semua Kelas" — dipakai untuk badge tampilan,
+// dropdown form murid, dan wizard Naik Kelas (di sana tidak ada artinya
+// "semua"). Key '' = belum diisi.
+export const KELAS_CABERAWIT_LABEL = {
+  '': 'Belum diisi',
+  paud_tk: 'Paud/TK',
+  sd_1: 'SD Kelas 1',
+  sd_2: 'SD Kelas 2',
+  sd_3: 'SD Kelas 3',
+  sd_4: 'SD Kelas 4',
+  sd_5: 'SD Kelas 5',
+  sd_6: 'SD Kelas 6',
+};
+
+// =============================================================
+// KATEGORI BESAR — HANYA label/grouping TAMPILAN.
+// Menggabungkan beberapa tingkatan jadi satu kelompok tampilan:
+//   caberawit -> "Caberawit"
+//   praremaja/remaja/usianikah -> "Muda/i"
+// Nilai tingkatan yang tersimpan di database TIDAK berubah sama sekali.
+// Dipakai sebagai opsi pengelompokan TAMBAHAN di dashboard/rekap,
+// tanpa menghilangkan tampilan per-tingkatan yang lama.
+// =============================================================
+export const KATEGORI_BESAR = {
+  caberawit: 'Caberawit',
+  praremaja: 'Muda/i',
+  remaja: 'Muda/i',
+  usianikah: 'Muda/i',
+};
+
+// Urutan kategori besar untuk menampilkan tab (Caberawit dulu, lalu Muda/i)
+export const URUTAN_KATEGORI_BESAR = ['caberawit', 'mudai'];
+
+// Mapping key kategori besar -> label tampilan
+export const KATEGORI_BESAR_LABEL = {
+  caberawit: 'Caberawit',
+  mudai: 'Muda/i',
+};
+
+// Tingkatan mana saja yang termasuk kategori besar "Muda/i"
+export const TINGKATAN_MUDA_I = ['praremaja', 'remaja', 'usianikah'];
+
 // Urutan jenjang dipakai buat cek "tunggakan dari level bawah".
 // 'kelompok' sengaja tidak dimasukkan (di luar jenjang caberawit->usia nikah).
 export const URUTAN_TINGKATAN = ['caberawit', 'praremaja', 'remaja', 'usianikah'];

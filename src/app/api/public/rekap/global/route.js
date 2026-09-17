@@ -1,4 +1,5 @@
 import { readSheet, readWhereIn, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
+import { TINGKATAN_MUDA_I } from '@/lib/target-constants';
 import { NextResponse } from 'next/server';
 
 /**
@@ -36,10 +37,21 @@ export async function GET(req) {
     tingkatanCounts[k.tingkatan] = (tingkatanCounts[k.tingkatan] || 0) + jumlahMurid;
   }
 
-  // Apply tingkatan filter
+  // Kategori besar (HANYA grouping tampilan — nilai tingkatan di DB tidak berubah)
+  const kategoriCounts = { caberawit: 0, mudai: 0 };
+  for (const k of allGroups) {
+    const jumlahMurid = muridAll.filter(m => m.kelompok_id === k.id).length;
+    if (k.tingkatan === 'caberawit') kategoriCounts.caberawit += jumlahMurid;
+    else if (TINGKATAN_MUDA_I.includes(k.tingkatan)) kategoriCounts.mudai += jumlahMurid;
+  }
+
+  // Apply tingkatan filter. 'mudai' = filter berdasarkan KATEGORI BESAR
+  // (gabungan praremaja+remaja+usianikah), bukan tingkatan tunggal.
   const kelompokList = tingkatanFilter === 'semua'
     ? allGroups
-    : allGroups.filter(k => k.tingkatan === tingkatanFilter);
+    : tingkatanFilter === 'mudai'
+      ? allGroups.filter(k => TINGKATAN_MUDA_I.includes(k.tingkatan))
+      : allGroups.filter(k => k.tingkatan === tingkatanFilter);
 
   const kelompokIds = kelompokList.map(k => k.id);
   let absensi = await readLatestByKeyWhereIn(SHEETS.ABSENSI, 'kelompok_id', kelompokIds, a => `${a.kelompok_id}|${a.murid_id}|${a.tanggal}`);
@@ -140,6 +152,7 @@ export async function GET(req) {
       total_hadir: totalHadirGlobal,
     },
     tingkatan_counts: tingkatanCounts,
+    kategori_counts: kategoriCounts,
     kelompok_list: kelompokRekap,
     top_murid: topMurid,
   });

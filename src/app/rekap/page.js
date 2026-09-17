@@ -66,9 +66,17 @@ export default function RekapGlobalPage() {
   // Tab tingkatan yang tersedia, hanya tampil kalau ada murid di tingkatan itu
   const tabTersedia = useMemo(() => {
     const counts = rekap?.tingkatan_counts || {};
-    return Object.entries(TINGKATAN_LABEL)
+    const kategori = rekap?.kategori_counts || {};
+    const tabs = Object.entries(TINGKATAN_LABEL)
       .filter(([key]) => counts[key] > 0)
       .map(([key, val]) => ({ key, label: val.label, count: counts[key] }));
+    // Tab TAMBAHAN berdasarkan Kategori Besar "Muda/i"
+    // (gabungan praremaja+remaja+usianikah) — hanya grouping tampilan,
+    // tab per-tingkatan yang lama tetap ada semua.
+    if ((kategori.mudai || 0) > 0) {
+      tabs.push({ key: 'mudai', label: 'Muda/i', count: kategori.mudai });
+    }
+    return tabs;
   }, [rekap]);
 
   // Cuma pindah tab kalau tab yang aktif sekarang ternyata TIDAK tersedia

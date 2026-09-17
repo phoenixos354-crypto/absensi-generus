@@ -32,3 +32,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backup data produksi (jangan pernah di-commit)
+supabase/backup-pre-migrasi-*.json
+# cache internal supabase cli
+supabase/.temp/

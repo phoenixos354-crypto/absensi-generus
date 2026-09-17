@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { DalilWidget } from '@/components/DalilWidget';
 import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
+import { TINGKATAN_MUDA_I } from '@/lib/target-constants';
 import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert, ChevronRight, Target as TargetIcon, LogOut, Plus } from 'lucide-react';
 import userAvatar from '@/assets/user-avatar.jpg';
 
@@ -236,9 +237,16 @@ function DashboardContent() {
   }
 
   const hariIni = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long' });
+  // Filter 'mudai' = pengelompokan TAMBAHAN berdasarkan Kategori Besar
+  // (gabungan praremaja+remaja+usianikah). HANYA grouping tampilan —
+  // nilai tingkatan yang tersimpan di database tidak berubah, dan chip
+  // filter per-tingkatan yang lama tetap ada semua.
   const kelompokTampil = filterTingkatan === 'semua'
     ? kelompok
-    : kelompok.filter(k => k.tingkatan === filterTingkatan);
+    : filterTingkatan === 'mudai'
+      ? kelompok.filter(k => TINGKATAN_MUDA_I.includes(k.tingkatan))
+      : kelompok.filter(k => k.tingkatan === filterTingkatan);
+  const jumlahMudai = kelompok.filter(k => TINGKATAN_MUDA_I.includes(k.tingkatan)).length;
 
   const ONBOARD_STEPS = [
     { Illus: IlusWelcome, judul:'Selamat Datang!', isi:'Absensi Generus membantu Anda mencatat kehadiran murid pengajian dengan mudah langsung dari HP.' },
@@ -314,8 +322,12 @@ function DashboardContent() {
           {[
             { key: 'semua', label: 'Semua' },
             ...Object.entries(TINGKATAN_LABEL).map(([key, val]) => ({ key, label: val.label })),
+            // Chip TAMBAHAN Kategori Besar "Muda/i" — tampil hanya kalau ada kelompoknya
+            ...(jumlahMudai > 0 ? [{ key: 'mudai', label: 'Muda/i' }] : []),
           ].map(({ key, label }) => {
-            const count = key === 'semua' ? kelompok.length : kelompok.filter(k => k.tingkatan === key).length;
+            const count = key === 'semua' ? kelompok.length
+              : key === 'mudai' ? jumlahMudai
+              : kelompok.filter(k => k.tingkatan === key).length;
             if (count === 0 && key !== 'semua') return null;
             const isActive = filterTingkatan === key;
             return (
@@ -330,7 +342,9 @@ function DashboardContent() {
               >
                 {key === 'semua'
                   ? <LayoutGrid className="size-3.5" />
-                  : <TingkatanIcon tingkatan={key} className="size-3.5" />}
+                  : key === 'mudai'
+                    ? <Users className="size-3.5" />
+                    : <TingkatanIcon tingkatan={key} className="size-3.5" />}
                 <span>{label}</span>
                 <span className={`rounded-full px-1.5 text-[11px] font-bold ${isActive ? 'bg-white/25' : 'bg-border'}`}>{count}</span>
               </button>
@@ -375,9 +389,11 @@ function DashboardContent() {
             {kelompokTampil.length === 0 && (
               <div className="py-10 text-center">
                 <div className="mx-auto grid size-12 place-items-center rounded-full bg-brand-soft text-primary">
-                  {(() => { const t = getTingkatan(filterTingkatan); const I = t.Icon; return <I className="size-6" />; })()}
+                  {filterTingkatan === 'mudai'
+                    ? <Users className="size-6" />
+                    : (() => { const t = getTingkatan(filterTingkatan); const I = t.Icon; return <I className="size-6" />; })()}
                 </div>
-                <p className="mt-2 text-sm font-bold text-ink">Tidak ada kelompok {getTingkatan(filterTingkatan).label}</p>
+                <p className="mt-2 text-sm font-bold text-ink">Tidak ada kelompok {filterTingkatan === 'mudai' ? 'Muda/i' : getTingkatan(filterTingkatan).label}</p>
                 <p className="text-xs text-muted-foreground">Coba pilih tingkatan lain</p>
               </div>
             )}

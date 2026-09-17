@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { readSheet, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
 import { getKelompokAkses } from '@/lib/permission';
 import { resolvePresetId } from '@/lib/target';
+import { TINGKATAN_MUDA_I } from '@/lib/target-constants';
 import { NextResponse } from 'next/server';
 
 /**
@@ -53,9 +54,19 @@ export async function GET(req) {
     tingkatanCounts[k.tingkatan] = (tingkatanCounts[k.tingkatan] || 0) + jumlahMurid;
   }
 
+  // Kategori besar (HANYA grouping tampilan — nilai tingkatan di DB tidak berubah)
+  const kategoriCounts = { caberawit: 0, mudai: 0 };
+  for (const k of semuaKelompok) {
+    const jumlahMurid = muridAll.filter(m => m.kelompok_id === k.id).length;
+    if (k.tingkatan === 'caberawit') kategoriCounts.caberawit += jumlahMurid;
+    else if (TINGKATAN_MUDA_I.includes(k.tingkatan)) kategoriCounts.mudai += jumlahMurid;
+  }
+
   const kelompokList = tingkatanFilter === 'semua'
     ? semuaKelompok
-    : semuaKelompok.filter(k => k.tingkatan === tingkatanFilter);
+    : tingkatanFilter === 'mudai'
+      ? semuaKelompok.filter(k => TINGKATAN_MUDA_I.includes(k.tingkatan))
+      : semuaKelompok.filter(k => k.tingkatan === tingkatanFilter);
 
   const kelompokRekap = [];
   const topMurid = [];
@@ -140,6 +151,7 @@ export async function GET(req) {
       total_tercapai: totalTercapaiGlobal,
     },
     tingkatan_counts: tingkatanCounts,
+    kategori_counts: kategoriCounts,
     kelompok_list: kelompokRekap,
     top_murid: topMurid,
   });

@@ -217,6 +217,111 @@ create index if not exists idx_kas_tanggal on kas (tanggal);
 -- Dibutuhkan untuk rekap endpoint setelah perubahan terbaru
 alter table pengeluaran_infaq add column if not exists sumber_dana text default 'infaq';
 
+-- =============================================================
+-- Tabel: murid — kolom tambahan (ADDITIVE, aman untuk DB yang sudah live)
+-- =============================================================
+
+-- Sub-kelas / kelas sekolah murid (khusus tingkatan caberawit).
+-- Nilai: '' (kosong = tidak diisi), 'paud_tk', 'sd_1' .. 'sd_6'
+-- (lihat KELAS_CABERAWIT di src/lib/target-constants.js).
+-- Murid lama otomatis terbaca kosong — tidak ada UPDATE massal.
+alter table murid add column if not exists sub_kelas text default '';
+
+-- =============================================================
+-- Tabel: kelompok — kolom tambahan (ADDITIVE, aman untuk DB yang sudah live)
+-- =============================================================
+
+-- Pilihan kelompok tujuan kenaikan kelas, diisi guru SEKALI lewat wizard
+-- "Naik Kelas" (langkah 1). Nullable: NULL = belum pernah memilih.
+-- Hanya dibaca fitur Naik Kelas; tidak mengubah perilaku yang sudah ada.
+alter table kelompok add column if not exists kelompok_tujuan_id text;
+
+-- =============================================================
+-- Tabel: riwayat_kenaikan_kelas (append-only)
+-- Satu baris per SATU murid yang dinaikkan, dibuat API /api/kenaikan-kelas:
+--   jenis = 'sub_kelas' (naik kelas dalam kelompok yang sama, cukup ubah
+--           murid.sub_kelas) | 'tingkat' (pindah kelompok, ubah murid.kelompok_id)
+-- =============================================================
+create table if not exists riwayat_kenaikan_kelas (
+  id text primary key,
+  murid_id text,
+  jenis text,
+  dari_kelompok_id text,
+  ke_kelompok_id text,
+  dari_sub_kelas text,
+  ke_sub_kelas text,
+  tanggal text,
+  dicatat_oleh text,
+  created_at text,
+  _seq bigint generated always as identity
+);
+create index if not exists idx_riwayat_kenaikan_murid_id on riwayat_kenaikan_kelas (murid_id);
+create index if not exists idx_riwayat_kenaikan_dari_kelompok on riwayat_kenaikan_kelas (dari_kelompok_id);
+create index if not exists idx_riwayat_kenaikan_ke_kelompok on riwayat_kenaikan_kelas (ke_kelompok_id);
+
+-- =============================================================
+-- Fungsi transaksional kenaikan kelas massal (dipanggil API lewat RPC).
+-- Semua update murid + pencatatan riwayat terjadi dalam SATU transaksi:
+-- kalau satu saja gagal, SEMUA dibatalkan. create or replace = idempotent.
+-- =============================================================
+create or replace function naikkan_kelas_massal(
+  p_murid_ids text[],
+  p_riwayat_ids text[],
+  p_jenis text,
+  p_dari_kelompok_id text,
+  p_ke_kelompok_id text,
+  p_ke_sub_kelas text,
+  p_tanggal text,
+  p_dicatat_oleh text,
+  p_created_at text
+)
+returns integer
+language plpgsql
+as $$
+declare
+  m murid%rowtype;
+  i int;
+  v_count int := 0;
+begin
+  if p_murid_ids is null or p_riwayat_ids is null
+     or array_length(p_murid_ids, 1) is null
+     or array_length(p_murid_ids, 1) <> array_length(p_riwayat_ids, 1) then
+    raise exception 'jumlah murid_ids dan riwayat_ids harus sama & tidak boleh kosong';
+  end if;
+  if p_jenis not in ('sub_kelas', 'tingkat') then
+    raise exception 'jenis tidak valid';
+  end if;
+
+  for i in 1 .. array_length(p_murid_ids, 1) loop
+    select * into m from murid where id = p_murid_ids[i] for update;
+    if not found then
+      raise exception 'murid % tidak ditemukan', p_murid_ids[i];
+    end if;
+    if m.kelompok_id is distinct from p_dari_kelompok_id then
+      raise exception 'murid % bukan bagian dari kelompok asal', p_murid_ids[i];
+    end if;
+
+    update murid set
+      kelompok_id = case when p_jenis = 'tingkat' then p_ke_kelompok_id else m.kelompok_id end,
+      sub_kelas   = case when p_jenis = 'sub_kelas' then coalesce(p_ke_sub_kelas, '') else '' end
+    where id = m.id;
+
+    insert into riwayat_kenaikan_kelas
+      (id, murid_id, jenis, dari_kelompok_id, ke_kelompok_id, dari_sub_kelas, ke_sub_kelas, tanggal, dicatat_oleh, created_at)
+    values
+      (p_riwayat_ids[i], m.id, p_jenis, p_dari_kelompok_id,
+       case when p_jenis = 'tingkat' then p_ke_kelompok_id else p_dari_kelompok_id end,
+       coalesce(m.sub_kelas, ''),
+       case when p_jenis = 'sub_kelas' then coalesce(p_ke_sub_kelas, '') else '' end,
+       p_tanggal, p_dicatat_oleh, p_created_at);
+
+    v_count := v_count + 1;
+  end loop;
+
+  return v_count;
+end;
+$$;
+
 -- Jam kedatangan otomatis saat absen/scan QR (format HH:MM, mis. 07:35)
 alter table absensi add column if not exists jam_datang text default '';
 

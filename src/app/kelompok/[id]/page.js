@@ -6,7 +6,8 @@ import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
 import { TingkatanIcon, getTingkatan } from '@/components/tingkatan';
-import { Users, CalendarDays, MapPin, Map, Target } from 'lucide-react';
+import { KELAS_CABERAWIT_LABEL } from '@/lib/target-constants';
+import { Users, CalendarDays, MapPin, Map, Target, GraduationCap } from 'lucide-react';
 
 export default function KelompokDetailPage() {
   const { data: session, status } = useSession();
@@ -75,6 +76,12 @@ export default function KelompokDetailPage() {
             <button onClick={() => router.push(`/setup/${kelompokId}`)} className="rounded-full bg-white/20 px-4 py-2.5 text-xs font-bold text-primary-foreground">
               Kelola
             </button>
+            {/* Naik Kelas — hanya owner (wizard eksplisit, tidak pernah otomatis) */}
+            {kelompok.permission === 'owner' && (
+              <button onClick={() => router.push(`/kenaikan-kelas/${kelompokId}`)} className="rounded-full bg-white/20 px-4 py-2.5 text-xs font-bold text-primary-foreground">
+                <span className="flex items-center gap-1"><GraduationCap className="size-3.5" /> Naik Kelas</span>
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -89,6 +96,12 @@ export default function KelompokDetailPage() {
               <li key={m.id} className="flex items-center gap-2.5 py-2.5 text-sm">
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-soft text-[10px] font-extrabold text-primary">{i+1}</span>
                 <span className="min-w-0 flex-1 truncate font-medium text-ink">{m.nama_murid}</span>
+                {/* Badge sub-kelas — hanya kalau terisi */}
+                {m.sub_kelas ? (
+                  <span className="shrink-0 rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-bold text-primary">
+                    {KELAS_CABERAWIT_LABEL[m.sub_kelas] || m.sub_kelas}
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>

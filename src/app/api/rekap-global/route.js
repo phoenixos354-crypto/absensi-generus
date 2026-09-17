@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { readWhereIn, readLatestByKeyWhereIn, SHEETS } from '@/lib/sheets';
 import { getKelompokAkses } from '@/lib/permission';
+import { TINGKATAN_MUDA_I } from '@/lib/target-constants';
 import { NextResponse } from 'next/server';
 
 /**
@@ -49,10 +50,24 @@ export async function GET(req) {
     tingkatanCounts[k.tingkatan] = (tingkatanCounts[k.tingkatan] || 0) + jumlahMurid;
   }
 
-  // Terapkan filter tingkatan (kalau bukan 'semua')
+  // Kategori besar (HANYA grouping tampilan — nilai tingkatan di DB tidak berubah):
+  // caberawit -> "Caberawit", praremaja/remaja/usianikah -> "Muda/i".
+  // Dipakai untuk tab tambahan "Muda/i" di halaman rekap.
+  const kategoriCounts = { caberawit: 0, mudai: 0 };
+  for (const k of semuaKelompok) {
+    const jumlahMurid = muridAll.filter(m => m.kelompok_id === k.id).length;
+    if (k.tingkatan === 'caberawit') kategoriCounts.caberawit += jumlahMurid;
+    else if (TINGKATAN_MUDA_I.includes(k.tingkatan)) kategoriCounts.mudai += jumlahMurid;
+  }
+
+  // Terapkan filter tingkatan (kalau bukan 'semua').
+  // Nilai spesial 'mudai' = filter berdasarkan KATEGORI BESAR (gabungan
+  // praremaja+remaja+usianikah), BUKAN tingkatan tunggal.
   const kelompokList = tingkatanFilter === 'semua'
     ? semuaKelompok
-    : semuaKelompok.filter(k => k.tingkatan === tingkatanFilter);
+    : tingkatanFilter === 'mudai'
+      ? semuaKelompok.filter(k => TINGKATAN_MUDA_I.includes(k.tingkatan))
+      : semuaKelompok.filter(k => k.tingkatan === tingkatanFilter);
 
   const kelompokIds = kelompokList.map(k => k.id);
   // PENTING: absensi itu append-only (simpan ulang tanggal yang sama = baris
@@ -161,6 +176,7 @@ export async function GET(req) {
       total_hadir: totalHadirGlobal,
     },
     tingkatan_counts: tingkatanCounts,
+    kategori_counts: kategoriCounts,
     kelompok_list: kelompokRekap,
     top_murid: topMurid,
   });

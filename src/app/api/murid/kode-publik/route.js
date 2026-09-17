@@ -4,7 +4,9 @@ import { readSheet, updateRow, SHEETS, generateKodePublik } from '@/lib/sheets';
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
-const MURID_HEADERS = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'];
+// Sinkron dengan HEADERS[SHEETS.MURID] di src/lib/sheets.js. sub_kelas
+// SELALU paling akhir supaya urutan kolom lama tidak bergeser.
+const MURID_HEADERS = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at', 'sub_kelas'];
 
 // GET /api/murid/kode-publik?murid_id=...
 // Kalau murid belum punya kode_publik (data lama sebelum fitur ini ada),

@@ -70,6 +70,7 @@ export const SHEETS = {
   JAMAAH:         'jamaah',
   PENGELUARAN_INFAQ: 'pengeluaran_infaq',
   KAS:            'kas',
+  RIWAYAT_KENAIKAN: 'riwayat_kenaikan_kelas',
 };
 
 // Urutan kolom per tabel — dipakai untuk memetakan array `values`
@@ -78,7 +79,9 @@ export const SHEETS = {
 const HEADERS = {
   [SHEETS.USERS]:           ['id', 'email', 'name', 'image', 'created_at'],
   [SHEETS.KELOMPOK]:        ['id', 'user_id', 'nama_kelompok', 'tingkatan', 'desa', 'daerah', 'preset_id', 'created_at'],
-  [SHEETS.MURID]:           ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'],
+  // CATATAN: sub_kelas SELALU paling akhir supaya urutan kolom lama tidak
+  // bergeser (appendRow/appendRows memetakan values by-index ke headers).
+  [SHEETS.MURID]:           ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at', 'sub_kelas'],
   [SHEETS.JADWAL]:          ['id', 'kelompok_id', 'hari', 'created_at'],
   [SHEETS.ABSENSI]:         ['id', 'kelompok_id', 'murid_id', 'tanggal', 'status', 'dicatat_oleh', 'created_at', 'jam_datang'],
   [SHEETS.ADMIN_KELOMPOK]:  ['id', 'kelompok_id', 'email', 'permission', 'invited_by', 'created_at'],
@@ -91,6 +94,7 @@ const HEADERS = {
   [SHEETS.JAMAAH]:         ['id', 'kelompok_id', 'nama', 'umur', 'jenis_kelamin', 'status_pernikahan', 'kategori_usia', 'status_keluarga', 'kepala_keluarga_id', 'created_at'],
   [SHEETS.PENGELUARAN_INFAQ]: ['id', 'kelompok_id', 'tanggal', 'keterangan', 'jumlah', 'sumber_dana', 'dicatat_oleh', 'created_at'],
   [SHEETS.KAS]: ['id', 'kelompok_id', 'murid_id', 'tanggal', 'jumlah', 'dicatat_oleh', 'created_at'],
+  [SHEETS.RIWAYAT_KENAIKAN]: ['id', 'murid_id', 'jenis', 'dari_kelompok_id', 'ke_kelompok_id', 'dari_sub_kelas', 'ke_sub_kelas', 'tanggal', 'dicatat_oleh', 'created_at'],
 };
 
 // =============================================

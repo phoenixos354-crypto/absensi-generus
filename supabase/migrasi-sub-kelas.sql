@@ -1,0 +1,28 @@
+-- =============================================================
+-- MIGRASI: Sub-Kelas (Kelas/Jenjang Sekolah) untuk Murid
+-- =============================================================
+-- Menambah kolom `sub_kelas` ke tabel `murid`.
+--
+-- Apa itu sub_kelas?
+--   Keterangan kelas/jenjang sekolah per murid, khusus untuk tingkatan
+--   CABERAWIT (karena caberawit mencakup rentang usia Paud/TK s.d. SD
+--   Kelas 6). Contoh isi: 'paud_tk', 'sd_1', ... , 'sd_6'.
+--   Untuk tingkatan lain (praremaja/remaja/usianikah/kelompok) kolom ini
+--   sengaja dibiarkan kosong ('').
+--
+-- PENTING — MIGRASI INI 100% ADDITIVE & IDEMPOTENT:
+--   - Tidak ada DROP, tidak ada RENAME, tidak ada UPDATE massal.
+--   - Aman dijalankan berulang kali (pakai IF NOT EXISTS).
+--   - Data lama tidak tersentuh: murid lama otomatis terbaca
+--     sub_kelas = '' (kosong) oleh aplikasi.
+--   - Kolom lama (id, kelompok_id, nama_murid, kode_publik, created_at)
+--     TIDAK berubah sama sekali — urutan kolom juga tidak bergeser.
+--
+-- CARA PAKAI: Supabase Dashboard -> SQL Editor -> paste semua isi file
+-- ini -> Run. Boleh dijalankan berkali-kali tanpa efek samping.
+-- =============================================================
+
+-- Sub-kelas / kelas sekolah murid (khusus tingkatan caberawit).
+-- Nilai: '' (kosong = tidak diisi), 'paud_tk', 'sd_1' .. 'sd_6'
+-- (lihat KELAS_CABERAWIT di src/lib/target-constants.js).
+alter table murid add column if not exists sub_kelas text default '';

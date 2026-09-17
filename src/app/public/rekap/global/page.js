@@ -69,15 +69,22 @@ export default function PublicRekapGlobalPage() {
 
   const tabTersedia = useMemo(() => {
     const counts = data?.tingkatan_counts || {};
+    const kategori = data?.kategori_counts || {};
     const labels = {
       caberawit: 'Caberawit',
       praremaja: 'Praremaja',
       remaja: 'Remaja',
       dewasa: 'Dewasa',
     };
-    return Object.entries(labels)
+    const tabs = Object.entries(labels)
       .filter(([key]) => counts[key] > 0)
       .map(([key, label]) => ({ key, label, count: counts[key] }));
+    // Tab tambahan Kategori Besar "Muda/i" (gabungan praremaja+remaja+usianikah)
+    // — hanya grouping tampilan, tab per-tingkatan tetap ada.
+    if ((kategori.mudai || 0) > 0) {
+      tabs.push({ key: 'mudai', label: 'Muda/i', count: kategori.mudai });
+    }
+    return tabs;
   }, [data]);
 
   if (loading) {

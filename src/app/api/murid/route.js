@@ -4,7 +4,9 @@ import { readWhere, appendRow, updateRow, deleteRows, getSupabaseClient, SHEETS,
 import { getPermission } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
-const MURID_HEADERS = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at'];
+// Sinkron dengan HEADERS[SHEETS.MURID] di src/lib/sheets.js. sub_kelas
+// SELALU paling akhir supaya urutan kolom lama tidak bergeser.
+const MURID_HEADERS = ['id', 'kelompok_id', 'nama_murid', 'kode_publik', 'created_at', 'sub_kelas'];
 
 export async function GET(req) {
   const session = await getServerSession(authOptions);
@@ -26,7 +28,7 @@ export async function POST(req) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { kelompok_id, nama_murid } = await req.json();
+  const { kelompok_id, nama_murid, sub_kelas } = await req.json();
 
   // Hanya owner yang boleh tambah murid
   const perm = await getPermission(session.user.email, kelompok_id);
@@ -34,15 +36,17 @@ export async function POST(req) {
 
   const id = generateId();
   const kode_publik = generateKodePublik();
-  await appendRow(SHEETS.MURID, [id, kelompok_id, nama_murid, kode_publik, new Date().toISOString()]);
-  return NextResponse.json({ id, kelompok_id, nama_murid, kode_publik });
+  // sub_kelas opsional (khusus caberawit) — kalau tidak dikirim, simpan '' (kosong)
+  const subKelas = typeof sub_kelas === 'string' ? sub_kelas : '';
+  await appendRow(SHEETS.MURID, [id, kelompok_id, nama_murid, kode_publik, new Date().toISOString(), subKelas]);
+  return NextResponse.json({ id, kelompok_id, nama_murid, kode_publik, sub_kelas: subKelas });
 }
 
 export async function PUT(req) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { id, nama_murid } = await req.json();
+  const { id, nama_murid, sub_kelas } = await req.json();
 
   const found = await readWhere(SHEETS.MURID, { id });
   const target = found[0];
@@ -53,8 +57,14 @@ export async function PUT(req) {
   const perm = await getPermission(session.user.email, target.kelompok_id);
   if (perm !== 'owner') return NextResponse.json({ error: 'Hanya owner yang bisa edit murid' }, { status: 403 });
 
-  await updateRow(SHEETS.MURID, { ...target, nama_murid }, MURID_HEADERS);
-  return NextResponse.json({ success: true });
+  // Update nama_murid (perilaku lama tetap) + sub_kelas opsional.
+  // Kalau client tidak mengirim sub_kelas, pakai nilai yang sudah tersimpan
+  // (murid lama yang belum punya kolom ini akan terbaca undefined -> '').
+  const subKelasBaru = typeof sub_kelas === 'string'
+    ? sub_kelas
+    : (target.sub_kelas || '');
+  await updateRow(SHEETS.MURID, { ...target, nama_murid, sub_kelas: subKelasBaru }, MURID_HEADERS);
+  return NextResponse.json({ success: true, nama_murid, sub_kelas: subKelasBaru });
 }
 
 export async function DELETE(req) {
