@@ -42,11 +42,14 @@ export async function GET(req) {
 
   const cocokPeriode = (tgl) => {
     if (!nilai) return true;
-    if (mode === 'hari') return tgl === nilai;
-    if (mode === 'bulan') return tgl.startsWith(nilai);
-    if (mode === 'tahun') return tgl.startsWith(nilai);
+    const t = String(tgl || '');
+    if (!t) return false;
+    if (mode === 'hari') return t === nilai;
+    if (mode === 'bulan') return t.startsWith(nilai);
+    if (mode === 'tahun') return t.startsWith(nilai);
     if (mode === 'minggu') {
-      const d = new Date(tgl);
+      const d = new Date(t);
+      if (isNaN(d)) return false;
       const week = getWeekNumber(d);
       return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
     }
@@ -82,7 +85,7 @@ export async function GET(req) {
   const daftarSesi = sesi
     .filter(s => s.jurnal || Number(s.infaq) > 0)
     .map(s => ({ tanggal: s.tanggal, jurnal: s.jurnal, infaq: Number(s.infaq) || 0 }))
-    .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+    .sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')));
   const totalKas = kas.reduce((s, k) => s + (Number(k.jumlah) || 0), 0);
   const totalInfaq = sesi.reduce((s, x) => s + (Number(x.infaq) || 0), 0);
 
@@ -102,15 +105,18 @@ export async function GET(req) {
     pengeluaranKas = pengeluaranKas.filter(p => p.tanggal === nilai);
   } else if (mode === 'minggu' && nilai) {
     const filterFn = p => {
-      const d = new Date(p.tanggal);
+      const t = String(p.tanggal || '');
+      if (!t) return false;
+      const d = new Date(t);
+      if (isNaN(d)) return false;
       const week = getWeekNumber(d);
       return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
     };
     pengeluaranInfaq = pengeluaranInfaq.filter(filterFn);
     pengeluaranKas = pengeluaranKas.filter(filterFn);
   } else if ((mode === 'bulan' || mode === 'tahun') && nilai) {
-    pengeluaranInfaq = pengeluaranInfaq.filter(p => p.tanggal.startsWith(nilai));
-    pengeluaranKas = pengeluaranKas.filter(p => p.tanggal.startsWith(nilai));
+    pengeluaranInfaq = pengeluaranInfaq.filter(p => String(p.tanggal || '').startsWith(nilai));
+    pengeluaranKas = pengeluaranKas.filter(p => String(p.tanggal || '').startsWith(nilai));
   }
 
   const totalPengeluaranInfaq = pengeluaranInfaq.reduce((s, p) => s + (Number(p.jumlah) || 0), 0);
@@ -124,9 +130,9 @@ export async function GET(req) {
     perBulan = [];
     for (let b = 1; b <= 12; b++) {
       const kunci = `${nilai}-${String(b).padStart(2, '0')}`;
-      const absB = absensi.filter(a => a.tanggal.startsWith(kunci));
-      const sesiB = sesi.filter(s => s.tanggal.startsWith(kunci));
-      const kasB = kas.filter(k => k.tanggal.startsWith(kunci));
+      const absB = absensi.filter(a => String(a.tanggal || '').startsWith(kunci));
+      const sesiB = sesi.filter(s => String(s.tanggal || '').startsWith(kunci));
+      const kasB = kas.filter(k => String(k.tanggal || '').startsWith(kunci));
       const sesiUnikB = new Set(absB.map(a => a.tanggal)).size;
       const hadirB = absB.filter(a => a.status === 'Hadir').length;
       const totalSlotB = sesiUnikB * murid.length;

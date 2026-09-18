@@ -581,6 +581,7 @@ export default function RekapPage() {
                 periode={
                   mode === 'hari' ? new Date(nilai).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})
                   : mode === 'minggu' ? `Minggu ${nilai}`
+                  : mode === 'tahun' ? `Tahun ${nilai}`
                   : new Date(nilai+'-01').toLocaleDateString('id-ID',{month:'long',year:'numeric'})
                 }
               />

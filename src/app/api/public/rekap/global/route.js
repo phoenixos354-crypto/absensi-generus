@@ -68,7 +68,7 @@ export async function GET(req) {
       return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
     });
   } else if (mode === 'bulan' && nilai) {
-    absensi = absensi.filter(a => a.tanggal.startsWith(nilai));
+    absensi = absensi.filter(a => String(a.tanggal || '').startsWith(nilai));
   }
 
   const kelompokRekap = [];

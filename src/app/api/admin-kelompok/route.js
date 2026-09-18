@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { readSheet, appendRow, deleteRows, SHEETS, generateId } from '@/lib/sheets';
+import { normEmail } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
 // GET — list admin untuk kelompok tertentu
@@ -22,27 +23,30 @@ export async function POST(req) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { kelompok_id, email, permission } = await req.json();
+  const emailNorm = normEmail(email);
+  const emailSaya = normEmail(session.user.email);
+  if (!emailNorm) return NextResponse.json({ error: 'Email wajib diisi' }, { status: 400 });
 
   const admins = await readSheet(SHEETS.ADMIN_KELOMPOK);
 
   // Cek owner lewat email (bukan user_id)
   const isOwner = admins.find(a =>
     a.kelompok_id === kelompok_id &&
-    a.email === session.user.email &&
+    normEmail(a.email) === emailSaya &&
     a.permission === 'owner'
   );
   if (!isOwner) return NextResponse.json({ error: 'Hanya owner yang bisa invite admin' }, { status: 403 });
 
   // Cek duplikat
-  const sudahAda = admins.find(a => a.kelompok_id === kelompok_id && a.email === email);
+  const sudahAda = admins.find(a => a.kelompok_id === kelompok_id && normEmail(a.email) === emailNorm);
   if (sudahAda) return NextResponse.json({ error: 'Email ini sudah jadi admin' }, { status: 400 });
 
   const id = generateId();
   await appendRow(SHEETS.ADMIN_KELOMPOK, [
-    id, kelompok_id, email, permission, session.user.email, new Date().toISOString()
+    id, kelompok_id, emailNorm, permission, emailSaya, new Date().toISOString()
   ]);
 
-  return NextResponse.json({ id, kelompok_id, email, permission });
+  return NextResponse.json({ id, kelompok_id, email: emailNorm, permission });
 }
 
 // DELETE — hapus admin (hapus 1 baris spesifik saja)
@@ -57,16 +61,17 @@ export async function DELETE(req) {
   const admins = await readSheet(SHEETS.ADMIN_KELOMPOK);
 
   // Cek owner lewat email
+  const emailSaya = normEmail(session.user.email);
   const isOwner = admins.find(a =>
     a.kelompok_id === kelompok_id &&
-    a.email === session.user.email &&
+    normEmail(a.email) === emailSaya &&
     a.permission === 'owner'
   );
   if (!isOwner) return NextResponse.json({ error: 'Hanya owner yang bisa hapus admin' }, { status: 403 });
 
   // Jangan hapus diri sendiri (owner)
   const target = admins.find(a => a.id === id);
-  if (target?.email === session.user.email) {
+  if (normEmail(target?.email) === emailSaya) {
     return NextResponse.json({ error: 'Tidak bisa menghapus diri sendiri sebagai owner' }, { status: 400 });
   }
   if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 });

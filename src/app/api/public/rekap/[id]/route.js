@@ -45,8 +45,8 @@ export async function GET(req, { params }) {
       return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
     });
   } else if (mode === 'bulan' && nilai) {
-    absensi = absensi.filter(a => a.tanggal.startsWith(nilai));
-    sesi = sesi.filter(s => s.tanggal.startsWith(nilai));
+    absensi = absensi.filter(a => String(a.tanggal || '').startsWith(nilai));
+    sesi = sesi.filter(s => String(s.tanggal || '').startsWith(nilai));
   }
 
   const rekapMurid = murid.map(m => {
@@ -68,7 +68,7 @@ export async function GET(req, { params }) {
   const daftarSesi = sesi
     .filter(s => s.jurnal || Number(s.infaq) > 0)
     .map(s => ({ tanggal: s.tanggal, jurnal: s.jurnal, infaq: Number(s.infaq) || 0 }))
-    .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+    .sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')));
   const totalInfaq = sesi.reduce((s, x) => s + (Number(x.infaq) || 0), 0);
 
   let pengeluaran = pengeluaranAll.map(r => ({
@@ -87,7 +87,7 @@ export async function GET(req, { params }) {
       return `${d.getFullYear()}-${String(week).padStart(2, '0')}` === nilai;
     });
   } else if (mode === 'bulan' && nilai) {
-    pengeluaran = pengeluaran.filter(p => p.tanggal.startsWith(nilai));
+    pengeluaran = pengeluaran.filter(p => String(p.tanggal || '').startsWith(nilai));
   }
 
   pengeluaran.sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));

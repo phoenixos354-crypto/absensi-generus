@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { readSheet, appendRow, SHEETS, generateId } from '@/lib/sheets';
+import { normEmail } from '@/lib/permission';
 
 export const authOptions = {
   providers: [
@@ -12,9 +13,10 @@ export const authOptions = {
   callbacks: {
     async signIn({ user }) {
       try {
-        // Cek apakah user sudah ada di sheet
+        // Cek apakah user sudah ada di sheet (email dinormalisasi
+        // supaya tidak duplikat gara-gara beda kapital)
         const users = await readSheet(SHEETS.USERS);
-        const existing = users.find(u => u.email === user.email);
+        const existing = users.find(u => normEmail(u.email) === normEmail(user.email));
         if (!existing) {
           // Daftarkan user baru
           await appendRow(SHEETS.USERS, [
@@ -38,7 +40,7 @@ export const authOptions = {
       // Tambahkan user_id dari sheet ke session
       try {
         let users = await readSheet(SHEETS.USERS);
-        let dbUser = users.find(u => u.email === session.user.email);
+        let dbUser = users.find(u => normEmail(u.email) === normEmail(session.user.email));
         if (!dbUser) {
           // Self-healing: mungkin pendaftaran waktu signIn() sempat gagal
           // (gangguan sesaat). Coba daftarkan sekarang supaya user tetap
@@ -52,7 +54,7 @@ export const authOptions = {
               new Date().toISOString(),
             ]);
             users = await readSheet(SHEETS.USERS, { skipCache: true });
-            dbUser = users.find(u => u.email === session.user.email);
+            dbUser = users.find(u => normEmail(u.email) === normEmail(session.user.email));
           } catch (e2) {
             console.error('session: gagal self-heal daftar user', e2);
           }

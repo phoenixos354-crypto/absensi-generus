@@ -39,7 +39,7 @@ export async function GET(req, { params }) {
   const persenHadir = totalSesiAbsen > 0 ? Math.round((totalHadir / totalSesiAbsen) * 100) : 0;
 
   // Kehadiran per bulan yang dipilih
-  const absensiBulan = bulan ? absensiMurid.filter(a => a.tanggal.startsWith(bulan)) : absensiMurid;
+  const absensiBulan = bulan ? absensiMurid.filter(a => String(a.tanggal || '').startsWith(bulan)) : absensiMurid;
   const totalSesiBulan = absensiBulan.length;
   const totalHadirBulan = absensiBulan.filter(a => a.status === 'Hadir').length;
   const persenHadirBulan = totalSesiBulan > 0 ? Math.round((totalHadirBulan / totalSesiBulan) * 100) : 0;
@@ -49,7 +49,7 @@ export async function GET(req, { params }) {
   const jurnal = sesiKelompok
     .filter(s => tanggalHadir.has(s.tanggal) && s.jurnal)
     .map(s => ({ tanggal: s.tanggal, jurnal: s.jurnal }))
-    .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+    .sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')));
 
   // Progress target per kategori (item sesuai tingkatan kelompoknya)
   const presetId = resolvePresetId(kelompok);

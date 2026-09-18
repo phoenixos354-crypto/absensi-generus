@@ -31,7 +31,9 @@ export default function AdminKelompokPage() {
   const adminList = Array.isArray(adminData) ? adminData : [];
   const loading = !adminData;
 
-  const myPermission = adminList.find(x => x.email === session?.user?.email)?.permission || null;
+  const normEmailUi = (e) => String(e || '').trim().toLowerCase();
+  const emailSaya = normEmailUi(session?.user?.email);
+  const myPermission = adminList.find(x => normEmailUi(x.email) === emailSaya)?.permission || null;
 
   const [emailBaru, setEmailBaru] = useState('');
   const [permissionBaru, setPermissionBaru] = useState('absen');
@@ -50,7 +52,7 @@ export default function AdminKelompokPage() {
     const res = await fetch('/api/admin-kelompok', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kelompok_id: kelompokId, email: emailBaru.trim(), permission: permissionBaru }),
+      body: JSON.stringify({ kelompok_id: kelompokId, email: emailBaru.trim().toLowerCase(), permission: permissionBaru }),
     });
     const data = await res.json();
     if (res.ok) {
@@ -165,7 +167,7 @@ export default function AdminKelompokPage() {
             <ul className="mt-2 divide-y divide-border">
               {adminList.map(a => {
                 const pInfo = PERMISSION_INFO[a.permission] || PERMISSION_INFO.viewer;
-                const isMe = a.email === session?.user?.email;
+                const isMe = normEmailUi(a.email) === emailSaya;
                 return (
                   <li key={a.id} className="flex items-center gap-3 py-3">
                     <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-primary">

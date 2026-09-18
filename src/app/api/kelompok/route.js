@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { readSheet, appendRow, SHEETS, generateId } from '@/lib/sheets';
-import { getKelompokAkses } from '@/lib/permission';
+import { getKelompokAkses, normEmail } from '@/lib/permission';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -23,9 +23,11 @@ export async function POST(req) {
     id, session.user.id, nama_kelompok, tingkatan, desa, daerah, null, new Date().toISOString(),
   ]);
 
-  // Otomatis daftarkan pembuat sebagai owner
+  // Otomatis daftarkan pembuat sebagai owner (email dinormalisasi
+  // supaya pencocokan akses tidak gagal gara-gara beda kapital)
+  const emailOwner = normEmail(session.user.email);
   await appendRow(SHEETS.ADMIN_KELOMPOK, [
-    generateId(), id, session.user.email, 'owner', session.user.email, new Date().toISOString(),
+    generateId(), id, emailOwner, 'owner', emailOwner, new Date().toISOString(),
   ]);
 
   return NextResponse.json({ id, nama_kelompok, tingkatan, desa, daerah, permission: 'owner' });
