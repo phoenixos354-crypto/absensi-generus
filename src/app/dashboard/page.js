@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo, useRef, Suspense } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { DalilWidget } from '@/components/DalilWidget';
+import { SplashAd } from '@/components/SplashAd';
 import { TingkatanIcon, getTingkatan, TINGKATAN_LABEL } from '@/components/tingkatan';
 import { TINGKATAN_MUDA_I } from '@/lib/target-constants';
 import { CircleHelp, BarChart3, CheckCircle2, Settings, Users, Pencil, Trash2, LayoutGrid, Landmark, MapPin, Map, X, TriangleAlert, ChevronRight, Target as TargetIcon, LogOut, Plus } from 'lucide-react';
@@ -274,6 +275,7 @@ function DashboardContent() {
 
   return (
     <>
+      <SplashAd />
       <AppScreen>
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 pt-6">
           <button
