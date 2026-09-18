@@ -46,7 +46,7 @@ export const KELAS_CABERAWIT_LABEL = {
 // KATEGORI BESAR — HANYA label/grouping TAMPILAN.
 // Menggabungkan beberapa tingkatan jadi satu kelompok tampilan:
 //   caberawit -> "Caberawit"
-//   praremaja/remaja/usianikah -> "Muda/i"
+//   praremaja/remaja/usianikah/mudamudi -> "Muda/i"
 // Nilai tingkatan yang tersimpan di database TIDAK berubah sama sekali.
 // Dipakai sebagai opsi pengelompokan TAMBAHAN di dashboard/rekap,
 // tanpa menghilangkan tampilan per-tingkatan yang lama.
@@ -56,6 +56,7 @@ export const KATEGORI_BESAR = {
   praremaja: 'Muda/i',
   remaja: 'Muda/i',
   usianikah: 'Muda/i',
+  mudamudi: 'Muda/i',
 };
 
 // Urutan kategori besar untuk menampilkan tab (Caberawit dulu, lalu Muda/i)
@@ -68,11 +69,11 @@ export const KATEGORI_BESAR_LABEL = {
 };
 
 // Tingkatan mana saja yang termasuk kategori besar "Muda/i"
-export const TINGKATAN_MUDA_I = ['praremaja', 'remaja', 'usianikah'];
+export const TINGKATAN_MUDA_I = ['praremaja', 'remaja', 'usianikah', 'mudamudi'];
 
 // Urutan jenjang dipakai buat cek "tunggakan dari level bawah".
-// 'kelompok' sengaja tidak dimasukkan (di luar jenjang caberawit->usia nikah).
-export const URUTAN_TINGKATAN = ['caberawit', 'praremaja', 'remaja', 'usianikah'];
+// 'kelompok' sengaja tidak dimasukkan (di luar jenjang caberawit->muda-mudi).
+export const URUTAN_TINGKATAN = ['caberawit', 'praremaja', 'remaja', 'usianikah', 'mudamudi'];
 
 export const DEFAULT_PRESET_ID = 'default';
 

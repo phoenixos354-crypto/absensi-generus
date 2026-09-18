@@ -40,6 +40,14 @@ const DUMMY = {
     makna_quran:   ['Makna Surat Ar-Rum ayat 21'],
     makna_hadis:   ['Hadis tentang Pernikahan'],
   },
+  mudamudi: {
+    hafalan_doa:   ['Doa Kebaikan Dunia Akhirat', 'Doa Memohon Ilmu Bermanfaat'],
+    hafalan_surat: ['Al-Mulk (ayat 1-10)', 'Al-Waqiah (ayat 1-20)'],
+    akhlak:        ['Mandiri & Bertanggung Jawab', 'Menjaga Pergaulan', 'Semangat Menuntut Ilmu'],
+    bacaan:        ['Al-Qur\u2019an Juz 5-10 (lanjutan)'],
+    makna_quran:   ['Makna Surat Al-Mulk ayat 1-5'],
+    makna_hadis:   ['Hadis tentang Pemuda & Ibadah'],
+  },
 };
 
 // Pastikan item dummy default sudah ada di sheet (sekali saja, kalau kosong).

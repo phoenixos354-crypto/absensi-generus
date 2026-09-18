@@ -238,7 +238,7 @@ function DashboardContent() {
 
   const hariIni = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long' });
   // Filter 'mudai' = pengelompokan TAMBAHAN berdasarkan Kategori Besar
-  // (gabungan praremaja+remaja+usianikah). HANYA grouping tampilan —
+  // (gabungan praremaja+remaja+usianikah+mudamudi). HANYA grouping tampilan —
   // nilai tingkatan yang tersimpan di database tidak berubah, dan chip
   // filter per-tingkatan yang lama tetap ada semua.
   const kelompokTampil = filterTingkatan === 'semua'
@@ -518,8 +518,19 @@ function DashboardContent() {
                   <option value="praremaja">Pra Remaja</option>
                   <option value="remaja">Remaja</option>
                   <option value="usianikah">Usia Nikah</option>
+                  <option value="mudamudi">Muda-Mudi</option>
                   <option value="kelompok">Ngaji Kelompok</option>
                 </select>
+                {['praremaja', 'remaja', 'usianikah', 'mudamudi'].includes(form.tingkatan) && (
+                  <p className="mt-1.5 rounded-xl bg-brand-soft px-3 py-2 text-[11px] font-medium text-primary">
+                    Otomatis masuk kategori besar <span className="font-bold">Muda/i</span> di Dashboard & Rekap Global.
+                  </p>
+                )}
+                {form.tingkatan === 'caberawit' && (
+                  <p className="mt-1.5 rounded-xl bg-secondary px-3 py-2 text-[11px] font-medium text-muted-foreground">
+                    Caberawit sudah ada sub-kategori per kelasnya masing-masing (Paud/TK s.d. SD Kelas 6).
+                  </p>
+                )}
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Desa</label>

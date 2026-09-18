@@ -71,7 +71,7 @@ export default function RekapGlobalPage() {
       .filter(([key]) => counts[key] > 0)
       .map(([key, val]) => ({ key, label: val.label, count: counts[key] }));
     // Tab TAMBAHAN berdasarkan Kategori Besar "Muda/i"
-    // (gabungan praremaja+remaja+usianikah) — hanya grouping tampilan,
+    // (gabungan praremaja+remaja+usianikah+mudamudi) — hanya grouping tampilan,
     // tab per-tingkatan yang lama tetap ada semua.
     if ((kategori.mudai || 0) > 0) {
       tabs.push({ key: 'mudai', label: 'Muda/i', count: kategori.mudai });

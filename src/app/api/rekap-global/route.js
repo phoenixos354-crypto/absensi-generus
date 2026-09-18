@@ -51,7 +51,7 @@ export async function GET(req) {
   }
 
   // Kategori besar (HANYA grouping tampilan — nilai tingkatan di DB tidak berubah):
-  // caberawit -> "Caberawit", praremaja/remaja/usianikah -> "Muda/i".
+  // caberawit -> "Caberawit", praremaja/remaja/usianikah/mudamudi -> "Muda/i".
   // Dipakai untuk tab tambahan "Muda/i" di halaman rekap.
   const kategoriCounts = { caberawit: 0, mudai: 0 };
   for (const k of semuaKelompok) {
@@ -62,7 +62,7 @@ export async function GET(req) {
 
   // Terapkan filter tingkatan (kalau bukan 'semua').
   // Nilai spesial 'mudai' = filter berdasarkan KATEGORI BESAR (gabungan
-  // praremaja+remaja+usianikah), BUKAN tingkatan tunggal.
+  // praremaja+remaja+usianikah+mudamudi), BUKAN tingkatan tunggal.
   const kelompokList = tingkatanFilter === 'semua'
     ? semuaKelompok
     : tingkatanFilter === 'mudai'

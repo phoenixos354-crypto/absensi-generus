@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { TINGKATAN_LABEL } from '@/components/tingkatan';
 import { Users, Star, Percent, Layers, CheckCircle2, Trophy, MapPin, ChevronRight, ClipboardList } from 'lucide-react';
 
 function sensorNama(nama, index) {
@@ -70,16 +71,10 @@ export default function PublicRekapGlobalPage() {
   const tabTersedia = useMemo(() => {
     const counts = data?.tingkatan_counts || {};
     const kategori = data?.kategori_counts || {};
-    const labels = {
-      caberawit: 'Caberawit',
-      praremaja: 'Praremaja',
-      remaja: 'Remaja',
-      dewasa: 'Dewasa',
-    };
-    const tabs = Object.entries(labels)
+    const tabs = Object.entries(TINGKATAN_LABEL)
       .filter(([key]) => counts[key] > 0)
-      .map(([key, label]) => ({ key, label, count: counts[key] }));
-    // Tab tambahan Kategori Besar "Muda/i" (gabungan praremaja+remaja+usianikah)
+      .map(([key, val]) => ({ key, label: val.label, count: counts[key] }));
+    // Tab tambahan Kategori Besar "Muda/i" (gabungan praremaja+remaja+usianikah+mudamudi)
     // — hanya grouping tampilan, tab per-tingkatan tetap ada.
     if ((kategori.mudai || 0) > 0) {
       tabs.push({ key: 'mudai', label: 'Muda/i', count: kategori.mudai });

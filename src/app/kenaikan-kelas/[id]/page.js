@@ -63,7 +63,7 @@ export default function KenaikanKelasPage() {
         const resK = await fetch('/api/kelompok');
         if (resK.ok) {
           const semua = await resK.json();
-          const URUTAN = ['caberawit', 'praremaja', 'remaja', 'usianikah'];
+          const URUTAN = ['caberawit', 'praremaja', 'remaja', 'usianikah', 'mudamudi'];
           const idx = URUTAN.indexOf(data.kelompok?.tingkatan);
           const tingkatBerikut = idx >= 0 && idx < URUTAN.length - 1 ? URUTAN[idx + 1] : null;
           setDaftarTujuan((semua || []).filter(k =>
@@ -271,7 +271,7 @@ export default function KenaikanKelasPage() {
             {daftarTujuan.length === 0 ? (
               <div className="mt-4 rounded-2xl bg-amber-50 p-3.5 text-xs font-medium text-amber-700">
                 Belum ada kelompok tingkat {(() => {
-                  const URUTAN = ['caberawit', 'praremaja', 'remaja', 'usianikah'];
+                  const URUTAN = ['caberawit', 'praremaja', 'remaja', 'usianikah', 'mudamudi'];
                   const idx = URUTAN.indexOf(kelompok.tingkatan);
                   return idx >= 0 && idx < URUTAN.length - 1 ? getTingkatan(URUTAN[idx + 1]).label : 'di atas';
                 })()} yang Anda buat. Buat dulu kelompoknya di Dashboard, lalu kembali ke sini.

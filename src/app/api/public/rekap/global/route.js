@@ -46,7 +46,7 @@ export async function GET(req) {
   }
 
   // Apply tingkatan filter. 'mudai' = filter berdasarkan KATEGORI BESAR
-  // (gabungan praremaja+remaja+usianikah), bukan tingkatan tunggal.
+  // (gabungan praremaja+remaja+usianikah+mudamudi), bukan tingkatan tunggal.
   const kelompokList = tingkatanFilter === 'semua'
     ? allGroups
     : tingkatanFilter === 'mudai'

@@ -1,10 +1,11 @@
-import { Sprout, Leaf, TreeDeciduous, Flower2, BookOpen } from 'lucide-react';
+import { Sprout, Leaf, TreeDeciduous, Flower2, BookOpen, Users } from 'lucide-react';
 
 export const TINGKATAN_LABEL = {
   caberawit:  { label: 'Caberawit',     Icon: Sprout },
   praremaja:  { label: 'Pra Remaja',    Icon: Leaf },
   remaja:     { label: 'Remaja',        Icon: TreeDeciduous },
   usianikah:  { label: 'Usia Nikah',    Icon: Flower2 },
+  mudamudi:   { label: 'Muda-Mudi',     Icon: Users },
   kelompok:   { label: 'Ngaji Kelompok',Icon: BookOpen },
 };
 

@@ -13,6 +13,7 @@ const TINGKATAN_TABS = [
   { key: 'praremaja', label: 'Pra Remaja' },
   { key: 'remaja', label: 'Remaja' },
   { key: 'usianikah', label: 'Usia Nikah' },
+  { key: 'mudamudi', label: 'Muda-Mudi' },
 ];
 
 export default function PengaturanTargetPage() {
