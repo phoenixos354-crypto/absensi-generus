@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
+import { getTingkatan } from '@/components/tingkatan';
 import { ScanLine, CheckCircle2, AlertTriangle, Keyboard, SwitchCamera } from 'lucide-react';
 
 function bunyiTit() {
@@ -169,7 +170,7 @@ export default function ScanPage() {
             <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Kelompok</label>
             <select value={kelompokId} onChange={e => setKelompokId(e.target.value)} className="w-full rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40">
               <option value="">— Pilih kelompok —</option>
-              {kelompokList.map(k => <option key={k.id} value={k.id}>{k.nama_kelompok}</option>)}
+              {kelompokList.map(k => <option key={k.id} value={k.id}>{k.nama_kelompok} — {getTingkatan(k.tingkatan).label}</option>)}
             </select>
           </div>
           <div>
