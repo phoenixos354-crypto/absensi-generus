@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { AppScreen } from '@/components/AppScreen';
 import { BackButton } from '@/components/BackButton';
+import ShareLinkButton from '@/components/ShareLinkButton';
 import { TingkatanIcon, TINGKATAN_LABEL } from '@/components/tingkatan';
 import {
   Users, Trophy, Percent, Layers, CheckCircle2,
@@ -70,6 +71,13 @@ export default function RekapTargetGlobalPage() {
 
   const belumAdaKelompok = kelompokAkses && Array.isArray(kelompokAkses) && kelompokAkses.length === 0;
 
+  // Kumpulkan ID kelompok yang bisa diakses user (untuk dikirim ke public page)
+  const kelompokIdsParam = useMemo(() => {
+    const list = rekap?.kelompok_list || [];
+    if (!list.length) return '';
+    return list.map(k => k.id).join(',');
+  }, [rekap]);
+
   return (
     <AppScreen>
       <header className="relative overflow-hidden px-5 pb-8 pt-6" style={{ background: 'linear-gradient(160deg,#155dfc 0%,#1447c9 100%)' }}>
@@ -84,7 +92,9 @@ export default function RekapTargetGlobalPage() {
               Rekap Target
             </span>
           </div>
-          <div className="size-10" />
+          <ShareLinkButton
+            href={`/public/rekap-target/global?tingkatan=${tabTingkatan}${kelompokIdsParam ? `&kelompok_ids=${kelompokIdsParam}` : ''}`}
+          />
         </div>
 
         <div className="relative z-10 mt-4 text-center text-white">
