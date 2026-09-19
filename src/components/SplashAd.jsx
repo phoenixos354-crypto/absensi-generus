@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useBebasIklan } from '@/lib/bebas-iklan';
 
 const SPLASH_IMG = 'https://app.visbiz.co.id/imgserver/img/20260916_201829_74e0f8.png';
 const DURASI_DETIK = 5;
@@ -9,15 +10,18 @@ export function SplashAd() {
   const [tampil, setTampil] = useState(false);
   const [sisa, setSisa] = useState(DURASI_DETIK);
   const [gagalMuat, setGagalMuat] = useState(false);
+  const { siap, bebas } = useBebasIklan();
 
   // Tampil sekali per sesi tab: buka app baru (tab baru) -> muncul lagi,
   // pindah-pindah halaman di dalam app -> tidak muncul lagi.
+  // Kelompok bebas iklan (mis. Loceret, Nganjuk) tidak pernah melihat splash.
   useEffect(() => {
+    if (!siap || bebas) return;
     try {
       if (sessionStorage.getItem(STORAGE_KEY)) return;
     } catch {}
     setTampil(true);
-  }, []);
+  }, [siap, bebas]);
 
   // Hitung mundur 5 -> 0
   useEffect(() => {
@@ -41,7 +45,7 @@ export function SplashAd() {
     setTampil(false);
   }
 
-  if (!tampil) return null;
+  if (!tampil || bebas) return null;
 
   const bisaMasuk = sisa <= 0;
 

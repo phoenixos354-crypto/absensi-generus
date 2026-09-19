@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { X, MessageCircle, CheckCircle2 } from 'lucide-react';
+import { useBebasIklan } from '@/lib/bebas-iklan';
 
 // Sekali user klik "Sudah Gabung Grup WA", flag ini disimpan permanen di
 // localStorage supaya modal tidak muncul lagi. Selama flag ini belum ada,
@@ -11,15 +12,18 @@ const WA_LINK = 'https://chat.whatsapp.com/H0vZ1f13abaLcYFW46Po64';
 
 export function WhatsAppGroupModal() {
   const [visible, setVisible] = useState(false);
+  const { siap, bebas } = useBebasIklan();
 
   useEffect(() => {
+    // Kelompok bebas iklan (mis. Loceret, Nganjuk) tidak diajak gabung grup WA.
+    if (!siap || bebas) return;
     if (!localStorage.getItem(JOINED_KEY)) {
       // Delay acak antara 5–10 detik sebelum modal muncul
       const delay = Math.floor(Math.random() * 5000) + 5000; // 5000–10000 ms
       const timer = setTimeout(() => setVisible(true), delay);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [siap, bebas]);
 
   function handleJoinClick() {
     // Buka link WA di tab baru. Modal sengaja TIDAK ditutup di sini, karena
@@ -39,7 +43,7 @@ export function WhatsAppGroupModal() {
     setVisible(false);
   }
 
-  if (!visible) return null;
+  if (!visible || bebas) return null;
 
   return (
     <div
