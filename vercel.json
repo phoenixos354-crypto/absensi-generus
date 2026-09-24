@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "comment": "Deploy KECIL ini di proyek Vercel LAMA (ganti domain contoh di bawah). Memberi 301 permanen path-preserving ke domain baru. Biarkan 6-12 bulan.",
   "redirects": [
     {
       "source": "/p/:kode",
