@@ -1,8 +1,26 @@
 {
-  "crons": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "comment": "Deploy KECIL ini di proyek Vercel LAMA (ganti domain contoh di bawah). Memberi 301 permanen path-preserving ke domain baru. Biarkan 6-12 bulan.",
+  "redirects": [
     {
-      "path": "/api/keep-alive",
-      "schedule": "0 0 * * *"
+      "source": "/p/:kode",
+      "destination": "https://absensi.galipatmedia.my.id/p/:kode",
+      "permanent": true
+    },
+    {
+      "source": "/kartu-jamaah/:kode",
+      "destination": "https://absensi.galipatmedia.my.id/kartu-jamaah/:kode",
+      "permanent": true
+    },
+    {
+      "source": "/public/:path*",
+      "destination": "https://absensi.galipatmedia.my.id/public/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "destination": "https://absensi.galipatmedia.my.id/:path*",
+      "permanent": true
     }
   ]
 }
