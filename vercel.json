@@ -2,21 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
-      "source": "/p/:kode",
-      "destination": "https://absensi.galipatmedia.my.id/p/:kode",
-      "permanent": true
-    },
-    {
-      "source": "/kartu-jamaah/:kode",
-      "destination": "https://absensi.galipatmedia.my.id/kartu-jamaah/:kode",
-      "permanent": true
-    },
-    {
-      "source": "/public/:path*",
-      "destination": "https://absensi.galipatmedia.my.id/public/:path*",
-      "permanent": true
-    },
-    {
       "source": "/:path*",
       "destination": "https://absensi.galipatmedia.my.id/:path*",
       "permanent": true
